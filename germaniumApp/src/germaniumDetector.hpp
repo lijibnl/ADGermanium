@@ -183,10 +183,16 @@ protected:
     int GermaniumCbfTemplateFile;
     int GermaniumHeaderString;
 
-private:                     
-    int ctrl_sock_, data_sock_;
-    struct sockaddr_in ctrl_dest_, ctrl_local_ data_local_;
-    int ctrl_port_, data_port;
+private:
+
+    volatile bool running_ = false;
+
+    int ctrlSock_, dataSock_;
+    struct sockaddr_in ctrlDest, ctrlLocal, dataLocal;
+    int ctrlPort_, dataPort_;
+
+    epicsThreadId ctrlThread_ = nullptr;
+    epicsThreadId dataThread_ = nullptr;
 
     /* These are the methods that are new to this class */
     void abortAcquisition();

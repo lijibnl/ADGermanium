@@ -719,16 +719,26 @@ asynStatus GermaniumDetector::writeReadCamserver(double timeout)
     return status;
 }
 
-static void germaniumTaskC(void *drvPvt)
+static void germaniumCtrlRxTaskC(void *drvPvt)
 {
     GermaniumDetector *pPvt = (GermaniumDetector *)drvPvt;
     
-    pPvt->germaniumTask();
+    pPvt->germaniumCtrlRxTask();
 }
 
-/** This thread controls acquisition, reads image files to get the image data, and
-  * does the callbacks to send it to higher layers */
-void GermaniumDetector::germaniumTask()
+static void germaniumDataRxTaskC(void *drvPvt)
+{
+    GermaniumDetector *pPvt = (GermaniumDetector *)drvPvt;
+    
+    pPvt->germaniumDataRxTask();
+}
+
+/**
+ * @func GermaniumDetector::germaniumCtrlRxTask()
+ * @brief This thread receives device control related readback values and does the callbacks
+ * to send it to higher layers
+ * */
+void GermaniumDetector::germaniumCtrlRxTask()
 {
     int status = asynSuccess;
     int imageCounter;
@@ -1410,31 +1420,51 @@ extern "C" int GermaniumDetectorConfig(const char *portName, const char *camserv
     return(asynSuccess);
 }
 
-/** Constructor for Germanium driver; most parameters are simply passed to ADDriver::ADDriver.
-  * After calling the base class constructor this method creates a thread to collect the detector data, 
-  * and sets reasonable default values for the parameters defined in this class, asynNDArrayDriver, and ADDriver.
-  * \param[in] portName The name of the asyn port driver to be created.
-  * \param[in] camserverPort The name of the asyn port previously created with drvAsynIPPortConfigure to
-  *            communicate with camserver.
-  * \param[in] maxSizeX The size of the Germanium detector in the X direction.
-  * \param[in] maxSizeY The size of the Germanium detector in the Y direction.
-  * \param[in] maxBuffers The maximum number of NDArray buffers that the NDArrayPool for this driver is 
-  *            allowed to allocate. Set this to -1 to allow an unlimited number of buffers.
-  * \param[in] maxMemory The maximum amount of memory that the NDArrayPool for this driver is 
-  *            allowed to allocate. Set this to -1 to allow an unlimited amount of memory.
-  * \param[in] priority The thread priority for the asyn port driver thread if ASYN_CANBLOCK is set in asynFlags.
-  * \param[in] stackSize The stack size for the asyn port driver thread if ASYN_CANBLOCK is set in asynFlags.
-  */
-GermaniumDetector::GermaniumDetector(const char *portName, const char *camserverPort,
-                                int maxSizeX, int maxSizeY,
-                                int maxBuffers, size_t maxMemory,
-                                int priority, int stackSize)
+//===========================================================================//
 
-    : ADDriver(portName, 1, 0, maxBuffers, maxMemory,
-               0, 0,             /* No interfaces beyond those set in ADDriver.cpp */
-               ASYN_CANBLOCK, 1, /* ASYN_CANBLOCK=1, ASYN_MULTIDEVICE=0, autoConnect=1 */
-               priority, stackSize),
-      imagesRemaining(0), firstStatusCall(1)
+/** Constructor for Germanium driver; most parameters are simply passed to
+ *  ADDriver::ADDriver.
+  * After calling the base class constructor this method creates a thread to
+  * collect the detector data, and sets reasonable default values for the
+  * parameters defined in this class, asynNDArrayDriver, and ADDriver.
+  * @param[in] portName The name of the asyn port driver to be created.
+  * @param[in] camserverPort The name of the asyn port previously created with drvAsynIPPortConfigure to
+  *            communicate with camserver.
+  * @param[in] maxSizeX The size of the Germanium detector in the X direction.
+  * @param[in] maxSizeY The size of the Germanium detector in the Y direction.
+  * @param[in] maxBuffers The maximum number of NDArray buffers that the NDArrayPool for this driver is 
+  *            allowed to allocate. Set this to -1 to allow an unlimited number of buffers.
+  * @param[in] maxMemory The maximum amount of memory that the NDArrayPool for this driver is 
+  *            allowed to allocate. Set this to -1 to allow an unlimited amount of memory.
+  * @param[in] priority The thread priority for the asyn port driver thread if ASYN_CANBLOCK is set in asynFlags.
+  * @param[in] stackSize The stack size for the asyn port driver thread if ASYN_CANBLOCK is set in asynFlags.
+  */
+GermaniumDetector::GermaniumDetector( const char *portName
+                                    , const char *camserverPort
+                                    , int maxSizeX
+                                    , int maxSizeY
+                                    , int maxBuffers
+                                    , size_t maxMemory,
+                                    , int priority
+                                    , int stackSize
+                                    )
+                                    : ADDriver( portName
+                                              , 1  // maxAddr
+                                              , 0  // numParams, should be ADNumParameters + NUM_PARAMS
+                                              , 0  // maxBuffers
+                                              , 0  // maxMemory
+                                              , 0
+                                              , asynInt32Mask | asynFloat64Mask |
+                                                asynInt16ArrayMask | asynGenericPointerMask // interfaceMask
+                                              , asynInt32Mask | asynFloat64Mask |
+                                                asynInt16ArrayMask | asynGenericPointerMask // interruptMask
+                                              , ASYN_CANBLOCK
+                                              , 1  // ASYN_CANBLOCK=1, ASYN_MULTIDEVICE=0, autoConnect=1 */
+                                              , priority
+                                              , stackSize
+                                              )
+                                    , imagesRemaining( 0 )
+                                    , firstStatusCall( 1 )
 
 {
     int status = asynSuccess;
@@ -1443,33 +1473,21 @@ GermaniumDetector::GermaniumDetector(const char *portName, const char *camserver
     size_t dims[2];
 
 
-
-    // Create UDP sockets
-    ctrl_sock_ = socket( AF_INET, SOCK_DGRAM, 0 );
-    if ( ctrl_sock < 0 )
+    // Network initialization
+    ctrlSock_ = make_udp_bind( ctrlPort );
+    dataSock_ = make_udp_bind( dataPort );
+    if ( ctrlSock_ == INVALID_SOCKET || dataSock_ == INVALID_SOCKET )
     {
-        perror( "socket" );
+        errlogSevPrintf( errlogFatal, "Failed to open UDP sockets\n" );
     }
 
-    int optval = 1;
-    setsockopt( ctrl_sock_, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval) );
+    ctrlSock_ = make_udp_bind( ctrlPort_ );
+    dataSock_ = make_udp_bind( dataPort_ );
 
-    memset( &dest_, 0, sizeof( dest_ );
-    dest_.sin_family = AF_INET;
-    dest_.sin_port = htons( ctrl_port_ );
-    if (inet_aton(ip, &dest_.sin_addr) == 0) {
-        fprintf(stderr, "Invalid IP address: %s\n", ip);
-        close(sock);
-        return;
-    }
+    set_nonblock(ctrlSock_);
+    set_nonblock(dataSock_);
 
 
-    data_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
-    if ( data_sock_ < 0 )
-    {
-        perror("socket");
-        return -1;
-    }
 
 
     /* Create the epicsEvents for signaling to the germanium task when acquisition starts and stops */
@@ -1619,18 +1637,23 @@ GermaniumDetector::GermaniumDetector(const char *portName, const char *camserver
         printf("%s: unable to set camera parameters\n", functionName);
         return;
     }
-    
-    /* Create the thread that updates the images */
-    status = (epicsThreadCreate("GermaniumDetTask",
-                                epicsThreadPriorityMedium,
-                                epicsThreadGetStackSize(epicsThreadStackMedium),
-                                (EPICSTHREADFUNC)germaniumTaskC,
-                                this) == NULL);
-    if (status) {
-        printf("%s:%s epicsThreadCreate failure for image task\n", 
-            driverName, functionName);
-        return;
-    }
+
+
+    running_ = true;
+
+    ctrlRxThread_ = epicsThreadCreate( "Ctrl-Rx"
+                                     , epicsThreadPriorityMedium
+                                     , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                     , ctrlRxTaskC
+                                     , this
+                                     );
+
+    dataRxThread_ = epicsThreadCreate( "Data-Rx"
+                                     , epicsThreadPriorityHigh
+                                     , epicsThreadGetStackSize(epicsThreadStackBig)
+                                     , dataRxTaskC
+                                     , this
+                                     );
     
     // Always call the germaniumStatus() function once to get TVX version, etc.
     // This must be done with the lock taken
@@ -1640,38 +1663,55 @@ GermaniumDetector::GermaniumDetector(const char *portName, const char *camserver
 
 }
 
+GermaniumDetector::~GermaniumDetector()
+{
+    running_ = false;
+
+    if(ctrlSock_!=INVALID_SOCKET)
+        epicsSocketDestroy(ctrlSock_);
+
+    if(dataSock_!=INVALID_SOCKET)
+        epicsSocketDestroy(dataSock_);
+
+}
+
+//===========================================================================//
+
+/// iocsh glue
+
 /* Code for iocsh registration */
-static const iocshArg GermaniumDetectorConfigArg0 = {"Port name", iocshArgString};
-static const iocshArg GermaniumDetectorConfigArg1 = {"camserver port name", iocshArgString};
-static const iocshArg GermaniumDetectorConfigArg2 = {"maxSizeX", iocshArgInt};
-static const iocshArg GermaniumDetectorConfigArg3 = {"maxSizeY", iocshArgInt};
-static const iocshArg GermaniumDetectorConfigArg4 = {"maxBuffers", iocshArgInt};
-static const iocshArg GermaniumDetectorConfigArg5 = {"maxMemory", iocshArgInt};
-static const iocshArg GermaniumDetectorConfigArg6 = {"priority", iocshArgInt};
-static const iocshArg GermaniumDetectorConfigArg7 = {"stackSize", iocshArgInt};
-static const iocshArg * const GermaniumDetectorConfigArgs[] =  {&GermaniumDetectorConfigArg0,
-                                                              &GermaniumDetectorConfigArg1,
-                                                              &GermaniumDetectorConfigArg2,
-                                                              &GermaniumDetectorConfigArg3,
-                                                              &GermaniumDetectorConfigArg4,
-                                                              &GermaniumDetectorConfigArg5,
-                                                              &GermaniumDetectorConfigArg6,
-                                                              &GermaniumDetectorConfigArg7};
-static const iocshFuncDef configGermaniumDetector = {"GermaniumDetectorConfig", 8, GermaniumDetectorConfigArgs};
+static const iocshArg GermaniumDetectorConfigArg0 = {"Port name",  iocshArgString};
+static const iocshArg GermaniumDetectorConfigArg1 = {"ip",         iocshArgString};
+static const iocshArg GermaniumDetectorConfigArg2 = {"nelm",       iocshArgInt};
+static const iocshArg GermaniumDetectorConfigArg3 = {"ctrlPort",   iocshArgInt};
+static const iocshArg GermaniumDetectorConfigArg4 = {"dataPort",   iocshArgInt};
+
+static const iocshArg * const GermaniumDetectorConfigArgs[] =  { &GermaniumDetectorConfigArg0
+                                                               , &GermaniumDetectorConfigArg1
+                                                               , &GermaniumDetectorConfigArg2
+                                                               , &GermaniumDetectorConfigArg3
+                                                               , &GermaniumDetectorConfigArg4
+                                                               };
+static const iocshFuncDef configGermaniumDetector = { "GermaniumDetectorConfig", 5, GermaniumDetectorConfigArgs };
+
 static void configGermaniumDetectorCallFunc(const iocshArgBuf *args)
 {
-    GermaniumDetectorConfig(args[0].sval, args[1].sval, args[2].ival,  args[3].ival,  
-                          args[4].ival, args[5].ival, args[6].ival,  args[7].ival);
+    GermaniumDetectorConfig( args[0].sval
+                           , args[1].sval
+                           , args[2].ival
+                           , args[3].ival
+                           , args[4].ival
+                           );
 }
 
 
 static void GermaniumDetectorRegister(void)
 {
-
-    iocshRegister(&configGermaniumDetector, configGermaniumDetectorCallFunc);
+    iocshRegister( &configGermaniumDetector, configGermaniumDetectorCallFunc );
 }
 
+
 extern "C" {
-epicsExportRegistrar(GermaniumDetectorRegister);
+    epicsExportRegistrar(GermaniumDetectorRegister);
 }
 
