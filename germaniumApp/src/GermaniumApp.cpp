@@ -7,6 +7,7 @@
 #include "Germanium.hpp"
 #include <iocsh.h>
 #include <epicsExit.h>
+#include <epicsExport.h>
 
 extern "C" {
 

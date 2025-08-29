@@ -11,10 +11,14 @@
 #include <errno.h>
 #include <sys/select.h>
 #include <fcntl.h>
+#include <chrono>
+#include <thread>
 
 #include "libComAPI.h"
 #include "osdSock.h"
 #include "ellLib.h"
+
+//===========================================================================//
 
 int Germanium::make_udp_bind(int port)
 {
@@ -37,12 +41,16 @@ int Germanium::make_udp_bind(int port)
     return s;
 }
 
+//===========================================================================//
+
 void Germanium::set_nonblock( int s ) 
 {
     int opt = 1;
 
     setsockopt( s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt) );
 }
+
+//===========================================================================//
 
 
 
@@ -132,6 +140,8 @@ bool Germanium::initializeUDPSockets()
     return true;
 }
 
+//===========================================================================//
+
 /*
  * Close UDP sockets and cleanup network resources
  */
@@ -166,6 +176,8 @@ void Germanium::closeUDPSockets()
     
     printf("Germanium: UDP sockets closed\n");
 }
+
+//===========================================================================//
 
 /*
  * Send UDP command to Zynq device using proper message format
@@ -217,172 +229,8 @@ asynStatus Germanium::sendUDPCommand( uint16_t op, uint32_t data )
     return asynSuccess;
 }
 
-/*
- * UDP control receive thread - handles command responses and status updates
- */
-void Germanium::udpControlReceiveThread()
-{
-    UdpRespMsg response;
-    struct sockaddr_in fromAddr;
-    socklen_t fromLen = sizeof(fromAddr);
-    
-    printf("Germanium: UDP control receive thread started\n");
-    
-    while (threadsRunning) {
-        // Use select for timeout to allow clean shutdown
-        fd_set readfds;
-        struct timeval timeout;
-        
-        FD_ZERO(&readfds);
-        FD_SET(udpControlSocket, &readfds);
-        timeout.tv_sec = 1;  // 1 second timeout
-        timeout.tv_usec = 0;
-        
-        int result = select(udpControlSocket + 1, &readfds, NULL, NULL, &timeout);
-        
-        if (result > 0 && FD_ISSET(udpControlSocket, &readfds))
-        {
-            ssize_t received = recvfrom( udpControlSocket
-                                       , &response
-                                       , sizeof(response)
-                                       , 0
-                                       , (struct sockaddr*)&fromAddr
-                                       , &fromLen
-                                       );
-            
-            if (received == sizeof(response)) {
-                // Process response
-                uint16_t id = response.id;
-                uint16_t op = response.op;
-                
-                if (isReadOp(op)) {
-                    // This is a read response
-                    uint16_t address = getOpAddress(op);
-                    uint32_t data = ntohl(response.payload.single_word.data);
-                    
-                    printf("Germanium: Read response - addr=0x%04X, data=0x%08X\n", address, data);
-                    
-                    // Update parameter readbacks based on address
-                    // Map register addresses to PV parameters here
-                    
-                } else {
-                    // This is a write confirmation
-                    printf("Germanium: Write confirmation for op=0x%04X\n", op);
-                }
-                
-                callParamCallbacks();
-            }
-        }
-        else if (result < 0 && errno != EINTR)
-        {
-            printf("Germanium: Control socket select error: %s\n", strerror(errno));
-            break;
-        }
-    }
-    
-    printf("Germanium: UDP control receive thread stopped\n");
-}
+//===========================================================================//
 
-/*
- * UDP data receive thread - handles photon event data packets
- */
-void Germanium::udpDataReceiveThread()
-{
-    struct sockaddr_in fromAddr;
-    socklen_t fromLen = sizeof(fromAddr);
-    
-    printf("Germanium: UDP data receive thread started\n");
-    
-    while (threadsRunning) {
-        // Use select for timeout
-        fd_set readfds;
-        struct timeval timeout;
-        
-        FD_ZERO(&readfds);
-        FD_SET(udpDataSocket, &readfds);
-        timeout.tv_sec = 1;
-        timeout.tv_usec = 0;
-        
-        int result = select(udpDataSocket + 1, &readfds, NULL, NULL, &timeout);
-        
-        if (result > 0 && FD_ISSET(udpDataSocket, &readfds)) {
-            ssize_t received = recvfrom(udpDataSocket, udpDataBuffer.get(), UDP_BUFFER_SIZE, 0,
-                                      (struct sockaddr*)&fromAddr, &fromLen);
-            
-            if (received > 0) {
-                dataBufferSize = received;
-                // Signal data processing thread that new data is available
-                epicsEventSignal(dataAvailable);
-            }
-        } else if (result < 0 && errno != EINTR) {
-            printf("Germanium: Data socket select error: %s\n", strerror(errno));
-            break;
-        }
-    }
-    
-    printf("Germanium: UDP data receive thread stopped\n");
-}
-
-/*
- * Data processing thread - processes received photon events and updates arrays
- */
-void Germanium::dataProcessingThread()
-{
-    printf("Germanium: Data processing thread started\n");
-    
-    while (threadsRunning) {
-        // Wait for data to be available (with timeout)
-        if (epicsEventWaitWithTimeout(dataAvailable, 1.0) == epicsEventWaitOK) {
-            // Process the data buffer
-            size_t numEvents = dataBufferSize / sizeof(PhotonEvent);
-            PhotonEvent *events = (PhotonEvent*)udpDataBuffer.get();
-            
-            for (size_t i = 0; i < numEvents; i++) {
-                // Convert from network byte order
-                uint16_t element = ntohs(events[i].element);
-                uint16_t energy = ntohs(events[i].energy);
-                uint32_t timestamp = ntohl(events[i].timestamp);
-                
-                // Validate element number
-                if (element < numElements) {
-                    processPhotonEvent(element, energy, timestamp);
-                    totalCounts[element]++;
-                    evttot++;
-                }
-            }
-            
-            // Update count rates periodically
-            static int updateCounter = 0;
-            if (++updateCounter % 1000 == 0) {
-                updateCountRates();
-                updateSpectra();
-            }
-        }
-    }
-    
-    printf("Germanium: Data processing thread stopped\n");
-}
-
-/*
- * Static thread entry points for C compatibility
- */
-void Germanium::udpControlThreadC(void *pPvt)
-{
-    Germanium *pGermanium = (Germanium*)pPvt;
-    pGermanium->udpControlReceiveThread();
-}
-
-void Germanium::udpDataThreadC(void *pPvt)
-{
-    Germanium *pGermanium = (Germanium*)pPvt;
-    pGermanium->udpDataReceiveThread();
-}
-
-void Germanium::dataProcessingThreadC(void *pPvt)
-{
-    Germanium *pGermanium = (Germanium*)pPvt;
-    pGermanium->dataProcessingThread();
-}
 
 /*
  * UDP-based register write (replaces direct pl_register_write)
@@ -435,6 +283,8 @@ void Germanium::ad9252_cnfg(int adc, int reg, int value)
     }
 }
 
+//===========================================================================//
+
 /*
  * Send MARS ASIC configuration array via UDP using proper message format
  * This sends the loads array using the StuffMarsReqMsgPayload structure
@@ -486,6 +336,8 @@ asynStatus Germanium::sendMarsConfiguration()
 
     return asynSuccess;
 }
+
+//===========================================================================//
 
 /*
  * Write integer array via UDP (generic function for array transfers)
@@ -579,3 +431,82 @@ asynStatus Germanium::sendMarsConfiguration()
 //    printf("Germanium: Sent string command 0x%02X: '%s'\n", command, str);
 //    return asynSuccess;
 //}
+
+
+//===========================================================================//
+
+/*
+ * UDP data reception thread function (C wrapper)
+ */
+extern "C" void udpDataThreadC(void *drvPvt)
+{
+    Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
+    pGermanium->udpDataThread();
+}
+
+//===========================================================================//
+
+/*
+ * UDP data reception thread - handles incoming data packets
+ */
+void Germanium::udpDataThread()
+{
+    printf("UDP data reception thread started\n");
+    
+    uint8_t receiveBuffer[UDP_BUFFER_SIZE];
+    struct sockaddr_in senderAddr;
+    socklen_t senderAddrLen = sizeof(senderAddr);
+    
+    while (threadsRunning)
+    {
+        // Wait for data with timeout
+        fd_set readfds;
+        struct timeval timeout;
+        FD_ZERO(&readfds);
+        FD_SET(udpDataSocket, &readfds);
+        timeout.tv_sec = 1;   // 1 second timeout
+        timeout.tv_usec = 0;
+    
+        int result = select(udpDataSocket + 1, &readfds, nullptr, nullptr, &timeout);
+    
+        if (result > 0 && FD_ISSET(udpDataSocket, &readfds))
+        {   
+            // Receive data packet
+            ssize_t bytesReceived = recvfrom(udpDataSocket, receiveBuffer, sizeof(receiveBuffer), 0,
+                                           (struct sockaddr*)&senderAddr, &senderAddrLen);
+
+            if (bytesReceived > 0)
+            {
+                // Process received data
+                processReceivedData(receiveBuffer, static_cast<size_t>(bytesReceived));
+            }
+            else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+            {
+                printf("Error receiving UDP data: %s\n", strerror(errno));
+            }
+        }
+        else if (result < 0 && errno != EINTR)
+        {
+            printf("Error in UDP data select: %s\n", strerror(errno));
+        }
+
+        // Brief pause to prevent CPU spinning
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+
+    printf("UDP data reception thread stopped\n");
+}
+
+//===========================================================================//
+
+/*
+ * UDP control reception thread function (C wrapper)
+ */
+extern "C" void udpControlThreadC(void *drvPvt)
+{
+    Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
+    pGermanium->udpControlThread();
+}
+
+//===========================================================================//
+

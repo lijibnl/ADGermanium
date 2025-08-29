@@ -16,6 +16,8 @@
 #include <thread>
 #include <chrono>
 
+//===========================================================================//
+
 /*
  * Data acquisition and file management initialization
  */
@@ -64,6 +66,8 @@ void Germanium::setupDataAcquisition()
     printf("Data acquisition system initialized\n");
 }
 
+//===========================================================================//
+
 /*
  * Create data directory if it doesn't exist
  */
@@ -90,6 +94,8 @@ void Germanium::createDataDirectory()
         printf("Data directory exists: %s\n", dirPath);
     }
 }
+
+//===========================================================================//
 
 /*
  * Generate full filename based on DIR, FNAME, RUNNO, and segment number
@@ -120,6 +126,8 @@ std::string Germanium::generateFilename(int segmentNumber)
     return std::string(fullFilename);
 }
 
+//===========================================================================//
+
 /*
  * Open new data file for writing
  */
@@ -149,6 +157,8 @@ bool Germanium::openNewDataFile()
     return true;
 }
 
+//===========================================================================//
+
 /*
  * Close current data file
  */
@@ -166,6 +176,8 @@ void Germanium::closeCurrentDataFile()
         currentFileSize = 0;
     }
 }
+
+//===========================================================================//
 
 /*
  * Write data to current file, handling file size limits and segmentation
@@ -216,6 +228,8 @@ bool Germanium::writeDataToFile(const uint8_t* data, size_t dataSize)
     return true;
 }
 
+//===========================================================================//
+
 /*
  * Start data acquisition and file writing
  */
@@ -249,6 +263,8 @@ void Germanium::startDataAcquisition()
     printf("Data acquisition started\n");
 }
 
+//===========================================================================//
+
 /*
  * Stop data acquisition and file writing
  */
@@ -268,7 +284,6 @@ void Germanium::stopDataAcquisition()
     fileWritingEnabled = false;
     
     // Close current data file
-    closeCurrentDataFile();
     
     // Flush any remaining data in write buffer
     flushWriteBuffer();
@@ -277,119 +292,82 @@ void Germanium::stopDataAcquisition()
            totalBytesWritten, totalFilesWritten);
 }
 
+//===========================================================================//
+
 /*
- * UDP data reception thread function (C wrapper)
+ * Data processing thread function (C wrapper)
  */
-extern "C" void udpDataThreadC(void *drvPvt)
+extern "C" void dataProcessingThreadC(void *drvPvt)
 {
     Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
-    pGermanium->udpDataThread();
+    pGermanium->dataProcessingThread();
 }
 
+//===========================================================================//
+
 /*
- * UDP data reception thread - handles incoming data packets
+ * Data processing thread - handles spectrum updates.
+ * This thread processes detector data and updates EPICS parameters
  */
-void Germanium::udpDataThread()
+void Germanium::dataProcessingThread()
 {
-    printf("UDP data reception thread started\n");
-    
-    uint8_t receiveBuffer[UDP_BUFFER_SIZE];
-    struct sockaddr_in senderAddr;
-    socklen_t senderAddrLen = sizeof(senderAddr);
-    
+    printf("Data processing thread started\n");
+
+    auto lastUpdateTime = std::chrono::steady_clock::now();
+    auto lastRateUpdateTime = std::chrono::steady_clock::now();
+
     while (threadsRunning)
     {
-        // Wait for data with timeout
-        fd_set readfds;
-        struct timeval timeout;
-        FD_ZERO(&readfds);
-        FD_SET(udpDataSocket, &readfds);
-        timeout.tv_sec = 1;   // 1 second timeout
-        timeout.tv_usec = 0;
-        
-        int result = select(udpDataSocket + 1, &readfds, nullptr, nullptr, &timeout);
-        
-        if (result > 0 && FD_ISSET(udpDataSocket, &readfds))
+        // Wait for data to be available for processing
+        epicsEventWaitWithTimeout(dataAvailable, 1.0); // 1 second timeout
+
+        auto currentTime = std::chrono::steady_clock::now();
+
+        // Update count rates every second
+        auto rateElapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            currentTime - lastRateUpdateTime).count();
+
+        if (rateElapsed >= 1)
         {
-            // Receive data packet
-            ssize_t bytesReceived = recvfrom(udpDataSocket, receiveBuffer, sizeof(receiveBuffer), 0,
-                                           (struct sockaddr*)&senderAddr, &senderAddrLen);
-            
-            if (bytesReceived > 0)
-            {
-                // Process received data
-                processReceivedData(receiveBuffer, static_cast<size_t>(bytesReceived));
-            }
-            else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                printf("Error receiving UDP data: %s\n", strerror(errno));
-            }
+            updateCountRates();
+            lastRateUpdateTime = currentTime;
         }
-        else if (result < 0 && errno != EINTR)
+
+        // Update spectrum displays every 2 seconds
+        auto displayElapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            currentTime - lastUpdateTime).count();
+
+        if (displayElapsed >= 2)
         {
-            printf("Error in UDP data select: %s\n", strerror(errno));
+            updateSpectra();
+            lastUpdateTime = currentTime;
         }
-        
-        // Brief pause to prevent CPU spinning
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
+
+        // Update MCA and TDC
+
+        // Update EPICS parameters
+        setIntegerParam(GermaniumSS, acquisitionRunning ? 1 : 0);
+        setIntegerParam(GermaniumUS, framestat);
+
+        // Update frame statistics
+        static int lastFramestat = 0;
+        if (framestat != lastFramestat)
+        {
+            setDoubleParam(GermaniumRATE, static_cast<double>(framestat - lastFramestat) / rateElapsed);
+            lastFramestat = framestat;
+        }
+
+        // Call parameter callbacks
+        callParamCallbacks();
+
+        // Brief sleep to prevent excessive CPU usage
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    
-    printf("UDP data reception thread stopped\n");
+
+    printf("Data processing thread stopped\n");
 }
 
-/*
- * Process received UDP data packet
- */
-void Germanium::processReceivedData(const uint8_t* data, size_t dataSize)
-{
-    if (!data || dataSize == 0)
-    {
-        return;
-    }
-    
-    // Update statistics
-    framestat++;
-    
-    // Add data to write buffer if file writing is enabled
-    if (fileWritingEnabled && acquisitionRunning)
-    {
-        addDataToWriteBuffer(data, dataSize);
-    }
-    
-    // Process data for spectrum updates (if it's spectrum data)
-    if (dataSize >= sizeof(DataPacketHeader))
-    {
-        const DataPacketHeader* header = reinterpret_cast<const DataPacketHeader*>(data);
-        
-        switch (header->packetType)
-        {
-        case PACKET_TYPE_SPECTRUM:
-            processSpectrumData(data + sizeof(DataPacketHeader), 
-                              dataSize - sizeof(DataPacketHeader));
-            break;
-            
-        case PACKET_TYPE_EVENT:
-            processEventData(data + sizeof(DataPacketHeader), 
-                           dataSize - sizeof(DataPacketHeader));
-            break;
-            
-        case PACKET_TYPE_STATUS:
-            processStatusData(data + sizeof(DataPacketHeader), 
-                            dataSize - sizeof(DataPacketHeader));
-            break;
-            
-        default:
-            // Unknown packet type - still write to file but don't process
-            break;
-        }
-    }
-    
-    // Update parameter callbacks periodically
-    if ((framestat % 100) == 0) // Every 100 frames
-    {
-        callParamCallbacks();
-    }
-}
+//===========================================================================//
 
 /*
  * Add data to circular write buffer for file writing thread
@@ -442,6 +420,8 @@ void Germanium::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
     epicsEventSignal(dataWriteAvailable);
 }
 
+//===========================================================================//
+
 /*
  * Data writing thread function (C wrapper)
  */
@@ -450,6 +430,8 @@ extern "C" void dataWriteThreadC(void *drvPvt)
     Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
     pGermanium->dataWriteThread();
 }
+
+//===========================================================================//
 
 /*
  * Data writing thread - handles file writing from buffer
@@ -515,10 +497,18 @@ void Germanium::dataWriteThread()
             // Write data to file
             writeDataToFile(tempBuffer.data(), dataSize);
         }
+
+        // Close the data file if the data in the buffer is the last in the current count
+        //if ( last_data )
+        //{
+        //    closeCurrentDataFile();
+        //}
     }
     
     printf("Data writing thread stopped\n");
 }
+
+//===========================================================================//
 
 /*
  * Flush any remaining data in write buffer
@@ -577,3 +567,6 @@ void Germanium::flushWriteBuffer()
     
     printf("Write buffer flushed\n");
 }
+
+//===========================================================================//
+

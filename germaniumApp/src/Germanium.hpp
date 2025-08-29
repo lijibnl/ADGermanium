@@ -196,9 +196,10 @@ public:
     bool initializeUDPSockets();
     void closeUDPSockets();
     asynStatus sendUDPCommand( uint16_t op, uint32_t data);
-    void udpControlReceiveThread();      // Thread for control/status UDP reception
-    void udpDataReceiveThread();         // Thread for data UDP reception  
-    void dataProcessingThread();         // Thread for processing received data
+    void udpControlThread();      // Thread for control/status UDP reception
+    void udpDataThread();         // Thread for data UDP reception  
+    void dataProcessingThread();  // Thread for processing received data
+    void dataWriteThread();       // Thread for writing data to files
     
     // Static thread entry points (implemented in GermaniumDataAcq.cpp and GermaniumHardware.cpp)
     static void udpControlThreadC(void *pPvt);
