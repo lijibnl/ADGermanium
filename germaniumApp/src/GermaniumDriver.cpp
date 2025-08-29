@@ -32,7 +32,6 @@ void u32HostToIpStr(uint32_t host, char* buf, size_t buflen) noexcept {
 
 }
 
-
 //===========================================================================//
 
 // asynPortDriver virtual method implementations
@@ -373,17 +372,17 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if ( function == GermaniumFSIZE )
     {
         // File size limit - validate and store
-        if (value < 1024*1024) // Minimum 1MB
+        if (value < 1) // Minimum 1MB
         {
             printf("Germanium: File size too small, setting to 1MB minimum\n");
-            setIntegerParam(GermaniumFSIZE, 1024*1024);
+            setIntegerParam(GermaniumFSIZE, 1);
         }
-        else if (value > 2*1024*1024*1024) // Maximum 2GB
+        else if (value > 1000) // Maximum 1TB
         {
-            printf("Germanium: File size too large, setting to 2GB maximum\n");
-            setIntegerParam(GermaniumFSIZE, 2*1024*1024*1024);
+            printf("Germanium: File size too large, setting to 1TB maximum\n");
+            setIntegerParam(GermaniumFSIZE, 1000);
         }
-        printf("Germanium: Maximum file size set to %d bytes\n", value);
+        printf("Germanium: Maximum file size set to %d MBytes\n", value);
     }
 
     else if ( function == GermaniumCNT )
