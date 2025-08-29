@@ -40,6 +40,7 @@
 #define FRAME_NO            55
 #define COUNT_MODE          56
 
+#define LOADS               80
 //#define CMD_REG_READ    0
 //#define CMD_REG_WRITE   1
 //#define CMD_START_DMA   2

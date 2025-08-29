@@ -12,62 +12,64 @@
 #include <algorithm>
 
 // Constructor
-Germanium::Germanium(const char *portName, int numElements, const char *ipAddress,
-                     int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
-                     int interfa        else if (function == GermaniumTDS)
-        {
-            // TDS slope - implement exact zDDM logic from original
-            // Original uses complex timing calculation
-            int tempVal = value;
-            if (tempVal == 0) tempVal = 1; // Prevent divide by zero
-            
-            // Original calculation: tds = 1.0e6 / (16.0 * tempVal);
-            // This gets converted to register value for hardware
-            double tds = 1.0e6 / (16.0 * tempVal);
-            
-            // Update all chips with the calculated TDS value
-            for (int chip = 0; chip < nchips; chip++)
-            {
-                // The original uses tds for all chips
-                globalstr[chip].tds = (int)(tds * 10); // Scale for register
-            }
-            status = sendMarsConfiguration();
-        }nt interruptMask,
-                     int asynFlags, int autoConnect, int priority, int stackSize)
-    : ADDriver(portName, maxAddr, numParams, maxBuffers, maxMemory, interfaceMask, interruptMask,
-               asynFlags, autoConnect, priority, stackSize),
-      udpControlSocket(-1),
-      udpDataSocket(-1),
-      udpInitialized(false),
-      zDDMWdTimerQ(nullptr),
-      TPgenTimerQ(nullptr),
-      numElements(numElements),
-      controlPort(GERMANIUM_CONTROL_PORT),
-      dataPort(GERMANIUM_DATA_PORT),
-      udpControlThreadId(nullptr),
-      udpDataThreadId(nullptr),
-      dataProcessingThreadId(nullptr),
-      threadsRunning(false),
-      udpMutex(nullptr),
-      dataAvailable(nullptr),
-      udpDataBuffer(nullptr),
-      dataBufferSize(0),
-      evttot(0),
-      framestat(0),
-      fileWritingEnabled(false),
-      currentFileHandle(-1),
-      currentFileSize(0),
-      currentSegmentNumber(0),
-      totalBytesWritten(0),
-      totalFilesWritten(0),
-      writeBufferHead(0),
-      writeBufferTail(0),
-      writeBufferCount(0),
-      writeBufferMutex(nullptr),
-      dataWriteAvailable(nullptr),
-      dataWriteThreadId(nullptr),
-      acquisitionThreadId(nullptr),
-      acquisitionRunning(false)
+Germanium::Germanium( const char *portName
+                    , int numElements
+                    , const char *ipAddress
+                    , int maxAddr
+                    , int numParams
+                    , int maxBuffers
+                    , size_t maxMemory
+                    , int interfaceMask
+                    , int interruptMask
+                    , int asynFlags
+                    , int autoConnect
+                    , int priority
+                    , int stackSize
+                    )
+                    : ADDriver( portName
+                              , maxAddr
+                              , numParams
+                              , maxBuffers
+                              , maxMemory
+                              , interfaceMask
+                              , interruptMask
+                              , asynFlags
+                              , autoConnect
+                              , priority
+                              , stackSize
+                              )
+                    , udpControlSocket(-1)
+                    , udpDataSocket(-1)
+                    , udpInitialized(false)
+                    , zDDMWdTimerQ(nullptr)
+                    , TPgenTimerQ(nullptr)
+                    , numElements(numElements)
+                    , controlPort(GERMANIUM_CONTROL_PORT)
+                    , dataPort(GERMANIUM_DATA_PORT)
+                    , udpControlThreadId(nullptr)
+                    , udpDataThreadId(nullptr)
+                    , dataProcessingThreadId(nullptr)
+                    , threadsRunning(false)
+                    , udpMutex(nullptr)
+                    , dataAvailable(nullptr)
+                    , udpDataBuffer(nullptr)
+                    , dataBufferSize(0)
+                    , evttot(0)
+                    , framestat(0)
+                    , fileWritingEnabled(false)
+                    , currentFileHandle(-1)
+                    , currentFileSize(0)
+                    , currentSegmentNumber(0)
+                    , totalBytesWritten(0)
+                    , totalFilesWritten(0)
+                    , writeBufferHead(0)
+                    , writeBufferTail(0)
+                    , writeBufferCount(0)
+                    , writeBufferMutex(nullptr)
+                    , dataWriteAvailable(nullptr)
+                    , dataWriteThreadId(nullptr)
+                    , acquisitionThreadId(nullptr)
+                    , acquisitionRunning(false)
 {
     // Store IP address
     strncpy(this->ipAddress, ipAddress, sizeof(this->ipAddress) - 1);
@@ -81,24 +83,27 @@ Germanium::Germanium(const char *portName, int numElements, const char *ipAddres
     // Set detector configuration based on number of elements
     switch (numElements)
     {
-    case 96:
-        nchips = 3;
-        break;
-    case 192:
-        nchips = 6;
-        break;
-    case 384:
-        nchips = 12;
-        break;
-    default:
-        printf("Germanium: Invalid number of elements %d, defaulting to 192\n", numElements);
-        this->numElements = 192;
-        nchips = 6;
-        break;
+        case 96:
+            nchips = 3;
+            break;
+        case 192:
+            nchips = 6;
+            break;
+        case 384:
+            nchips = 12;
+            break;
+        default:
+            printf("Germanium: Invalid number of elements %d, defaulting to 192\n", numElements);
+            this->numElements = 192;
+            nchips = 6;
+            break;
     }
 
-    printf("Germanium detector: %d elements, %d chips, IP: %s\n",
-           this->numElements, nchips, this->ipAddress);
+    printf( "Germanium detector: %d elements, %d chips, IP: %s\n"
+          , this->numElements
+          , nchips
+          , this->ipAddress
+          );
 
     // Allocate dynamic data arrays based on actual number of elements
     allocateDataArrays();
@@ -116,31 +121,39 @@ Germanium::Germanium(const char *portName, int numElements, const char *ipAddres
     if (initializeUDPSockets())
     {
         // Create write buffer mutex and event
-        writeBufferMutex = epicsMutexCreate();
+        writeBufferMutex   = epicsMutexCreate();
         dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
         
         // Start UDP communication threads
         threadsRunning = true;
 
-        udpControlThreadId = epicsThreadCreate("GermaniumUDPCtrl",
-                                               epicsThreadPriorityMedium,
-                                               epicsThreadGetStackSize(epicsThreadStackMedium),
-                                               udpControlThreadC, this);
+        udpControlThreadId = epicsThreadCreate( "GermaniumUDPCtrl"
+                                              , epicsThreadPriorityMedium
+                                              , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                              , udpControlThreadC
+                                              , this
+                                              );
 
-        udpDataThreadId = epicsThreadCreate("GermaniumUDPData",
-                                            epicsThreadPriorityHigh,
-                                            epicsThreadGetStackSize(epicsThreadStackMedium),
-                                            udpDataThreadC, this);
+        udpDataThreadId = epicsThreadCreate( "GermaniumUDPData"
+                                           , epicsThreadPriorityHigh
+                                           , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                           , udpDataThreadC
+                                           , this
+                                           );
 
-        dataProcessingThreadId = epicsThreadCreate("GermaniumDataProc",
-                                                   epicsThreadPriorityMedium,
-                                                   epicsThreadGetStackSize(epicsThreadStackMedium),
-                                                   dataProcessingThreadC, this);
+        dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
+                                                  , epicsThreadPriorityMedium
+                                                  , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                                  , dataProcessingThreadC
+                                                  , this
+                                                  );
 
-        dataWriteThreadId = epicsThreadCreate("GermaniumDataWrite",
-                                             epicsThreadPriorityMedium,
-                                             epicsThreadGetStackSize(epicsThreadStackMedium),
-                                             dataWriteThreadC, this);
+        dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
+                                             , epicsThreadPriorityMedium
+                                             , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                             , dataWriteThreadC
+                                             , this
+                                             );
 
         printf("Germanium: UDP communication and data writing threads started\n");
     }
@@ -207,14 +220,18 @@ Germanium::~Germanium()
         dataWriteAvailable = nullptr;
     }
 
-    // Smart pointers and vectors automatically clean up their memory
-    // No manual deallocation needed!
+    // Clean up UDP resources
+    if (udpMutex)
+    {
+        epicsMutexDestroy(udpMutex);
+        udpMutex = nullptr;
+    }
 
-    // Destroy mutexes (legacy - no longer used for direct device access)
-    if (fpga_write_lock)
-        epicsMutexDestroy(fpga_write_lock);
-    if (SPI_lock)
-        epicsMutexDestroy(SPI_lock);
+    if (dataAvailable)
+    {
+        epicsEventDestroy(dataAvailable);
+        dataAvailable = nullptr;
+    }
 
     printf("Germanium detector driver destroyed\n");
 }
@@ -227,15 +244,14 @@ Germanium::~Germanium()
 void Germanium::createGermaniumParameters()
 {
     /* Basic record fields - exact match to zDDM record */
-    createParam("VERS", asynParamFloat64, &GermaniumVERS);  /* Code version */
-    createParam("VAL", asynParamInt32, &GermaniumVAL);      /* Value */
+    createParam("VER",    asynParamInt32, &GermaniumVER);  /* Code version */
 
     /* Large data arrays - exact match to zDDM record */
-    createParam("MCA", asynParamInt32Array, &GermaniumMCA);       /* MCA spectrum data - NCHAN*4096 */
-    createParam("TDC", asynParamInt32Array, &GermaniumTDC);       /* TDC spectrum data - NCHAN*1024 */
-    createParam("SPCT", asynParamInt32Array, &GermaniumSPCT);     /* Selected channel spectrum - 4096 */
-    createParam("SPCTX", asynParamFloat64Array, &GermaniumSPCTX); /* Calibrated X-axis values - 4096 */
-    createParam("INTENS", asynParamInt32Array, &GermaniumINTENS); /* Intensity array - NELM */
+    createParam("MCA",    asynParamInt32Array,   &GermaniumMCA);    /* MCA spectrum data - NCHAN*4096 */
+    createParam("TDC",    asynParamInt32Array,   &GermaniumTDC);    /* TDC spectrum data - NCHAN*1024 */
+    createParam("SPCT",   asynParamInt32Array,   &GermaniumSPCT);   /* Selected channel spectrum - 4096 */
+    createParam("SPCTX",  asynParamFloat64Array, &GermaniumSPCTX);  /* Calibrated X-axis values - 4096 */
+    createParam("INTENS", asynParamInt32Array,   &GermaniumINTENS); /* Intensity array - NELM */
 
     /* Display size parameters - exact match to zDDM record */
     createParam("EXSIZE", asynParamInt32, &GermaniumEXSIZE); /* Display X size for energy */
@@ -247,14 +263,14 @@ void Germanium::createGermaniumParameters()
     createParam("IPADDR", asynParamOctet, &GermaniumIPADDR); /* Fast data IP address */
 
     /* File handling - exact match to zDDM record */
-    createParam("FNAM", asynParamOctet, &GermaniumFNAM); /* Filename */
-    createParam("CALF", asynParamOctet, &GermaniumCALF); /* Calibration filename */
-    createParam("DIR", asynParamOctet, &GermaniumDIR);   /* Data directory path */
+    createParam("FNAM",  asynParamOctet, &GermaniumFNAM);  /* Filename */
+    createParam("CALF",  asynParamOctet, &GermaniumCALF);  /* Calibration filename */
+    createParam("DIR",   asynParamOctet, &GermaniumDIR);   /* Data directory path */
     createParam("FSIZE", asynParamInt32, &GermaniumFSIZE); /* Maximum file size in bytes */
 
     /* Timing and control - exact match to zDDM record */
     createParam("FREQ", asynParamFloat64, &GermaniumFREQ); /* Time base frequency */
-    createParam("CNT", asynParamInt32, &GermaniumCNT);     /* Count control (menu) */
+    createParam("CNT",  asynParamInt32, &GermaniumCNT);     /* Count control (menu) */
     createParam("PCNT", asynParamInt32, &GermaniumPCNT);   /* Previous count (menu) */
     createParam("CONT", asynParamInt32, &GermaniumCONT);   /* OneShot/AutoCount mode (menu) */
     createParam("MODE", asynParamInt32, &GermaniumMODE);   /* Timed/Continuous mode (menu) */
@@ -329,27 +345,12 @@ void Germanium::createGermaniumParameters()
     /* Per-chip arrays - exact match to zDDM record */
     createParam("THRSH", asynParamInt32Array, &GermaniumTHRSH); /* Threshold array (per chip) */
 
-    /* Control and status - exact match to zDDM record */
-    createParam("CNT", asynParamInt32, &GermaniumCNT);     /* Count preset */
-    createParam("CNTS", asynParamInt32, &GermaniumCNTS);   /* Counts (read-only) */
-    createParam("TIMS", asynParamFloat64, &GermaniumTIMS); /* Timer (read-only) */
-    createParam("RATE", asynParamFloat64, &GermaniumRATE); /* Rate (read-only) */
-    
     /* Acquisition control - exact match to zDDM record */
     createParam("CLRE", asynParamInt32, &GermaniumCLRE);   /* Clear event spectrum */
     createParam("CLRM", asynParamInt32, &GermaniumCLRM);   /* Clear monitor spectrum */
     createParam("CLRT", asynParamInt32, &GermaniumCLRT);   /* Clear timer */
     createParam("STRT", asynParamInt32, &GermaniumSTRT);   /* Start acquisition */
     createParam("STOP", asynParamInt32, &GermaniumSTOP);   /* Stop acquisition */
-    
-    /* System control - exact match to zDDM record */
-    createParam("MODE", asynParamInt32, &GermaniumMODE);   /* Acquisition mode */
-    createParam("PLDEL", asynParamInt32, &GermaniumPLDEL); /* Preload delay */
-    createParam("RODEL", asynParamInt32, &GermaniumRODEL); /* Readout delay */
-    createParam("VERS", asynParamOctet, &GermaniumVERS);   /* Version string */
-    createParam("VAL", asynParamFloat64Array, &GermaniumVAL); /* Data array */
-    createParam("MCA", asynParamFloat64Array, &GermaniumMCA); /* MCA data array */
-    createParam("TDC", asynParamFloat64Array, &GermaniumTDC); /* TDC data array */
 
     /* Display and formatting - exact match to zDDM record */
     createParam("EGU", asynParamOctet, &GermaniumEGU);   /* Engineering units */
@@ -366,9 +367,8 @@ void Germanium::createGermaniumParameters()
  */
 void Germanium::setGermaniumInitialValues()
 {
-
     /* Set default values based on original zDDM record */
-    setDoubleParam(GermaniumVERS, 1.0);
+    setDoubleParam(GermaniumVER, 0.0);
     setIntegerParam(GermaniumEXSIZE, 4096);
     setIntegerParam(GermaniumEYSIZE, 192);
     setIntegerParam(GermaniumTXSIZE, 1024);

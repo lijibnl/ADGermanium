@@ -244,7 +244,7 @@ void Germanium::startDataAcquisition()
     acquisitionRunning = true;
     
     // Send start command to hardware
-    udpRegisterWrite(STRT, 1);
+    udpRegisterWrite(TRIG, 1);
     
     printf("Data acquisition started\n");
 }
@@ -261,7 +261,7 @@ void Germanium::stopDataAcquisition()
     }
     
     // Send stop command to hardware
-    udpRegisterWrite(STOP, 1);
+    udpRegisterWrite(TRIG, 0);
     
     // Stop acquisition
     acquisitionRunning = false;

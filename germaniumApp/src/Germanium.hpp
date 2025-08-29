@@ -25,7 +25,7 @@
 /* Note: Macros used here for EPICS convention and database template compatibility */
 
 /* Basic record fields */
-#define GermaniumVersString         "GERMANIUM_VERS"        /* Code Version */
+#define GermaniumVersString         "GERMANIUM_VER"        /* Code Version */
 #define GermaniumValString          "GERMANIUM_VAL"         /* Value */
 
 // Modern C++ alternative (for future use)
@@ -143,46 +143,6 @@ namespace GermaniumParams {
 #define GermaniumCoutString         "GERMANIUM_COUT"        /* Count output link */
 #define GermaniumCoutpString        "GERMANIUM_COUTP"       /* Count output prompt */
 
-/* UDP Communication ports */
-#define GERMANIUM_CONTROL_PORT      5001                    /* Control command port */
-#define GERMANIUM_DATA_PORT         5002                    /* Data streaming port */
-
-/* UDP Command types */
-#define UDP_CMD_REGISTER_WRITE      0x01                    /* Write register */
-#define UDP_CMD_REGISTER_READ       0x02                    /* Read register */
-#define UDP_CMD_FIFO_RESET          0x03                    /* Reset FIFO */
-#define UDP_CMD_FIFO_DISABLE        0x04                    /* Disable FIFO */
-#define UDP_CMD_ADC_CONFIG          0x05                    /* Configure ADC */
-#define UDP_CMD_START_ACQ           0x10                    /* Start acquisition */
-#define UDP_CMD_STOP_ACQ            0x11                    /* Stop acquisition */
-#define UDP_CMD_MARS_CONFIG         0x20                    /* MARS ASIC config (bulk) */
-#define UDP_CMD_CHANNEL_ENABLE      0x21                    /* Channel enable array */
-#define UDP_CMD_THRESHOLD_ARRAY     0x22                    /* Threshold array */
-#define UDP_CMD_CALIBRATION_ARRAY   0x23                    /* Calibration array */
-#define UDP_CMD_SET_FILENAME        0x30                    /* Set filename */
-#define UDP_CMD_LOAD_CALIBRATION    0x31                    /* Load calibration file */
-
-// Forward declarations for MARS ASIC structures
-struct globalstr_t {
-    int st;      // Shaping time
-    int g;       // Gain  
-    int pol;     // Polarity
-    int eblk;    // Bias current enable
-    int gmon;    // Global monitor mode
-    int puen;    // Pileup rejection enable
-    int mfs;     // Multi-fire suppression
-    int tds;     // TDC slope
-    int tdm;     // TDC mode
-    int th;      // Threshold
-};
-
-struct channelstr_t {
-    int chen;    // Channel enable
-    int tsen;    // Test pulse input enable
-    int thtr;    // Threshold trim
-    int putr;    // Pileup threshold trim
-};
-
 class Germanium : public ADDriver {
 public:
     // Constructor for photon counting Germanium detector
@@ -200,6 +160,7 @@ public:
     
     // asynPortDriver virtual methods - overridden for UDP communication
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus readInt32(asynUser *pasynUser);
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
     virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
                                   size_t *nActual);
@@ -229,10 +190,12 @@ public:
     void allocateDataArrays();
     void deallocateDataArrays();
     
-    // UDP communication methods (implemented in Germanium_Network.cpp)
+    // UDP communication methods (implemented in GermaniumNetwork.cpp)
+    int make_udp_bind(int port);
+    void set_nonblock( int s );
     bool initializeUDPSockets();
     void closeUDPSockets();
-    asynStatus sendUDPCommand(uint32_t command, uint32_t address, uint32_t data);
+    asynStatus sendUDPCommand( uint16_t op, uint32_t data);
     void udpControlReceiveThread();      // Thread for control/status UDP reception
     void udpDataReceiveThread();         // Thread for data UDP reception  
     void dataProcessingThread();         // Thread for processing received data
@@ -243,20 +206,21 @@ public:
     static void dataProcessingThreadC(void *pPvt);
     static void dataWriteThreadC(void *pPvt);
     
-    // UDP-based hardware interface (implemented in Germanium_Network.cpp)
+    // UDP-based hardware interface (implemented in GermaniumNetwork.cpp)
     asynStatus udpRegisterWrite(uint32_t reg, uint32_t value);
-    asynStatus udpRegisterRead(uint32_t reg, uint32_t *value);
-    asynStatus udpSendString(uint32_t command, const char *str);
+    asynStatus udpRegisterRead(uint32_t reg);
+    //asynStatus udpSendString(uint32_t command, const char *str);
     asynStatus sendMarsConfiguration();  // Send entire loads[] array via UDP
     asynStatus udpWriteIntArray(uint32_t command, const void *data, 
                                 size_t dataSize, uint32_t address);
+    asynStatus udpSendLoads( uint32_t* loads, size_t count );
     void fifo_reset();                // Now sends UDP command
     void fifo_disable();              // Now sends UDP command  
     void ad9252_cnfg(int adc, int reg, int value); // Now sends UDP command
 
 protected:
     // Parameter indices - these will be defined based on createParam() calls
-    int GermaniumVERS, GermaniumVAL;
+    int GermaniumVER, GermaniumVAL;
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
     int GermaniumIPADDR, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
@@ -276,6 +240,7 @@ protected:
     int GermaniumSLP, GermaniumOFFS, GermaniumTHRSH;
     int GermaniumEGU, GermaniumPREC;
     int GermaniumCOUT, GermaniumCOUTP;
+    int GermaniumCLRE, GermaniumCLRM, GermaniumCLRT, GermaniumSTRT, GermaniumSTOP;
 
 private:
     // Data acquisition and file management
@@ -293,13 +258,16 @@ private:
     void processReceivedData(const uint8_t* data, size_t dataSize);
     void processSpectrumData(const uint8_t* data, size_t dataSize);
     void processEventData(const uint8_t* data, size_t dataSize);
-    void processStatusData(const uint8_t* data, size_t dataSize);
+    void processStatusDat(const uint8_t* data, size_t dataSize);
     
     // Hardware-related methods (now UDP-based instead of direct FIFO access)
     void initializeGermaniumHardware();
     void initializeMarsConfig();
     void setupDataAcquisition();
+    //asynStatus udpSendMarsGlobal(int chip, MarsGlobalConfig *config);
+    //asynStatus udpSendMarsChannels();
     
+    // 
     // MARS ASIC configuration optimization methods
     template<typename T>
     constexpr uint32_t packBits(T value, int position, int width) {
@@ -330,8 +298,8 @@ private:
     // Detector configuration
     int numElements;                  // Number of detector elements (96/192/384)
     char ipAddress[32];               // IP address for detector communication
-    uint16_t controlPort;             // UDP port for control commands (default 5001)
-    uint16_t dataPort;                // UDP port for data reception (default 5002)
+    uint16_t controlPort;             // UDP port for control commands 
+    uint16_t dataPort;                // UDP port for data reception 
     
     // Thread management for UDP communication
     epicsThreadId udpControlThreadId; // Control/status UDP receiver thread
@@ -342,7 +310,6 @@ private:
     epicsEventId dataAvailable;       // Event for data processing synchronization
     
     // Data buffers for UDP reception
-    static constexpr size_t UDP_BUFFER_SIZE = 65536; // 64KB UDP buffer
     std::unique_ptr<uint8_t[]> udpDataBuffer;     // Buffer for incoming data packets (smart pointer)
     size_t dataBufferSize;                        // Current data in buffer
     
@@ -353,7 +320,7 @@ private:
     
     globalstr_t globalstr[MAX_CHIPS];      // Global settings per chip
     channelstr_t channelstr[MAX_CHANNELS]; // Per-channel settings  
-    uint16_t loads[MAX_LOADS];             // SPI configuration data
+    uint32_t loads[12][14];                // SPI configuration data
     int nchips;                            // Number of chips actually used
     
     // Data acquisition state
@@ -379,9 +346,6 @@ private:
     epicsThreadId dataWriteThreadId;      // Data writing thread
     
     // Photon counting data arrays - using modern C++ containers for better memory management
-    static constexpr int SPECTRUM_SIZE = 4096;  // Energy channels per element
-    static constexpr int TDC_SIZE = 1024;       // Time channels per element
-    
     std::vector<std::vector<uint32_t>> mcaData;   // MCA spectra per element [numElements][SPECTRUM_SIZE]
     std::vector<std::vector<uint32_t>> tdcData;   // TDC histograms per element [numElements][TDC_SIZE]
     std::vector<uint32_t> countRates;             // Current count rate per element [numElements]
@@ -390,21 +354,6 @@ private:
     // Thread management
     epicsThreadId acquisitionThreadId;
     bool acquisitionRunning;
-    
-    // UDP command/response structures
-    struct UDPCommand {
-        uint32_t command;             // Command type
-        uint32_t address;             // Register address  
-        uint32_t data;                // Data payload
-        uint32_t checksum;            // Simple checksum
-    } __attribute__((packed));
-    
-    struct UDPResponse {
-        uint32_t status;              // Response status
-        uint32_t address;             // Register address
-        uint32_t data;                // Response data
-        uint32_t timestamp;           // Device timestamp
-    } __attribute__((packed));
     
     // Data packet structure for photon events
     struct PhotonEvent {
