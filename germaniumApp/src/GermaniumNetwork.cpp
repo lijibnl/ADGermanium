@@ -510,3 +510,56 @@ extern "C" void udpControlThreadC(void *drvPvt)
 
 //===========================================================================//
 
+/*
+ * UDP control thread - handles control command responses and status updates
+ */
+void Germanium::udpControlThread()
+{
+    printf("UDP control thread started\n");
+
+    uint8_t receiveBuffer[1024]; // Smaller buffer for control messages
+    struct sockaddr_in senderAddr;
+    socklen_t senderAddrLen = sizeof(senderAddr);
+
+    while (threadsRunning)
+    {
+        // Wait for control responses with timeout
+        fd_set readfds;
+        struct timeval timeout;
+        FD_ZERO(&readfds);
+        FD_SET(udpControlSocket, &readfds);
+        timeout.tv_sec = 1;   // 1 second timeout
+        timeout.tv_usec = 0;
+
+        int result = select(udpControlSocket + 1, &readfds, nullptr, nullptr, &timeout);
+
+        if (result > 0 && FD_ISSET(udpControlSocket, &readfds))
+        {
+            // Receive control response
+            ssize_t bytesReceived = recvfrom(udpControlSocket, receiveBuffer, sizeof(receiveBuffer), 0,
+                                           (struct sockaddr*)&senderAddr, &senderAddrLen);
+
+            if (bytesReceived > 0)
+            {
+                // Process control response
+                processResponse(receiveBuffer, static_cast<size_t>(bytesReceived));
+            }
+            else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+            {
+                printf("Error receiving UDP control response: %s\n", strerror(errno));
+            }
+        }
+        else if (result < 0 && errno != EINTR)
+        {
+            printf("Error in UDP control select: %s\n", strerror(errno));
+        }
+
+        // Brief pause to prevent CPU spinning
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    printf("UDP control thread stopped\n");
+}
+
+//===========================================================================//
+

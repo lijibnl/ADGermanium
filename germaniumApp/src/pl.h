@@ -26,13 +26,13 @@
 #define CALPULSE_WIDTH      18
 #define CALPULSE_MODE       19
 #define TD_CAL              20
-#define DMA_CONTROL         32
-#define DMA_STAT            33
-#define DMA_BASEADDR        34
-#define DMA_BURSTLEN        35
-#define DMA_BUFLEN          36
-#define DMA_CURADDR         37
-#define DMA_THROTTLE        38
+//#define DMA_CONTROL         32
+//#define DMA_STAT            33
+//#define DMA_BASEADDR        34
+//#define DMA_BURSTLEN        35
+//#define DMA_BUFLEN          36
+//#define DMA_CURADDR         37
+//#define DMA_THROTTLE        38
 #define UDP_IP_ADDR         40
 #define TRIG                52
 #define COUNT_TIME_LO       53
@@ -41,6 +41,13 @@
 #define COUNT_MODE          56
 
 #define LOADS               80
+#define TEMP1               90
+#define TEMP2               91
+#define TEMP3               92
+#define ZTEMP               93
+#define HV                  94
+#define HV_RBV              95
+#define HV_CURR             96
 //#define CMD_REG_READ    0
 //#define CMD_REG_WRITE   1
 //#define CMD_START_DMA   2

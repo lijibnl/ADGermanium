@@ -8,6 +8,30 @@
 #include "GermaniumTypes.hpp"
 #include <algorithm>
 #include <cstring>
+#include <cstdint>
+#include <cstdio>
+#include <arpa/inet.h>
+
+namespace { // internal linkage
+
+[[nodiscard]] bool ipStrToU32Host(const char* s, uint32_t& outHost) noexcept {
+    in_addr addr{};
+    int rc = inet_pton(AF_INET, s, &addr);
+    if (rc == 1) { outHost = ntohl(addr.s_addr); return true; }
+    unsigned b1,b2,b3,b4;
+    if (std::sscanf(s, "%u.%u.%u.%u", &b1,&b2,&b3,&b4) != 4) return false;
+    if (b1>255||b2>255||b3>255||b4>255) return false;
+    outHost = (b1<<24)|(b2<<16)|(b3<<8)|b4;
+    return true;
+}
+
+void u32HostToIpStr(uint32_t host, char* buf, size_t buflen) noexcept {
+    in_addr a{}; a.s_addr = htonl(host);
+    inet_ntop(AF_INET, &a, buf, (socklen_t)buflen); // buflen >= INET_ADDRSTRLEN
+}
+
+}
+
 
 //===========================================================================//
 
@@ -304,27 +328,27 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
     {
         // Leakage/pulse monitor select - this is a control parameter
         // May be handled through SIM_EVT_SEL or other control registers
-        status = udpRegisterWrite(SIM_EVT_SEL, value);
+        status = udpRegisterWrite( SIM_EVT_SEL, value);
     }
 
     else if ( function == GermaniumTPAMP )
     {
-        status = udpRegisterWrite(MARS_CALPULSE, value);
+        status = udpRegisterWrite( MARS_CALPULSE, value);
     }
 
     else if ( function == GermaniumTPFRQ )
     {
-        status = udpRegisterWrite(CALPULSE_RATE, value);
+        status = udpRegisterWrite( CALPULSE_RATE, value);
     }
 
     else if ( function == GermaniumTPCNT )
     {
-        status = udpRegisterWrite(CALPULSE_CNT, value);
+        status = udpRegisterWrite( CALPULSE_CNT, value);
     }
 
     else if ( function == GermaniumTPENB )
     {
-        status = udpRegisterWrite(CALPULSE_MODE, value);
+        status = udpRegisterWrite( CALPULSE_MODE, value);
     }
 
 //    case GermaniumCNTS)
@@ -368,18 +392,16 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
         if (value == 1)
         { // Start acquisition
             startDataAcquisition();
-            status = udpRegisterWrite(COUNT_MODE, 1);
         }
         else
         { // Stop acquisition
             stopDataAcquisition();
-            status = udpRegisterWrite(COUNT_MODE, 0);
         }
     }
     
     else if ( function == GermaniumMODE )
     {
-        status = udpRegisterWrite(COUNT_MODE, value);
+        status = udpRegisterWrite( COUNT_MODE, value);
     }
 
 //    case GermaniumCLRE)
@@ -387,7 +409,7 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
 //        // Clear event - implement exact zDDM logic
 //        if (value == 1) {
 //            // Clear the event spectrum data
-//            status = udpRegisterWrite(CLR_EVT, 1);
+//            status = udpRegisterWrite( CLR_EVT, 1);
 //            // Reset the value back to 0
 //            setIntegerParam(GermaniumCLRE, 0);
 //        }
@@ -397,7 +419,7 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
 //        // Clear monitor - implement exact zDDM logic
 //        if (value == 1) {
 //            // Clear the monitor spectrum data
-//            status = udpRegisterWrite(CLR_MON, 1);
+//            status = udpRegisterWrite( CLR_MON, 1);
 //            // Reset the value back to 0
 //            setIntegerParam(GermaniumCLRM, 0);
 //        }
@@ -407,7 +429,7 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
 //        // Clear timer - implement exact zDDM logic
 //        if (value == 1) {
 //            // Clear the timer
-//            status = udpRegisterWrite(CLR_TIM, 1);
+//            status = udpRegisterWrite( CLR_TIM, 1);
 //            // Reset the value back to 0
 //            setIntegerParam(GermaniumCLRT, 0);
 //        }
@@ -417,7 +439,7 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
 //        // Start acquisition - implement exact zDDM logic
 //        if (value == 1) {
 //            // Start data acquisition
-//            status = udpRegisterWrite(STRT, 1);
+//            status = udpRegisterWrite( STRT, 1);
 //            // Reset the value back to 0
 //            setIntegerParam(GermaniumSTRT, 0);
 //        }
@@ -427,20 +449,20 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
 //        // Stop acquisition - implement exact zDDM logic
 //        if (value == 1) {
 //            // Stop data acquisition
-//            status = udpRegisterWrite(STOP, 1);
+//            status = udpRegisterWrite( STOP, 1);
 //            // Reset the value back to 0
 //            setIntegerParam(GermaniumSTOP, 0);
 //        }
 //    }
     else if ( function == GermaniumPLDEL )
     {
-        status = udpRegisterWrite(MARS_PIPE_DELAY, value);
+        status = udpRegisterWrite( MARS_PIPE_DELAY, value);
     }
 
     else if ( function == GermaniumRODEL )
     {
         // Readout delay - may be part of MARS configuration
-        status = udpRegisterWrite(MARS_RDOUT_ENB, value);
+        status = udpRegisterWrite( MARS_RDOUT_ENB, value);
     }
 
     // Add more parameter mappings as needed
@@ -484,10 +506,10 @@ asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
         // Time base frequency - may not have direct register in pl.h
         // Could be derived from COUNT_TIME registers
         uint32_t regValue = (uint32_t)(value / 1000.0); // Example scaling
-        status = udpRegisterWrite(COUNT_TIME_LO, regValue & 0xFFFF);
+        status = udpRegisterWrite( COUNT_TIME_LO, regValue & 0xFFFF );
         if (status == asynSuccess)
         {
-            status = udpRegisterWrite(COUNT_TIME_HI, (regValue >> 16) & 0xFFFF);
+            status = udpRegisterWrite( COUNT_TIME_HI, (regValue >> 16) & 0xFFFF );
         }
     }
 
@@ -495,10 +517,10 @@ asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
     {
         // Time preset - use COUNT_TIME registers
         uint32_t ticks = (uint32_t)(value * 1000000); // Convert seconds to microseconds
-        status = udpRegisterWrite(COUNT_TIME_LO, ticks & 0xFFFF);
+        status = udpRegisterWrite( COUNT_TIME_LO, ticks & 0xFFFF );
         if (status == asynSuccess)
         {
-            status = udpRegisterWrite(COUNT_TIME_HI, (ticks >> 16) & 0xFFFF);
+            status = udpRegisterWrite( COUNT_TIME_HI, (ticks >> 16) & 0xFFFF );
         }
     }
 
@@ -506,10 +528,10 @@ asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
     {
         // Auto time preset (use same registers for now)
         uint32_t ticks = (uint32_t)(value * 1000000);
-        status = udpRegisterWrite(COUNT_TIME_LO, ticks & 0xFFFF);
+        status = udpRegisterWrite( COUNT_TIME_LO, ticks & 0xFFFF );
         if (status == asynSuccess)
         {
-            status = udpRegisterWrite(COUNT_TIME_HI, (ticks >> 16) & 0xFFFF);
+            status = udpRegisterWrite( COUNT_TIME_HI, (ticks >> 16) & 0xFFFF );
         }
     }
 
@@ -517,7 +539,7 @@ asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
     {
         // Delay setting - could be TD_CAL (Time Delay Calibration)
         uint32_t delayReg = (uint32_t)(value * 1000); // Convert to appropriate units
-        status = udpRegisterWrite(TD_CAL, delayReg);
+        status = udpRegisterWrite( TD_CAL, delayReg );
     }
 
     else if ( function == GermaniumRATE )
@@ -591,7 +613,24 @@ asynStatus Germanium::writeOctet(asynUser *pasynUser, const char *value,
     else if ( function == GermaniumIPADDR )
     {
         printf("Germanium: IP address change to %s\n", value);
-        // Don't send this via UDP as it would change our connection
+
+        uint32_t host;
+        if (!ipStrToU32Host(value, host))
+        {
+            printf( "Invalid IP '%s'\n", value );
+            return asynError; // leave RBV unchanged
+        }
+
+        uint32_t net = htonl(host);
+        status = udpRegisterWrite( UDP_IP_ADDR, net );
+
+        if (status != asynSuccess)
+            return status;
+
+        // Normalize what UIs see
+        char norm[16];
+        u32HostToIpStr(host, norm, sizeof(norm));
+        setStringParam( GermaniumIPADDR, norm );
     }
 
     else
@@ -622,6 +661,41 @@ asynStatus Germanium::readInt32( asynUser *pasynUser )
     asynStatus status = asynSuccess;
 
     if ( function == GermaniumVER )
+    {
+        status = udpRegisterRead( VERSIONREG );
+    }
+
+    else if ( function == GermaniumTEMP1 )
+    {
+        status = udpRegisterRead( TEMP1 );
+    }
+
+    else if ( function == GermaniumTEMP2 )
+    {
+        status = udpRegisterRead( TEMP2 );
+    }
+
+    else if ( function == GermaniumTEMP3 )
+    {
+        status = udpRegisterRead( TEMP3 );
+    }
+
+    else if ( function == GermaniumZTEMP )
+    {
+        status = udpRegisterRead( ZTEMP );
+    }
+
+    else if ( function == GermaniumHV )
+    {
+        status = udpRegisterRead( HV );
+    }
+
+    else if ( function == GermaniumHV_CURR )
+    {
+        status = udpRegisterRead( HV_CURR );
+    }
+
+    else
     {
         printf( "Invalid function %d for readInt32()\n", function );
         status = asynError;
@@ -917,6 +991,122 @@ asynStatus Germanium::readNDArray(asynUser *pasynUser, epicsInt32 *value,
     }
 
     return status;
+}
+
+//===========================================================================//
+
+/*
+ * Process control response message from hardware
+ */
+void Germanium::processResponse(const uint8_t* data, size_t dataSize)
+{
+    if (!data || dataSize < sizeof(UdpRespMsg))
+    {
+        return;
+    }
+
+    const UdpRespMsg* response = reinterpret_cast<const UdpRespMsg*>(data);
+
+    // Verify this is a response message
+    if ((response->op & 0x8000) == 0)
+    {
+        printf("Received non-response message on control channel\n");
+        return;
+    }
+
+    // Extract register address and operation type
+    uint16_t reg = response->op & 0x7FFF;
+    bool isRead = (response->op & 0x4000) != 0;
+    uint32_t val = response->payload.single_word.data;
+
+    // Probably ZynqDetector should send readback right after register write
+
+    switch ( reg )
+    {
+        //----------------------------------------------//
+        case VERSIONREG:
+            setIntegerParam( GermaniumVER, val );
+            break;
+        //----------------------------------------------//
+        case MARS_CALPULSE:
+            setIntegerParam( GermaniumTPAMP_RBV, val);
+            break;
+        //----------------------------------------------//
+        case CALPULSE_RATE:
+            setIntegerParam( GermaniumTPFRQ_RBV, val);
+            break;
+        //----------------------------------------------//
+        case CALPULSE_CNT:
+            setIntegerParam( GermaniumTPCNT_RBV, val);
+            break;
+        //----------------------------------------------//
+        case CALPULSE_MODE:
+            setIntegerParam( GermaniumTPENB_RBV, val);
+            break;
+        //----------------------------------------------//
+        case TRIG:
+            setIntegerParam( ADAcquire, val);
+            break;
+        //----------------------------------------------//
+        case MARS_PIPE_DELAY:
+            setIntegerParam( GermaniumPLDEL_RBV, val);
+            break;
+        //----------------------------------------------//
+        case MARS_RDOUT_ENB:
+            setIntegerParam( GermaniumRODEL_RBV, val);
+            break;
+        //----------------------------------------------//
+        case DETECTOR_TYPE:
+            setIntegerParam( GermaniumDETTYPE, val);
+            break;
+        //----------------------------------------------//
+        case UDP_IP_ADDR:
+        {
+            uint32_t host = ntohl(val);
+            char s[16];
+            u32HostToIpStr( host, s, sizeof(s) );
+            setStringParam( GermaniumIPADDR_RBV, s );
+            break;
+        }
+        //----------------------------------------------//
+        case TEMP1:
+            setDoubleParam( GermaniumTEMP1, val);
+            break;
+        //----------------------------------------------//
+        case TEMP2:
+            setDoubleParam( GermaniumTEMP2, val);
+            break;
+        //----------------------------------------------//
+        case TEMP3:
+            setDoubleParam( GermaniumTEMP3, val);
+            break;
+        //----------------------------------------------//
+        case ZTEMP:
+            setDoubleParam( GermaniumZTEMP, val);
+            break;
+        //----------------------------------------------//
+        case HV:
+            setDoubleParam( GermaniumHV, val);
+            break;
+        //----------------------------------------------//
+        case HV_RBV:
+            setDoubleParam( GermaniumHV_RBV, val);
+            break;
+        //----------------------------------------------//
+        case HV_CURR:
+            setDoubleParam( GermaniumHV_CURR, val);
+            break;
+        //----------------------------------------------//
+        //case :
+        //    setIntegerParam( Germanium_RBV, val);
+        //    break;
+        //----------------------------------------------//
+        default:
+            printf( "Value received for unknown register %d\n", reg );
+    }
+
+    callParamCallbacks();
+
 }
 
 //===========================================================================//

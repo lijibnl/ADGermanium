@@ -36,6 +36,8 @@ namespace GermaniumParams {
     // Can add more as needed...
 }
 
+#define GermaniumDetTypeString      "GERMANIUM_DETTYPE"     /* Detector type */
+
 /* Data arrays */
 #define GermaniumMcaString          "GERMANIUM_MCA"         /* MCA spectrum data */
 #define GermaniumTdcString          "GERMANIUM_TDC"         /* TDC spectrum data */
@@ -51,6 +53,7 @@ namespace GermaniumParams {
 
 /* Network configuration */
 #define GermaniumIpaddrString       "GERMANIUM_IPADDR"      /* Fast data IP address */
+#define GermaniumIpaddrRbvString    "GERMANIUM_IPADDR_RBV"  /* Fast data IP address */
 
 /* File handling */
 #define GermaniumFnamString         "GERMANIUM_FNAM"        /* Filename */
@@ -86,7 +89,9 @@ namespace GermaniumParams {
 /* Run control */
 #define GermaniumRunnoString        "GERMANIUM_RUNNO"       /* Run number */
 #define GermaniumPldelString        "GERMANIUM_PLDEL"       /* Pipeline delay */
+#define GermaniumPldelRbvString     "GERMANIUM_PLDEL_RBV"   /* Pipeline delay */
 #define GermaniumRodelString        "GERMANIUM_RODEL"       /* Readout delay */
+#define GermaniumRodelRbvString     "GERMANIUM_RODEL_RBV"   /* Readout delay */
 
 /* Hardware information */
 #define GermaniumFverString         "GERMANIUM_FVER"        /* Firmware version */
@@ -142,6 +147,15 @@ namespace GermaniumParams {
 /* Output links */
 #define GermaniumCoutString         "GERMANIUM_COUT"        /* Count output link */
 #define GermaniumCoutpString        "GERMANIUM_COUTP"       /* Count output prompt */
+
+/* Device status */
+#define GermaniumTemp1String        "GERMATNIUM_TEMP1"
+#define GermaniumTemp2String        "GERMATNIUM_TEMP2"
+#define GermaniumTemp3String        "GERMATNIUM_TEMP3"
+#define GermaniumZTempString        "GERMATNIUM_ZTEMP"
+#define GermaniumHvString           "GERMATNIUM_HV"
+#define GermaniumHvRbvString        "GERMATNIUM_HV_RBV"
+#define GermaniumHvCurrString       "GERMATNIUM_HV_CURR"
 
 class Germanium : public ADDriver {
 public:
@@ -221,15 +235,18 @@ public:
 
 protected:
     // Parameter indices - these will be defined based on createParam() calls
-    int GermaniumVER, GermaniumVAL;
+    int GermaniumVER, GermaniumVAL, GermaniumDETTYPE;
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
-    int GermaniumIPADDR, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
+    int GermaniumIPADDR, GermaniumIPADDR_RBV;
+    int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
     int GermaniumFREQ, GermaniumCNT, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
     int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
     int GermaniumTP, GermaniumTP1, GermaniumPR1;
     int GermaniumSS, GermaniumUS, GermaniumT;
-    int GermaniumRUNNO, GermaniumPLDEL, GermaniumRODEL;
+    int GermaniumRUNNO;
+    int GermaniumPLDEL, GermaniumRODEL;
+    int GermaniumPLDEL_RBV, GermaniumRODEL_RBV;
     int GermaniumFVER, GermaniumCARD;
     int GermaniumNELM, GermaniumNCH, GermaniumNCHIPS, GermaniumCHAN, GermaniumCHIP;
     int GermaniumSHPT, GermaniumGAIN, GermaniumPOL, GermaniumEBLK;
@@ -237,11 +254,14 @@ protected:
     int GermaniumPUEN, GermaniumMFS;
     int GermaniumTDS, GermaniumTDM;
     int GermaniumTPAMP, GermaniumTPFRQ, GermaniumTPCNT, GermaniumTPENB;
+    int GermaniumTPAMP_RBV, GermaniumTPFRQ_RBV, GermaniumTPCNT_RBV, GermaniumTPENB_RBV;
     int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
     int GermaniumSLP, GermaniumOFFS, GermaniumTHRSH;
     int GermaniumEGU, GermaniumPREC;
     int GermaniumCOUT, GermaniumCOUTP;
     int GermaniumCLRE, GermaniumCLRM, GermaniumCLRT, GermaniumSTRT, GermaniumSTOP;
+    int GermaniumTEMP1, GermaniumTEMP2, GermaniumTEMP3, GermaniumZTEMP;
+    int GermaniumHV, GermaniumHV_RBV, GermaniumHV_CURR;
 
 private:
     // Data acquisition and file management
@@ -256,6 +276,7 @@ private:
     void flushWriteBuffer();
     
     // Data processing methods
+    void processResponse( const uint8_t* data, size_t dataSize );
     void processReceivedData(const uint8_t* data, size_t dataSize);
     void processSpectrumData(const uint8_t* data, size_t dataSize);
     void processEventData(const uint8_t* data, size_t dataSize);

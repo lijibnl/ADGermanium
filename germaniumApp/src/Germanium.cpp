@@ -244,7 +244,8 @@ Germanium::~Germanium()
 void Germanium::createGermaniumParameters()
 {
     /* Basic record fields - exact match to zDDM record */
-    createParam("VER",    asynParamInt32, &GermaniumVER);  /* Code version */
+    createParam("VER",     asynParamInt32, &GermaniumVER);      /* Code version */
+    createParam("DETTYPE", asynParamInt32, &GermaniumDETTYPE);  /* Detector type */
 
     /* Large data arrays - exact match to zDDM record */
     createParam("MCA",    asynParamInt32Array,   &GermaniumMCA);    /* MCA spectrum data - NCHAN*4096 */
@@ -260,7 +261,8 @@ void Germanium::createGermaniumParameters()
     createParam("TYSIZE", asynParamInt32, &GermaniumTYSIZE); /* Display Y size for TDC */
 
     /* Network configuration - exact match to zDDM record */
-    createParam("IPADDR", asynParamOctet, &GermaniumIPADDR); /* Fast data IP address */
+    createParam("IPADDR",     asynParamOctet, &GermaniumIPADDR );     /* Fast data IP address */
+    createParam("IPADDR_RBV", asynParamOctet, &GermaniumIPADDR_RBV ); /* Fast data IP address */
 
     /* File handling - exact match to zDDM record */
     createParam("FNAM",  asynParamOctet, &GermaniumFNAM);  /* Filename */
@@ -270,23 +272,23 @@ void Germanium::createGermaniumParameters()
 
     /* Timing and control - exact match to zDDM record */
     createParam("FREQ", asynParamFloat64, &GermaniumFREQ); /* Time base frequency */
-    createParam("CNT",  asynParamInt32, &GermaniumCNT);     /* Count control (menu) */
-    createParam("PCNT", asynParamInt32, &GermaniumPCNT);   /* Previous count (menu) */
-    createParam("CONT", asynParamInt32, &GermaniumCONT);   /* OneShot/AutoCount mode (menu) */
-    createParam("MODE", asynParamInt32, &GermaniumMODE);   /* Timed/Continuous mode (menu) */
+    createParam("CNT",  asynParamInt32,   &GermaniumCNT);     /* Count control (menu) */
+    createParam("PCNT", asynParamInt32,   &GermaniumPCNT);   /* Previous count (menu) */
+    createParam("CONT", asynParamInt32,   &GermaniumCONT);   /* OneShot/AutoCount mode (menu) */
+    createParam("MODE", asynParamInt32,   &GermaniumMODE);   /* Timed/Continuous mode (menu) */
 
     /* Display rates - exact match to zDDM record */
     createParam("RATE", asynParamFloat64, &GermaniumRATE); /* Display rate (Hz) - READ ONLY */
     createParam("RAT1", asynParamFloat64, &GermaniumRAT1); /* Auto display rate (Hz) */
 
     /* Delays - exact match to zDDM record */
-    createParam("DLY", asynParamFloat64, &GermaniumDLY);   /* Delay */
+    createParam("DLY",  asynParamFloat64, &GermaniumDLY);   /* Delay */
     createParam("DLY1", asynParamFloat64, &GermaniumDLY1); /* Auto-mode delay */
 
     /* Time presets - exact match to zDDM record */
-    createParam("TP", asynParamFloat64, &GermaniumTP);   /* Time preset */
-    createParam("TP1", asynParamFloat64, &GermaniumTP1); /* Auto time preset */
-    createParam("PR1", asynParamInt32, &GermaniumPR1);   /* Preset in clock ticks */
+    createParam("TP",  asynParamFloat64, &GermaniumTP);   /* Time preset */
+    createParam("TP1", asynParamFloat64, &GermaniumTP1);  /* Auto time preset */
+    createParam("PR1", asynParamInt32,   &GermaniumPR1);  /* Preset in clock ticks */
 
     /* State monitoring - exact match to zDDM record */
     createParam("SS", asynParamInt32, &GermaniumSS); /* Scaler state */
@@ -294,9 +296,11 @@ void Germanium::createGermaniumParameters()
     createParam("T", asynParamFloat64, &GermaniumT); /* Timer */
 
     /* Run control - exact match to zDDM record */
-    createParam("RUNNO", asynParamInt32, &GermaniumRUNNO); /* Run number */
-    createParam("PLDEL", asynParamInt32, &GermaniumPLDEL); /* Pipeline delay */
-    createParam("RODEL", asynParamInt32, &GermaniumRODEL); /* Readout delay */
+    createParam("RUNNO",     asynParamInt32, &GermaniumRUNNO);      /* Run number */
+    createParam("PLDEL",     asynParamInt32, &GermaniumPLDEL);      /* Pipeline delay */
+    createParam("PLDEL_RBV", asynParamInt32, &GermaniumPLDEL_RBV);  /* Pipeline delay */
+    createParam("RODEL",     asynParamInt32, &GermaniumRODEL );     /* Readout delay */
+    createParam("RODEL_RBV", asynParamInt32, &GermaniumRODEL_RBV ); /* Readout delay */
 
     /* Hardware information - exact match to zDDM record */
     createParam("FVER", asynParamInt32, &GermaniumFVER); /* Firmware version */
@@ -329,36 +333,49 @@ void Germanium::createGermaniumParameters()
     createParam("TDM", asynParamInt32, &GermaniumTDM); /* TDC mode (menu) */
 
     /* Test pulse settings - exact match to zDDM record */
-    createParam("TPAMP", asynParamInt32, &GermaniumTPAMP); /* Test pulse amplitude */
-    createParam("TPFRQ", asynParamInt32, &GermaniumTPFRQ); /* Test pulse frequency */
-    createParam("TPCNT", asynParamInt32, &GermaniumTPCNT); /* Number of test pulses */
-    createParam("TPENB", asynParamInt32, &GermaniumTPENB); /* Test pulse enable (menu) */
+    createParam( "TPAMP",     asynParamInt32, &GermaniumTPAMP );     /* Test pulse amplitude */
+    createParam( "TPAMP_RBV", asynParamInt32, &GermaniumTPAMP_RBV ); /* Test pulse amplitude */
+    createParam( "TPFRQ",     asynParamInt32, &GermaniumTPFRQ );     /* Test pulse frequency */
+    createParam( "TPFRQ_RBV", asynParamInt32, &GermaniumTPFRQ_RBV ); /* Test pulse frequency */
+    createParam( "TPCNT",     asynParamInt32, &GermaniumTPCNT );     /* Number of test pulses */
+    createParam( "TPCNT_RBV", asynParamInt32, &GermaniumTPCNT_RBV ); /* Number of test pulses */
+    createParam( "TPENB",     asynParamInt32, &GermaniumTPENB );     /* Test pulse enable (menu) */
+    createParam( "TPENB_RBV", asynParamInt32, &GermaniumTPENB_RBV ); /* Test pulse enable (menu) */
 
     /* Per-channel arrays - exact match to zDDM record */
-    createParam("CHEN", asynParamInt8Array, &GermaniumCHEN);    /* Channel enable array */
-    createParam("TSEN", asynParamInt8Array, &GermaniumTSEN);    /* Test pulse input enable array */
-    createParam("THTR", asynParamInt8Array, &GermaniumTHTR);    /* Threshold trim array */
-    createParam("PUTR", asynParamInt8Array, &GermaniumPUTR);    /* Pileup threshold trim array */
-    createParam("SLP", asynParamFloat64Array, &GermaniumSLP);   /* Slope calibration array */
-    createParam("OFFS", asynParamFloat64Array, &GermaniumOFFS); /* Offset calibration array */
+    createParam( "CHEN", asynParamInt8Array, &GermaniumCHEN);    /* Channel enable array */
+    createParam( "TSEN", asynParamInt8Array, &GermaniumTSEN);    /* Test pulse input enable array */
+    createParam( "THTR", asynParamInt8Array, &GermaniumTHTR);    /* Threshold trim array */
+    createParam( "PUTR", asynParamInt8Array, &GermaniumPUTR);    /* Pileup threshold trim array */
+    createParam( "SLP",  asynParamFloat64Array, &GermaniumSLP);   /* Slope calibration array */
+    createParam( "OFFS", asynParamFloat64Array, &GermaniumOFFS); /* Offset calibration array */
 
     /* Per-chip arrays - exact match to zDDM record */
-    createParam("THRSH", asynParamInt32Array, &GermaniumTHRSH); /* Threshold array (per chip) */
+    createParam( "THRSH", asynParamInt32Array, &GermaniumTHRSH); /* Threshold array (per chip) */
 
     /* Acquisition control - exact match to zDDM record */
-    createParam("CLRE", asynParamInt32, &GermaniumCLRE);   /* Clear event spectrum */
-    createParam("CLRM", asynParamInt32, &GermaniumCLRM);   /* Clear monitor spectrum */
-    createParam("CLRT", asynParamInt32, &GermaniumCLRT);   /* Clear timer */
-    createParam("STRT", asynParamInt32, &GermaniumSTRT);   /* Start acquisition */
-    createParam("STOP", asynParamInt32, &GermaniumSTOP);   /* Stop acquisition */
+    createParam( "CLRE", asynParamInt32, &GermaniumCLRE);   /* Clear event spectrum */
+    createParam( "CLRM", asynParamInt32, &GermaniumCLRM);   /* Clear monitor spectrum */
+    createParam( "CLRT", asynParamInt32, &GermaniumCLRT);   /* Clear timer */
+    createParam( "STRT", asynParamInt32, &GermaniumSTRT);   /* Start acquisition */
+    createParam( "STOP", asynParamInt32, &GermaniumSTOP);   /* Stop acquisition */
 
     /* Display and formatting - exact match to zDDM record */
-    createParam("EGU", asynParamOctet, &GermaniumEGU);   /* Engineering units */
-    createParam("PREC", asynParamInt32, &GermaniumPREC); /* Display precision */
+    createParam( "EGU",  asynParamOctet, &GermaniumEGU);   /* Engineering units */
+    createParam( "PREC", asynParamInt32, &GermaniumPREC); /* Display precision */
 
     /* Output links - exact match to zDDM record */
-    createParam("COUT", asynParamOctet, &GermaniumCOUT);   /* Count output link */
-    createParam("COUTP", asynParamOctet, &GermaniumCOUTP); /* Count output prompt */
+    createParam( "COUT",  asynParamOctet, &GermaniumCOUT);   /* Count output link */
+    createParam( "COUTP", asynParamOctet, &GermaniumCOUTP); /* Count output prompt */
+
+    /* Device status */
+    createParam( "TEMP1",    asynParamFloat64, &GermaniumTEMP1 );
+    createParam( "TEMP2",    asynParamFloat64, &GermaniumTEMP2 );
+    createParam( "TEMP3",    asynParamFloat64, &GermaniumTEMP3 );
+    createParam( "ZTEMP",    asynParamFloat64, &GermaniumZTEMP );
+    createParam( "HV",       asynParamFloat64, &GermaniumHV );
+    createParam( "HV_RBV",   asynParamFloat64, &GermaniumHV_RBV );
+    createParam( "HV_CURR",  asynParamFloat64, &GermaniumHV_CURR );
 }
 
 /*
@@ -378,7 +395,7 @@ void Germanium::setGermaniumInitialValues()
     setStringParam(GermaniumDIR, "/tmp/germanium/"); /* Default data directory */
     setStringParam(GermaniumFNAM, "germanium_data"); /* Default filename base */
     setIntegerParam(GermaniumFSIZE, 100*1024*1024);  /* Default 100MB file size */
-    setDoubleParam(GermaniumFREQ, 1.0e6); /* 1 MHz default */
+    setDoubleParam(GermaniumFREQ, 1.0e8); /* 1 MHz default */
     setDoubleParam(GermaniumRATE, 2.0);   /* 2 Hz default */
     setDoubleParam(GermaniumTP1, 1.0);    /* 1 second default */
 
