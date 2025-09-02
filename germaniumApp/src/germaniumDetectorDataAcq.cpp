@@ -1,5 +1,5 @@
 /**
- * @file GermaniumDataAcq.cpp
+ * @file germaniumDetectorDataAcq.cpp
  * @brief Handles UDP data reception, buffering, and multi-segment file
  *        writing.
  *
@@ -12,8 +12,8 @@
 
 //===========================================================================//
 
-#include "Germanium.hpp"
-#include "GermaniumTypes.hpp"
+#include "germaniumDetector.hpp"
+#include "germaniumDetectorTypes.hpp"
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,7 +29,7 @@
 /*
  * Data acquisition and file management initialization
  */
-void Germanium::setupDataAcquisition()
+void germaniumDetector::setupDataAcquisition()
 {
     printf("Setting up data acquisition system...\n");
     
@@ -79,7 +79,7 @@ void Germanium::setupDataAcquisition()
 /*
  * Create data directory if it doesn't exist
  */
-void Germanium::createDataDirectory()
+void germaniumDetector::createDataDirectory()
 {
     char dirPath[256];
     getStringParam(GermaniumDIR, sizeof(dirPath), dirPath);
@@ -109,7 +109,7 @@ void Germanium::createDataDirectory()
  * Generate full filename based on DIR, FNAME, RUNNO, and segment number
  * Format: $(DIR)$(FNAME)-$(RUNNO)-$(SEGMENT-NO).bin
  */
-std::string Germanium::generateFilename(int segmentNumber)
+std::string germaniumDetector::generateFilename(int segmentNumber)
 {
     char dirPath[256];
     char fileName[256];
@@ -139,7 +139,7 @@ std::string Germanium::generateFilename(int segmentNumber)
 /*
  * Open new data file for writing
  */
-bool Germanium::openNewDataFile()
+bool germaniumDetector::openNewDataFile()
 {
     // Close current file if open
     closeCurrentDataFile();
@@ -170,7 +170,7 @@ bool Germanium::openNewDataFile()
 /*
  * Close current data file
  */
-void Germanium::closeCurrentDataFile()
+void germaniumDetector::closeCurrentDataFile()
 {
     if (currentFileHandle >= 0)
     {
@@ -190,7 +190,7 @@ void Germanium::closeCurrentDataFile()
 /*
  * Write data to current file, handling file size limits and segmentation
  */
-bool Germanium::writeDataToFile(const uint8_t* data, size_t dataSize)
+bool germaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
 {
     if (!fileWritingEnabled || !data || dataSize == 0)
     {
@@ -241,7 +241,7 @@ bool Germanium::writeDataToFile(const uint8_t* data, size_t dataSize)
 /*
  * Start data acquisition and file writing
  */
-void Germanium::startDataAcquisition()
+void germaniumDetector::startDataAcquisition()
 {
     if (acquisitionRunning)
     {
@@ -276,7 +276,7 @@ void Germanium::startDataAcquisition()
 /*
  * Stop data acquisition and file writing
  */
-void Germanium::stopDataAcquisition()
+void germaniumDetector::stopDataAcquisition()
 {
     if (!acquisitionRunning)
     {
@@ -305,9 +305,10 @@ void Germanium::stopDataAcquisition()
 /*
  * Data processing thread function (C wrapper)
  */
-extern "C" void dataProcessingThreadC(void *drvPvt)
+//extern "C"
+void germaniumDetector::dataProcessingThreadC(void *drvPvt)
 {
-    Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
+    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
     pGermanium->dataProcessingThread();
 }
 
@@ -317,7 +318,7 @@ extern "C" void dataProcessingThreadC(void *drvPvt)
  * Data processing thread - handles spectrum updates.
  * This thread processes detector data and updates EPICS parameters
  */
-void Germanium::dataProcessingThread()
+void germaniumDetector::dataProcessingThread()
 {
     printf("Data processing thread started\n");
 
@@ -337,7 +338,7 @@ void Germanium::dataProcessingThread()
 
         if (rateElapsed >= 1)
         {
-            updateCountRates();
+            //updateCountRates();
             lastRateUpdateTime = currentTime;
         }
 
@@ -347,7 +348,7 @@ void Germanium::dataProcessingThread()
 
         if (displayElapsed >= 2)
         {
-            updateSpectra();
+            //updateSpectra();
             lastUpdateTime = currentTime;
         }
 
@@ -380,7 +381,7 @@ void Germanium::dataProcessingThread()
 /*
  * Add data to circular write buffer for file writing thread
  */
-void Germanium::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
+void germaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
 {
     if (!data || dataSize == 0 || dataSize > DATA_WRITE_BUFFER_SIZE / 4)
     {
@@ -433,9 +434,10 @@ void Germanium::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
 /*
  * Data writing thread function (C wrapper)
  */
-extern "C" void dataWriteThreadC(void *drvPvt)
+//extern "C"
+void germaniumDetector::dataWriteThreadC(void *drvPvt)
 {
-    Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
+    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
     pGermanium->dataWriteThread();
 }
 
@@ -444,7 +446,7 @@ extern "C" void dataWriteThreadC(void *drvPvt)
 /*
  * Data writing thread - handles file writing from buffer
  */
-void Germanium::dataWriteThread()
+void germaniumDetector::dataWriteThread()
 {
     printf("Data writing thread started\n");
     
@@ -521,7 +523,7 @@ void Germanium::dataWriteThread()
 /*
  * Flush any remaining data in write buffer
  */
-void Germanium::flushWriteBuffer()
+void germaniumDetector::flushWriteBuffer()
 {
     printf("Flushing write buffer...\n");
     

@@ -1,6 +1,6 @@
 /**
- * @file GermaniumRegister.hpp
- * @breif Germanium register definition. Originated from GeRM FPGA design code.
+ * @file germaniumDetectorRegister.hpp
+ * @breif germaniumDetector register definition. Originated from GeRM FPGA design code.
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 08/11/2025

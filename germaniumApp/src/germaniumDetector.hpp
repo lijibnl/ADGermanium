@@ -1,6 +1,6 @@
 /**
- * @file Germanium.hpp
- * @brief Class declaration for Germanium areaDetector driver.
+ * @file germaniumDetector.hpp
+ * @brief Class declaration for germaniumDetector areaDetector driver.
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 08/11/2025
@@ -13,7 +13,7 @@
 //===========================================================================//
 
 #include "ADDriver.h"
-#include "GermaniumTypes.hpp"
+#include "germaniumDetectorTypes.hpp"
 #include "epicsTimer.h"
 #include "epicsThread.h"
 #include "epicsMutex.h"
@@ -24,7 +24,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "GermaniumRegister.hpp"  // Hardware register definitions from original Mars_DDM
+#include "germaniumDetectorRegister.hpp"  // Hardware register definitions from original Mars_DDM
 
 //===========================================================================//
 
@@ -160,20 +160,20 @@
 
 //===========================================================================//
 
-class Germanium : public ADDriver {
+class germaniumDetector : public ADDriver {
 public:
     // Constructor for photon counting Germanium detector
     // maxAddr should equal numElements (one address per detector element)
     // numParams is the total number of parameters (calculated from createParam calls)
     // maxBuffers can be small (10-20) since data accumulates in histograms
     // maxMemory depends on spectrum size: numElements × spectrumSize × sizeof(data)
-    Germanium(const char *portName, int numElements, const char *ipAddress,
+    germaniumDetector(const char *portName, int numElements, const char *ipAddress,
               int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
               int interfaceMask, int interruptMask,
               int asynFlags, int autoConnect, int priority, int stackSize);
     
     // Destructor
-    virtual ~Germanium();
+    virtual ~germaniumDetector();
     
     // asynPortDriver virtual methods - overridden for UDP communication
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);

@@ -1,6 +1,6 @@
 /**
- * @file Germanium.cpp
- * @brief Constructor, parameter creation and initialization for Germanium areaDetector driver.
+ * @file germaniumDetector.cpp
+ * @brief Constructor, parameter creation and initialization for germaniumDetector areaDetector driver.
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 08/11/2025
@@ -11,8 +11,8 @@
 
 //===========================================================================//
 
-#include "Germanium.hpp"
-#include "GermaniumTypes.hpp"
+#include "germaniumDetector.hpp"
+#include "germaniumDetectorTypes.hpp"
 #include "NDArray.h"
 #include <cstdlib>
 #include <cstring>
@@ -21,64 +21,64 @@
 //===========================================================================//
 
 // Constructor
-Germanium::Germanium( const char *portName
-                    , int numElements
-                    , const char *ipAddress
-                    , int maxAddr
-                    , int numParams
-                    , int maxBuffers
-                    , size_t maxMemory
-                    , int interfaceMask
-                    , int interruptMask
-                    , int asynFlags
-                    , int autoConnect
-                    , int priority
-                    , int stackSize
-                    )
-                    : ADDriver( portName
-                              , maxAddr
-                              , numParams
-                              , maxBuffers
-                              , maxMemory
-                              , interfaceMask
-                              , interruptMask
-                              , asynFlags
-                              , autoConnect
-                              , priority
-                              , stackSize
-                              )
-                    , udpControlSocket(-1)
-                    , udpDataSocket(-1)
-                    , udpInitialized(false)
-                    , zDDMWdTimerQ(nullptr)
-                    , TPgenTimerQ(nullptr)
-                    , numElements(numElements)
-                    , controlPort(GERMANIUM_CONTROL_PORT)
-                    , dataPort(GERMANIUM_DATA_PORT)
-                    , udpControlThreadId(nullptr)
-                    , udpDataThreadId(nullptr)
-                    , dataProcessingThreadId(nullptr)
-                    , threadsRunning(false)
-                    , udpMutex(nullptr)
-                    , dataAvailable(nullptr)
-                    , udpDataBuffer(nullptr)
-                    , dataBufferSize(0)
-                    , evttot(0)
-                    , framestat(0)
-                    , fileWritingEnabled(false)
-                    , currentFileHandle(-1)
-                    , currentFileSize(0)
-                    , currentSegmentNumber(0)
-                    , totalBytesWritten(0)
-                    , totalFilesWritten(0)
-                    , writeBufferHead(0)
-                    , writeBufferTail(0)
-                    , writeBufferCount(0)
-                    , writeBufferMutex(nullptr)
-                    , dataWriteAvailable(nullptr)
-                    , dataWriteThreadId(nullptr)
-                    , acquisitionThreadId(nullptr)
-                    , acquisitionRunning(false)
+germaniumDetector::germaniumDetector( const char *portName
+                                    , int numElements
+                                    , const char *ipAddress
+                                    , int maxAddr
+                                    , int numParams
+                                    , int maxBuffers
+                                    , size_t maxMemory
+                                    , int interfaceMask
+                                    , int interruptMask
+                                    , int asynFlags
+                                    , int autoConnect
+                                    , int priority
+                                    , int stackSize
+                                    )
+                                    : ADDriver( portName
+                                              , maxAddr
+                                              , numParams
+                                              , maxBuffers
+                                              , maxMemory
+                                              , interfaceMask
+                                              , interruptMask
+                                              , asynFlags
+                                              , autoConnect
+                                              , priority
+                                              , stackSize
+                                              )
+                                    , udpControlSocket(-1)
+                                    , udpDataSocket(-1)
+                                    , udpInitialized(false)
+                                    , zDDMWdTimerQ(nullptr)
+                                    , TPgenTimerQ(nullptr)
+                                    , numElements(numElements)
+                                    , controlPort(GERMANIUM_CONTROL_PORT)
+                                    , dataPort(GERMANIUM_DATA_PORT)
+                                    , udpControlThreadId(nullptr)
+                                    , udpDataThreadId(nullptr)
+                                    , dataProcessingThreadId(nullptr)
+                                    , threadsRunning(false)
+                                    , udpMutex(nullptr)
+                                    , dataAvailable(nullptr)
+                                    , udpDataBuffer(nullptr)
+                                    , dataBufferSize(0)
+                                    , evttot(0)
+                                    , framestat(0)
+                                    , fileWritingEnabled(false)
+                                    , currentFileHandle(-1)
+                                    , currentFileSize(0)
+                                    , currentSegmentNumber(0)
+                                    , totalBytesWritten(0)
+                                    , totalFilesWritten(0)
+                                    , writeBufferHead(0)
+                                    , writeBufferTail(0)
+                                    , writeBufferCount(0)
+                                    , writeBufferMutex(nullptr)
+                                    , dataWriteAvailable(nullptr)
+                                    , dataWriteThreadId(nullptr)
+                                    , acquisitionThreadId(nullptr)
+                                    , acquisitionRunning(false)
 {
     // Store IP address
     strncpy(this->ipAddress, ipAddress, sizeof(this->ipAddress) - 1);
@@ -180,7 +180,7 @@ Germanium::Germanium( const char *portName
 //===========================================================================//
 
 // Destructor
-Germanium::~Germanium()
+germaniumDetector::~germaniumDetector()
 {
     // Stop acquisition and threads
     acquisitionRunning = false;
@@ -254,7 +254,7 @@ Germanium::~Germanium()
  * Based on exact field names and types from original zDDM record
  * All parameter names match zDDMRecord.dbd exactly
  */
-void Germanium::createGermaniumParameters()
+void germaniumDetector::createGermaniumParameters()
 {
     /* Basic record fields - exact match to zDDM record */
     createParam("VER",     asynParamInt32, &GermaniumVER);      /* Code version */
@@ -397,7 +397,7 @@ void Germanium::createGermaniumParameters()
  * Member function to set initial values for parameters
  * This should be called after createGermaniumParameters() in the constructor
  */
-void Germanium::setGermaniumInitialValues()
+void germaniumDetector::setGermaniumInitialValues()
 {
     /* Set default values based on original zDDM record */
     setDoubleParam(GermaniumVER, 0.0);
@@ -452,7 +452,7 @@ void Germanium::setGermaniumInitialValues()
 /*
  * Allocate dynamic data arrays based on numElements using modern C++ containers
  */
-void Germanium::allocateDataArrays()
+void germaniumDetector::allocateDataArrays()
 {
     // Resize vectors to appropriate sizes - vectors handle memory automatically
     countRates.resize(numElements, 0); // Initialize all elements to 0
@@ -480,7 +480,7 @@ void Germanium::allocateDataArrays()
 /*
  * Deallocate dynamic data arrays - now mostly automatic with smart pointers/vectors
  */
-void Germanium::deallocateDataArrays()
+void germaniumDetector::deallocateDataArrays()
 {
     // Vectors automatically clean up their memory when going out of scope
     // But we can explicitly clear them if needed
@@ -500,7 +500,7 @@ void Germanium::deallocateDataArrays()
 /*
  * Process a single photon event - now using vectors for automatic bounds checking
  */
-void Germanium::processPhotonEvent(int element, int energy, int timestamp)
+void germaniumDetector::processPhotonEvent(int element, int energy, int timestamp)
 {
     // Bounds checking is automatic with vectors, but we can add explicit checks
     if (element < 0 || element >= numElements)

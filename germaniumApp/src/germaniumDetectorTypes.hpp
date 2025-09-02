@@ -1,5 +1,5 @@
 /**
- * @file GermaniumTypes.hpp
+ * @file germaniumDetectorTypes.hpp
  * @brief Type definitions, structures, and constants.
  *
  * @author Ji Li <liji@bnl.gov>
@@ -15,7 +15,7 @@
 //===========================================================================//
 
 #include <cstdint>
-#include "GermaniumRegister.hpp"
+#include "germaniumDetectorRegister.hpp"
 
 //===========================================================================//
 

@@ -1,6 +1,6 @@
 /**
- * @file GermaniumNetwork.cpp
- * @brief UDP network communication functions for Germanium areaDetector
+ * @file germaniumDetectorNetwork.cpp
+ * @brief UDP network communication functions for germaniumDetector areaDetector
  *        driver.
  *
  * @author Ji Li <liji@bnl.gov>
@@ -12,7 +12,7 @@
 
 //===========================================================================//
 
-#include "Germanium.hpp"
+#include "germaniumDetector.hpp"
 #include <cstring>
 #include <cstdio>
 #include <unistd.h>
@@ -28,7 +28,7 @@
 
 //===========================================================================//
 
-int Germanium::make_udp_bind(int port)
+int germaniumDetector::make_udp_bind(int port)
 {
     int s = socket(AF_INET, SOCK_DGRAM, 0); 
     if(s == INVALID_SOCKET)
@@ -51,7 +51,7 @@ int Germanium::make_udp_bind(int port)
 
 //===========================================================================//
 
-void Germanium::set_nonblock( int s ) 
+void germaniumDetector::set_nonblock( int s ) 
 {
     int opt = 1;
 
@@ -64,7 +64,7 @@ void Germanium::set_nonblock( int s )
  * Initialize UDP sockets for communication with Zynq device
  * Returns true on success, false on failure
  */
-bool Germanium::initializeUDPSockets()
+bool germaniumDetector::initializeUDPSockets()
 {
     printf("Initializing UDP sockets for %s...\n", ipAddress);
 
@@ -101,7 +101,7 @@ bool Germanium::initializeUDPSockets()
 /*
  * Close UDP sockets and cleanup network resources
  */
-void Germanium::closeUDPSockets()
+void germaniumDetector::closeUDPSockets()
 {
     udpInitialized = false;
     threadsRunning = false;
@@ -139,7 +139,7 @@ void Germanium::closeUDPSockets()
  * Send UDP command to Zynq device using proper message format
  * Returns asynSuccess on success, asynError on failure
  */
-asynStatus Germanium::sendUDPCommand( uint16_t op, uint32_t data )
+asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
 {
     if (!udpInitialized) {
         return asynError;
@@ -191,7 +191,7 @@ asynStatus Germanium::sendUDPCommand( uint16_t op, uint32_t data )
 /*
  * UDP-based register write (replaces direct pl_register_write)
  */
-asynStatus Germanium::udpRegisterWrite(uint32_t reg, uint32_t value)
+asynStatus germaniumDetector::udpRegisterWrite(uint32_t reg, uint32_t value)
 {
     return sendUDPCommand( reg, value );
 }
@@ -199,7 +199,7 @@ asynStatus Germanium::udpRegisterWrite(uint32_t reg, uint32_t value)
 /*
  * UDP-based register read (replaces direct pl_register_read)
  */
-asynStatus Germanium::udpRegisterRead(uint32_t reg)
+asynStatus germaniumDetector::udpRegisterRead(uint32_t reg)
 {
     return sendUDPCommand( 0x8000 | reg, 0 );
 }
@@ -207,7 +207,7 @@ asynStatus Germanium::udpRegisterRead(uint32_t reg)
 /*
  * ADC configuration via UDP command using proper message format
  */
-void Germanium::ad9252_cnfg(int adc, int reg, int value)
+void germaniumDetector::ad9252_cnfg(int adc, int reg, int value)
 {
     if (!udpInitialized) {
         printf("Germanium: UDP not initialized for ADC config\n");
@@ -245,7 +245,7 @@ void Germanium::ad9252_cnfg(int adc, int reg, int value)
  * Send MARS ASIC configuration array via UDP using proper message format
  * This sends the loads array using the StuffMarsReqMsgPayload structure
  */
-asynStatus Germanium::sendMarsConfiguration()
+asynStatus germaniumDetector::sendMarsConfiguration()
 {
     if (!udpInitialized) {
         printf("Germanium: UDP not initialized, cannot send MARS configuration\n");
@@ -298,9 +298,10 @@ asynStatus Germanium::sendMarsConfiguration()
 /*
  * UDP data reception thread function (C wrapper)
  */
-extern "C" void udpDataThreadC(void *drvPvt)
+//extern "C"
+void germaniumDetector::udpDataThreadC(void *drvPvt)
 {
-    Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
+    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
     pGermanium->udpDataThread();
 }
 
@@ -309,7 +310,7 @@ extern "C" void udpDataThreadC(void *drvPvt)
 /*
  * UDP data reception thread - handles incoming data packets
  */
-void Germanium::udpDataThread()
+void germaniumDetector::udpDataThread()
 {
     printf("UDP data reception thread started\n");
     
@@ -338,7 +339,7 @@ void Germanium::udpDataThread()
             if (bytesReceived > 0)
             {
                 // Process received data
-                processReceivedData(receiveBuffer, static_cast<size_t>(bytesReceived));
+                //processReceivedData(receiveBuffer, static_cast<size_t>(bytesReceived));
             }
             else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
             {
@@ -362,9 +363,10 @@ void Germanium::udpDataThread()
 /*
  * UDP control reception thread function (C wrapper)
  */
-extern "C" void udpControlThreadC(void *drvPvt)
+//extern "C"
+void germaniumDetector::udpControlThreadC(void *drvPvt)
 {
-    Germanium *pGermanium = static_cast<Germanium*>(drvPvt);
+    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
     pGermanium->udpControlThread();
 }
 
@@ -373,7 +375,7 @@ extern "C" void udpControlThreadC(void *drvPvt)
 /*
  * UDP control thread - handles control command responses and status updates
  */
-void Germanium::udpControlThread()
+void germaniumDetector::udpControlThread()
 {
     printf("UDP control thread started\n");
 

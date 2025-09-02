@@ -1,6 +1,6 @@
 /**
- * @file GermaniumDriver.cpp
- * @brief asynPortDriver interface implementations for Germanium detector;
+ * @file germaniumDetectorDriver.cpp
+ * @brief asynPortDriver interface implementations for germaniumDetector detector;
  *        handles all parameter read/write operations and communication with
  *        hardware.
  *
@@ -13,8 +13,8 @@
 
 //===========================================================================//
 
-#include "Germanium.hpp"
-#include "GermaniumTypes.hpp"
+#include "germaniumDetector.hpp"
+#include "germaniumDetectorTypes.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cstdint>
@@ -48,7 +48,7 @@ void u32HostToIpStr(uint32_t host, char* buf, size_t buflen) noexcept {
 //===========================================================================//
 
 // asynPortDriver virtual method implementations
-asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
+asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -498,7 +498,7 @@ asynStatus Germanium::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
 //===========================================================================//
 
-asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
+asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -587,7 +587,7 @@ asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
 
 //===========================================================================//
 
-asynStatus Germanium::writeOctet(asynUser *pasynUser, const char *value,
+asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                                  size_t maxChars, size_t *nActual)
 {
     int function = pasynUser->reason;
@@ -667,7 +667,7 @@ asynStatus Germanium::writeOctet(asynUser *pasynUser, const char *value,
 
 //===========================================================================//
 
-asynStatus Germanium::readInt32( asynUser *pasynUser )
+asynStatus germaniumDetector::readInt32( asynUser *pasynUser )
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -727,7 +727,7 @@ asynStatus Germanium::readInt32( asynUser *pasynUser )
 
 //===========================================================================//
 
-asynStatus Germanium::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
+asynStatus germaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                      size_t nElements, size_t *nIn)
 {
     int function = pasynUser->reason;
@@ -799,7 +799,7 @@ asynStatus Germanium::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
 
 //===========================================================================//
 
-asynStatus Germanium::writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
+asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                       size_t nElements)
 {
     int function = pasynUser->reason;
@@ -851,7 +851,7 @@ asynStatus Germanium::writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
 //===========================================================================//
 
 // ADDriver virtual method implementations
-asynStatus Germanium::readNDArray(asynUser *pasynUser, epicsInt32 *value,
+asynStatus germaniumDetector::readNDArray(asynUser *pasynUser, epicsInt32 *value,
                                   size_t nElements, size_t *nIn)
 {
     int function = pasynUser->reason;
@@ -1010,7 +1010,7 @@ asynStatus Germanium::readNDArray(asynUser *pasynUser, epicsInt32 *value,
 /*
  * Process control response message from hardware
  */
-void Germanium::processResponse(const uint8_t* data, size_t dataSize)
+void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
 {
     if (!data || dataSize < sizeof(UdpRespMsg))
     {
@@ -1123,7 +1123,7 @@ void Germanium::processResponse(const uint8_t* data, size_t dataSize)
 
 //===========================================================================//
 
-void Germanium::report(FILE *fp, int details)
+void germaniumDetector::report(FILE *fp, int details)
 {
     fprintf(fp, "Germanium detector: %d elements, %d chips\n", numElements, nchips);
     fprintf(fp, "IP Address: %s\n", ipAddress);
@@ -1140,7 +1140,7 @@ void Germanium::report(FILE *fp, int details)
 
 //===========================================================================//
 
-asynStatus Germanium::drvUserCreate(asynUser *pasynUser, const char *drvInfo,
+asynStatus germaniumDetector::drvUserCreate(asynUser *pasynUser, const char *drvInfo,
                                     const char **pptypeName, size_t *psize)
 {
     // Handle driver-specific parameter creation

@@ -1,5 +1,5 @@
 /**
- * @file GermaniumHardware.cpp
+ * @file germaniumDetectorHardware.cpp
  * @brief Hardware communication and MARS ASIC configuration functions.
  *
  * @author Ji Li <liji@bnl.gov>
@@ -11,8 +11,8 @@
 
 //===========================================================================//
 
-#include "Germanium.hpp"
-#include "GermaniumTypes.hpp"
+#include "germaniumDetector.hpp"
+#include "germaniumDetectorTypes.hpp"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -27,7 +27,7 @@
  * Pack global configuration structure into 32-bit word
  * Based on Mars_DDM bit field definitions and MARS ASIC specification
  */
-uint32_t Germanium::packGlobalConfig(const globalstr_t& global)
+uint32_t germaniumDetector::packGlobalConfig(const globalstr_t& global)
 {
     uint32_t packed = 0;
     
@@ -54,7 +54,7 @@ uint32_t Germanium::packGlobalConfig(const globalstr_t& global)
  * This is the optimized version of the wrap() function from Mars_DDM
  * Based on the original Mars_DDM implementation
  */
-void Germanium::wrapOptimized()
+void germaniumDetector::wrapOptimized()
 {
     // Clear loads array first
     memset(loads, 0, sizeof(loads));
@@ -81,10 +81,10 @@ void Germanium::wrapOptimized()
             {
                 // Pack channel configuration into 32-bit word
                 // Multiple channels can be packed into single 32-bit words for efficiency
-                uint32_t channel_config = packChannelConfig(channelstr[channel_index]);
-
-                // Store channel config (could pack multiple channels per word if needed)
-                loads[chip][reg_index++] = channel_config;
+//                uint32_t channel_config = packChannelConfig(channelstr[channel_index]);
+//
+//                // Store channel config (could pack multiple channels per word if needed)
+//                loads[chip][reg_index++] = channel_config;
             }
             else
             {
@@ -108,7 +108,7 @@ void Germanium::wrapOptimized()
 /*
  * Bit field wrapping using bit field structures (alternative implementation)
  */
-void Germanium::wrapBitFields()
+void germaniumDetector::wrapBitFields()
 {
     // Alternative implementation using bit field structures
     // This is kept for compatibility but wrapOptimized() is preferred
@@ -120,7 +120,7 @@ void Germanium::wrapBitFields()
 /*
  * Validate MARS configuration before sending to hardware
  */
-void Germanium::validateConfiguration()
+void germaniumDetector::validateConfiguration()
 {
     bool valid = true;
 
@@ -174,7 +174,7 @@ void Germanium::validateConfiguration()
  * Update loads array from current globalstr and channelstr configuration
  * This should be called whenever configuration parameters change
  */
-void Germanium::updateLoadsArray()
+void germaniumDetector::updateLoadsArray()
 {
     validateConfiguration();
     wrapOptimized();
@@ -186,7 +186,7 @@ void Germanium::updateLoadsArray()
  * Initialize MARS ASIC configuration - implement exact zDDM logic
  * This matches the original initMars() function
  */
-void Germanium::initializeMarsConfig()
+void germaniumDetector::initializeMarsConfig()
 {
     // Initialize global configuration for all chips
     for (int chip = 0; chip < nchips; chip++)
@@ -224,7 +224,7 @@ void Germanium::initializeMarsConfig()
 /*
  * Initialize Germanium hardware via UDP
  */
-void Germanium::initializeGermaniumHardware()
+void germaniumDetector::initializeGermaniumHardware()
 {
     printf("Germanium: Initializing hardware via UDP...\n");
 
@@ -232,7 +232,8 @@ void Germanium::initializeGermaniumHardware()
     initializeMarsConfig();
 
     // Send initial configuration to device
-    sendConfigurationToDevice();
+    sendMarsConfiguration();
+    //sendConfigurationToDevice();
 
     printf("Germanium: Hardware initialization complete\n");
 }
