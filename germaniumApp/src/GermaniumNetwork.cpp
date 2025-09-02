@@ -1,8 +1,16 @@
-/*
- * GermaniumNetwork.cpp
- * UDP network communication functions for Germanium areaDetector driver
- * Handles remote control and data acquisition from Zynq-based detector
+/**
+ * @file GermaniumNetwork.cpp
+ * @brief UDP network communication functions for Germanium areaDetector
+ *        driver.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
+
+//===========================================================================//
 
 #include "Germanium.hpp"
 #include <cstring>
@@ -52,9 +60,6 @@ void Germanium::set_nonblock( int s )
 
 //===========================================================================//
 
-
-
-
 /*
  * Initialize UDP sockets for communication with Zynq device
  * Returns true on success, false on failure
@@ -74,55 +79,6 @@ bool Germanium::initializeUDPSockets()
     set_nonblock( udpControlSocket );
     set_nonblock( udpDataSocket );
 
-//    int opt = 1;
-//
-//    // Setup control address
-//    memset(&controlAddr, 0, sizeof(controlAddr));
-//    controlAddr.sin_family = AF_INET;
-//    controlAddr.sin_port = htons(controlPort);
-//    inet_pton(AF_INET, ipAddress, &controlAddr.sin_addr);
-//
-//    udpControlSocket = socket(AF_INET, SOCK_DGRAM, 0);
-//    if (udpControlSocket < 0)
-//    {
-//        printf("Failed to create UDP control socket\n");
-//        return false;
-//    }
-//
-//    // Set socket options for reuse and non-blocking
-//    setsockopt(udpControlSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-//
-//    // Setup data address
-//    memset(&dataAddr, 0, sizeof(dataAddr));
-//    dataAddr.sin_family = AF_INET;
-//    dataAddr.sin_port = htons(dataPort);
-//    inet_pton(AF_INET, ipAddress, &dataAddr.sin_addr);
-//
-//    udpDataSocket = socket(AF_INET, SOCK_DGRAM, 0); 
-//    if (udpDataSocket < 0)
-//    {   
-//        printf("Failed to create UDP data socket\n");
-//        close(udpControlSocket);
-//        return false;
-//    }   
-//
-//    setsockopt(udpDataSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-//    
-//    // Bind data socket to receive data packets
-//    struct sockaddr_in dataBindAddr;
-//    memset(&dataBindAddr, 0, sizeof(dataBindAddr));
-//    dataBindAddr.sin_family = AF_INET;
-//    dataBindAddr.sin_addr.s_addr = INADDR_ANY;
-//    dataBindAddr.sin_port = htons(dataPort);
-//    
-//    if (bind(udpDataSocket, (struct sockaddr*)&dataBindAddr, sizeof(dataBindAddr)) < 0) {
-//        printf("Germanium: Failed to bind data socket to port %d: %s\n", 
-//               dataPort, strerror(errno));
-//        close(udpControlSocket);
-//        close(udpDataSocket);
-//        return false;
-//    }
-//    
     // UDP data buffer now allocated in constructor using smart pointer
     // Just reset the buffer size
     dataBufferSize = 0;
@@ -336,102 +292,6 @@ asynStatus Germanium::sendMarsConfiguration()
 
     return asynSuccess;
 }
-
-//===========================================================================//
-
-/*
- * Write integer array via UDP (generic function for array transfers)
- * This can be used for channel enable arrays, threshold arrays, etc.
- */
-//asynStatus Germanium::udpWriteIntArray(uint32_t command, const void *data, 
-//                                       size_t dataSize, uint32_t address)
-//{
-//    if (!udpInitialized) {
-//        return asynError;
-//    }
-//    
-//    if (dataSize > UDP_BUFFER_SIZE - sizeof(UDPCommand)) {
-//        printf("Germanium: Array data too large (%zu bytes) for UDP transfer\n", dataSize);
-//        return asynError;
-//    }
-//    
-//    // Create buffer for command + data
-//    uint8_t *buffer = new uint8_t[sizeof(UDPCommand) + dataSize];
-//    UDPCommand *header = (UDPCommand*)buffer;
-//    uint8_t *payload = buffer + sizeof(UDPCommand);
-//    
-//    // Fill header
-//    header->command = htonl(command);
-//    header->address = htonl(address);
-//    header->data = htonl(dataSize);
-//    header->checksum = htonl(command ^ address ^ dataSize);
-//    
-//    // Copy data
-//    memcpy(payload, data, dataSize);
-//    
-//    // Send with mutex protection
-//    deviceAddr.sin_port = htons(controlPort);
-//    
-//    epicsMutexLock(udpMutex);
-//    ssize_t sent = sendto(udpControlSocket, buffer, sizeof(UDPCommand) + dataSize, 0,
-//                         (struct sockaddr*)&deviceAddr, sizeof(deviceAddr));
-//    epicsMutexUnlock(udpMutex);
-//    
-//    delete[] buffer;
-//    
-//    if (sent != (ssize_t)(sizeof(UDPCommand) + dataSize)) {
-//        printf("Germanium: Failed to send array data (cmd=0x%x): %s\n", 
-//               command, strerror(errno));
-//        return asynError;
-//    }
-//    
-//    return asynSuccess;
-//}
-
-/*
- * Send a string command via UDP
- */
-//asynStatus Germanium::udpSendString(uint32_t command, const char *str) {
-//    if (!udpInitialized || udpControlSocket < 0) {
-//        printf("Germanium: UDP not initialized for string command\n");
-//        return asynError;
-//    }
-//    
-//    // Create UDP command packet with string payload
-//    size_t strLen = strlen(str);
-//    size_t packetSize = sizeof(UDPCommand) + strLen + 1; // +1 for null terminator
-//    
-//    uint8_t *packet = new uint8_t[packetSize];
-//    UDPCommand *cmd = (UDPCommand*)packet;
-//    
-//    cmd->command = command;
-//    cmd->address = 0;
-//    cmd->data_length = strLen + 1;
-//    
-//    // Copy string after the command header
-//    strcpy((char*)(packet + sizeof(UDPCommand)), str);
-//    
-//    // Send packet
-//    struct sockaddr_in addr;
-//    addr.sin_family = AF_INET;
-//    addr.sin_port = htons(controlPort);
-//    inet_pton(AF_INET, ipAddress, &addr.sin_addr);
-//    
-//    ssize_t sent = sendto(udpControlSocket, packet, packetSize, 0,
-//                         (struct sockaddr*)&addr, sizeof(addr));
-//    
-//    delete[] packet;
-//    
-//    if (sent < 0) {
-//        printf("Germanium: Failed to send string command 0x%02X: %s\n", 
-//               command, strerror(errno));
-//        return asynError;
-//    }
-//    
-//    printf("Germanium: Sent string command 0x%02X: '%s'\n", command, str);
-//    return asynSuccess;
-//}
-
 
 //===========================================================================//
 

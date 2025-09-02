@@ -1,14 +1,23 @@
-/*
- * GermaniumTypes.hpp
- * Type definitions, structures, and constants for Germanium detector driver
- * Hardware register addresses come from pl.h (Mars_DDM)
+/**
+ * @file GermaniumTypes.hpp
+ * @brief Type definitions, structures, and constants.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
 
-#ifndef GERMANIUM_TYPES_HPP
-#define GERMANIUM_TYPES_HPP
+//===========================================================================//
+#pragma once
+
+//===========================================================================//
 
 #include <cstdint>
-#include "pl.h"  // Use authentic Mars_DDM register definitions
+#include "GermaniumRegister.hpp"
+
+//===========================================================================//
 
 // Driver-specific constants (not hardware registers)
 #define GERMANIUM_CONTROL_PORT 8000
@@ -32,6 +41,8 @@
 #define UDP_MSG_ID_ADC_CONFIG 0x0003
 #define UDP_MSG_ID_ARM_CONTROL 0x0004
 
+//===========================================================================//
+
 // MARS ASIC configuration structures - match original Mars_DDM
 struct globalstr_t
 {
@@ -50,6 +61,8 @@ struct globalstr_t
     int saux;    // Auxiliary select
 };
 
+//===========================================================================//
+
 struct channelstr_t
 {
     int chen;    // Channel enable
@@ -57,6 +70,8 @@ struct channelstr_t
     int thtr;    // Threshold trim
     int putr;    // Pileup threshold trim
 };
+
+//===========================================================================//
 
 // UDP protocol structures - Based on actual hardware specification
 namespace DerivedNetwork {
@@ -119,6 +134,8 @@ namespace DerivedNetwork {
 
 } // namespace DerivedNetwork
 
+//===========================================================================//
+
 // Main UDP message structures
 struct UdpReqMsg
 {   
@@ -128,6 +145,8 @@ struct UdpReqMsg
 };  
 using UdpRxMsg = UdpReqMsg;
 
+//===========================================================================//
+
 struct UdpRespMsg
 {
     uint16_t                           id;
@@ -135,6 +154,8 @@ struct UdpRespMsg
     DerivedNetwork::UdpRespMsgPayload  payload;
 };
 using UdpTxMsg = UdpRespMsg;
+
+//===========================================================================//
 
 #define UDP_REQ_MSG_ID  = 0xbeef;
 #define UDP_RESP_MSG_ID = 0xcafe;
@@ -145,10 +166,14 @@ using UdpTxMsg = UdpRespMsg;
 #define UDP_OP_WRITE_BIT 0x0000
 #define UDP_OP_ADDR_MASK 0x7FFF
 
+//===========================================================================//
+
 inline uint16_t makeReadOp(uint16_t address) { return UDP_OP_READ_BIT | (address & UDP_OP_ADDR_MASK); }
 inline uint16_t makeWriteOp(uint16_t address) { return UDP_OP_WRITE_BIT | (address & UDP_OP_ADDR_MASK); }
 inline bool isReadOp(uint16_t op) { return (op & UDP_OP_READ_BIT) != 0; }
 inline uint16_t getOpAddress(uint16_t op) { return op & UDP_OP_ADDR_MASK; }
+
+//===========================================================================//
 
 // Photon event data structure for UDP data packets
 struct PhotonEvent
@@ -196,4 +221,5 @@ struct FileWriteBuffer
     bool overflow;
 };
 
-#endif // GERMANIUM_TYPES_HPP
+//===========================================================================//
+

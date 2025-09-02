@@ -1,11 +1,16 @@
-/*
- * Germanium.hpp
- * Class declaration for Germanium areaDetector driver
- * Based on Mars_DDM zDDM record implementation
+/**
+ * @file Germanium.hpp
+ * @brief Class declaration for Germanium areaDetector driver.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
+#pragma once
 
-#ifndef GERMANIUM_HPP
-#define GERMANIUM_HPP
+//===========================================================================//
 
 #include "ADDriver.h"
 #include "GermaniumTypes.hpp"
@@ -19,7 +24,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "pl.h"  // Hardware register definitions from original Mars_DDM
+#include "GermaniumRegister.hpp"  // Hardware register definitions from original Mars_DDM
+
+//===========================================================================//
 
 /* Parameter string definitions for Germanium detector fields */
 /* Note: Macros used here for EPICS convention and database template compatibility */
@@ -28,13 +35,7 @@
 #define GermaniumVersString         "GERMANIUM_VER"        /* Code Version */
 #define GermaniumValString          "GERMANIUM_VAL"         /* Value */
 
-// Modern C++ alternative (for future use)
-namespace GermaniumParams {
-    // Type-safe parameter string constants
-    constexpr const char* const Vers = GermaniumVersString;
-    constexpr const char* const Val = GermaniumValString;
-    // Can add more as needed...
-}
+//===========================================================================//
 
 #define GermaniumDetTypeString      "GERMANIUM_DETTYPE"     /* Detector type */
 
@@ -156,6 +157,8 @@ namespace GermaniumParams {
 #define GermaniumHvString           "GERMATNIUM_HV"
 #define GermaniumHvRbvString        "GERMATNIUM_HV_RBV"
 #define GermaniumHvCurrString       "GERMATNIUM_HV_CURR"
+
+//===========================================================================//
 
 class Germanium : public ADDriver {
 public:
@@ -389,6 +392,8 @@ private:
     static void event_publish(void *arg);
 };
 
+//===========================================================================//
+
 // Bit-field structures for optimized MARS configuration
 struct __attribute__((packed)) MarsGlobalConfigBits {
     uint32_t pa     : 10;   // Threshold DAC
@@ -405,6 +410,8 @@ struct __attribute__((packed)) MarsGlobalConfigBits {
     uint32_t rt     : 3;    // Timing ramp
 };
 
+//===========================================================================//
+
 struct __attribute__((packed)) MarsChannelConfigBits {
     uint16_t dp     : 4;    // Pileup trim DAC
     uint16_t da     : 4;    // Threshold trim DAC
@@ -414,4 +421,5 @@ struct __attribute__((packed)) MarsChannelConfigBits {
     uint16_t unused : 5;    // Padding
 };
 
-#endif // GERMANIUM_HPP
+//===========================================================================//
+

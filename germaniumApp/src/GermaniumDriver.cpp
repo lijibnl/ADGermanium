@@ -1,8 +1,17 @@
-/*
- * GermaniumDriver.cpp
- * asynPortDriver interface implementations for Germanium detector
- * Handles all parameter read/write operations and communication with hardware
+/**
+ * @file GermaniumDriver.cpp
+ * @brief asynPortDriver interface implementations for Germanium detector;
+ *        handles all parameter read/write operations and communication with
+ *        hardware.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
+
+//===========================================================================//
 
 #include "Germanium.hpp"
 #include "GermaniumTypes.hpp"
@@ -11,6 +20,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <arpa/inet.h>
+
+//===========================================================================//
 
 namespace { // internal linkage
 
@@ -24,6 +35,8 @@ namespace { // internal linkage
     outHost = (b1<<24)|(b2<<16)|(b3<<8)|b4;
     return true;
 }
+
+//===========================================================================//
 
 void u32HostToIpStr(uint32_t host, char* buf, size_t buflen) noexcept {
     in_addr a{}; a.s_addr = htonl(host);
@@ -502,7 +515,7 @@ asynStatus Germanium::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
     // Send the parameter change to the remote device via UDP
     if ( function == GermaniumFREQ )
     {
-        // Time base frequency - may not have direct register in pl.h
+        // Time base frequency - may not have direct register in GermaniumRegister.hpp
         // Could be derived from COUNT_TIME registers
         uint32_t regValue = (uint32_t)(value / 1000.0); // Example scaling
         status = udpRegisterWrite( COUNT_TIME_LO, regValue & 0xFFFF );

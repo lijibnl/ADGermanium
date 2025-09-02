@@ -1,14 +1,17 @@
-/*
- * pl.h - PicoLogic register definitions for Mars_DDM detector system
- * 
- * Original file from https://github.com/lijibnl/Mars_DDM/blob/main/zDDMApp/src/pl.h
- * Modified to remove EVENT_FIFO_* and DMA_IRQ_* registers as requested
+/**
+ * @file GermaniumRegister.hpp
+ * @breif Germanium register definition. Originated from GeRM FPGA design code.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
 
-#ifndef __PL__
-#define __PL__
+//===========================================================================//
+#pragma once
 
-// PL registers
 #define MARS_CONF_LOAD      0
 #define LEDS                1
 #define MARS_CONFIG         2
@@ -26,13 +29,6 @@
 #define CALPULSE_WIDTH      18
 #define CALPULSE_MODE       19
 #define TD_CAL              20
-//#define DMA_CONTROL         32
-//#define DMA_STAT            33
-//#define DMA_BASEADDR        34
-//#define DMA_BURSTLEN        35
-//#define DMA_BUFLEN          36
-//#define DMA_CURADDR         37
-//#define DMA_THROTTLE        38
 #define UDP_IP_ADDR         40
 #define TRIG                52
 #define COUNT_TIME_LO       53
@@ -48,16 +44,3 @@
 #define HV                  94
 #define HV_RBV              95
 #define HV_CURR             96
-//#define CMD_REG_READ    0
-//#define CMD_REG_WRITE   1
-//#define CMD_START_DMA   2
-//
-//#define FIFODATAREG     EVENT_FIFO_DATA
-//#define FIFORDCNTREG    EVENT_FIFO_CNT
-//#define FIFOCNTRLREG    EVENT_FIFO_CNTRL
-//
-//#define FRAMEACTIVEREG  52
-//#define FRAMENUMREG     54
-//#define FRAMELENREG     53
-
-#endif

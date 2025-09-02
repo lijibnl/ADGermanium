@@ -1,8 +1,16 @@
-/*
- * GermaniumDataAcq.cpp
- * Data acquisition, reception, and file writing functionality
- * Handles UDP data reception, buffering, and multi-segment file writing
+/**
+ * @file GermaniumDataAcq.cpp
+ * @brief Handles UDP data reception, buffering, and multi-segment file
+ *        writing.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
+
+//===========================================================================//
 
 #include "Germanium.hpp"
 #include "GermaniumTypes.hpp"

@@ -1,8 +1,15 @@
-/*
- * Germanium.cpp
- * Constructor, parameter creation and initialization for Germanium areaDetector driver
- * Based on analysis of the Mars_DDM repository
+/**
+ * @file Germanium.cpp
+ * @brief Constructor, parameter creation and initialization for Germanium areaDetector driver.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
+
+//===========================================================================//
 
 #include "Germanium.hpp"
 #include "GermaniumTypes.hpp"
@@ -10,6 +17,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+
+//===========================================================================//
 
 // Constructor
 Germanium::Germanium( const char *portName
@@ -168,6 +177,8 @@ Germanium::Germanium( const char *portName
     printf("Germanium detector driver initialized successfully\n");
 }
 
+//===========================================================================//
+
 // Destructor
 Germanium::~Germanium()
 {
@@ -235,6 +246,8 @@ Germanium::~Germanium()
 
     printf("Germanium detector driver destroyed\n");
 }
+
+//===========================================================================//
 
 /*
  * Member function to create all Germanium detector parameters
@@ -378,6 +391,8 @@ void Germanium::createGermaniumParameters()
     createParam( "HV_CURR",  asynParamFloat64, &GermaniumHV_CURR );
 }
 
+//===========================================================================//
+
 /*
  * Member function to set initial values for parameters
  * This should be called after createGermaniumParameters() in the constructor
@@ -432,6 +447,8 @@ void Germanium::setGermaniumInitialValues()
  * This keeps the main class focused on initialization and core functionality
  */
 
+//===========================================================================//
+
 /*
  * Allocate dynamic data arrays based on numElements using modern C++ containers
  */
@@ -458,6 +475,8 @@ void Germanium::allocateDataArrays()
     printf("Allocated data arrays for %d detector elements using modern C++ containers\n", numElements);
 }
 
+//===========================================================================//
+
 /*
  * Deallocate dynamic data arrays - now mostly automatic with smart pointers/vectors
  */
@@ -475,6 +494,8 @@ void Germanium::deallocateDataArrays()
 
     printf("Deallocated data arrays (automatic with smart pointers)\n");
 }
+
+//===========================================================================//
 
 /*
  * Process a single photon event - now using vectors for automatic bounds checking
@@ -513,3 +534,6 @@ void Germanium::processPhotonEvent(int element, int energy, int timestamp)
     // Update global statistics
     evttot++;
 }
+
+//===========================================================================//
+

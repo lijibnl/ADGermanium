@@ -1,13 +1,22 @@
-/*
- * GermaniumApp.cpp
- * Example application showing how to create a Germanium detector IOC
- * This demonstrates the areaDetector driver usage
+/**
+ * @file GermaniumApp.cpp
+ * @brief Definitions for EPICS usage.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
+
+//===========================================================================//
 
 #include "Germanium.hpp"
 #include <iocsh.h>
 #include <epicsExit.h>
 #include <epicsExport.h>
+
+//===========================================================================//
 
 extern "C" {
 
@@ -20,6 +29,8 @@ static const iocshArg germaniumConfigArg4 = {"numParams", iocshArgInt};
 static const iocshArg germaniumConfigArg5 = {"maxBuffers", iocshArgInt};
 static const iocshArg germaniumConfigArg6 = {"maxMemory", iocshArgInt};
 
+//===========================================================================//
+
 static const iocshArg * const germaniumConfigArgs[] = {
     &germaniumConfigArg0,
     &germaniumConfigArg1, 
@@ -30,9 +41,13 @@ static const iocshArg * const germaniumConfigArgs[] = {
     &germaniumConfigArg6
 };
 
+//===========================================================================//
+
 static const iocshFuncDef germaniumConfigFuncDef = {
     "germaniumConfig", 7, germaniumConfigArgs
 };
+
+//===========================================================================//
 
 static void germaniumConfigCallFunc(const iocshArgBuf *args)
 {
@@ -55,11 +70,20 @@ static void germaniumConfigCallFunc(const iocshArgBuf *args)
                   ASYN_CANBLOCK, 1, 0, 0);
 }
 
+//===========================================================================//
+
 static void germaniumRegister(void)
 {
     iocshRegister(&germaniumConfigFuncDef, germaniumConfigCallFunc);
 }
 
+//===========================================================================//
+
 epicsExportRegistrar(germaniumRegister);
 
+//===========================================================================//
+
 } // extern "C"
+
+//===========================================================================//
+
