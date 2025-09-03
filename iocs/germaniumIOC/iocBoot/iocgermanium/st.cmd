@@ -1,11 +1,11 @@
-#!../../bin/linux-x86_64/germanium
+#!../../bin/linux-x86_64/germaniumDetector
 
 
 < envPaths
 errlogInit(20000)
 
 dbLoadDatabase("$(TOP)/dbd/germaniumDetector.dbd")
-germaniumDetectorApp_registerRecordDeviceDriver(pdbbase) 
+germaniumDetector_registerRecordDeviceDriver(pdbbase) 
 
 epicsEnvSet("PREFIX", "Det")
 # The port name for the detector
@@ -24,12 +24,23 @@ epicsEnvSet("EPICS_DB_INCLUDE_PATH", "$(ADCORE)/db")
 
 epicsEnvSet("Detector_IP", "172.16.0.100")
 epicsEnvSet("Detector_PORT", "9527")
+epicsEnvSet("NELM", "384")
 
-drvAsynIPPortConfigure("GeRM","$(Detector_IP):$(Detector_PORT)")
-asynOctetSetInputEos("camserver", 0, "\x18")
-asynOctetSetOutputEos("camserver", 0, "\n")
+#drvAsynIPPortConfigure("GeRM","$(Detector_IP):$(Detector_PORT)")
+#asynOctetSetInputEos("camserver", 0, "\x18")
+#asynOctetSetOutputEos("camserver", 0, "\n")
+echo "NELM=$(NELM)"
 
-germaniumDetectorConfig( "$(PORT)", "camserver", $(XSIZE), $(YSIZE), 0, 0 )
+//testFunc(123)
+
+germaniumConfig( "$(PORT)"
+               , "$(Detector_IP)"
+               , $(NELM)
+               , 0
+               , 100
+               , 100
+               , 10485760
+               )
 
 dbLoadRecords( "$(TOP)/db/germanium.substitutions" )
 

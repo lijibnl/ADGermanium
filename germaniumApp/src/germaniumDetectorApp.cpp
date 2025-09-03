@@ -16,14 +16,16 @@
 #include <epicsExit.h>
 #include <epicsExport.h>
 
+#include "errlog.h"
+
 //===========================================================================//
 
 extern "C" {
 
 // IOC shell function for creating Germanium detector
 static const iocshArg germaniumConfigArg0 = {"portName", iocshArgString};
-static const iocshArg germaniumConfigArg1 = {"numElements", iocshArgInt}; 
-static const iocshArg germaniumConfigArg2 = {"ipAddress", iocshArgString};
+static const iocshArg germaniumConfigArg2 = {"numElements", iocshArgInt}; 
+static const iocshArg germaniumConfigArg1 = {"ipAddress", iocshArgString};
 static const iocshArg germaniumConfigArg3 = {"maxAddr", iocshArgInt};
 static const iocshArg germaniumConfigArg4 = {"numParams", iocshArgInt};
 static const iocshArg germaniumConfigArg5 = {"maxBuffers", iocshArgInt};
@@ -51,13 +53,29 @@ static const iocshFuncDef germaniumConfigFuncDef = {
 
 static void germaniumConfigCallFunc(const iocshArgBuf *args)
 {
-    const char *portName = args[0].sval;
-    int numElements = args[1].ival;
-    const char *ipAddress = args[2].sval;
-    int maxAddr = args[3].ival;
-    int numParams = args[4].ival;
-    int maxBuffers = args[5].ival; 
-    int maxMemory = args[6].ival;
+    const char *portName  = args[0].sval;
+    int numElements       = args[2].ival;
+    const char *ipAddress = args[1].sval;
+    int maxAddr           = args[3].ival;
+    int numParams         = args[4].ival;
+    int maxBuffers        = args[5].ival; 
+    int maxMemory         = args[6].ival;
+
+    errlogPrintf("[%s]: enter...\n", __func__);
+
+    errlogPrintf(" Parameters are %s, %d, %s, %d, %d, %d, %d\n"
+                , args[0].sval
+                , args[2].ival
+                , args[1].sval
+                , args[3].ival
+                , args[4].ival
+                , args[5].ival
+                , args[6].ival
+                );
+
+    errlogPrintf("portName is %s\n", portName);
+    errlogPrintf("numElements is %d\n", numElements);
+    errlogPrintf("ipAddress is %s\n", ipAddress);
     
     // Create the Germanium detector driver
     // areaDetector R3-12-1 parameters
@@ -96,3 +114,12 @@ epicsExportRegistrar(germaniumRegister);
 
 //===========================================================================//
 
+//extern "C"{
+//static void testFunc(const iocshArgBuf *args) {
+//    errlogPrintf("testFunc: %d\n", args[0].ival);
+//}
+//static const iocshArg testArg = {"val", iocshArgInt};
+//static const iocshFuncDef testFuncDef = {"testFunc", 1, &testArg};
+//static void testRegister(void) { iocshRegister(&testFuncDef, testFunc); }
+//epicsExportRegistrar(testRegister);
+//}

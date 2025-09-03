@@ -14,12 +14,12 @@
 #include "germaniumDetector.hpp"
 #include "germaniumDetectorTypes.hpp"
 #include "NDArray.h"
+#include "errlog.h"
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
 
 //===========================================================================//
-
 // Constructor
 germaniumDetector::germaniumDetector( const char *portName
                                     , int numElements
@@ -80,11 +80,19 @@ germaniumDetector::germaniumDetector( const char *portName
                                     , acquisitionThreadId(nullptr)
                                     , acquisitionRunning(false)
 {
+    errlogPrintf("[%s]: enter...\n", __func__);
+    errlogPrintf("portName is %s\n", portName);
+    errlogPrintf("numElements is %d\n", numElements);
+    errlogPrintf("ipAddress is %s\n", ipAddress);
+
     // Store IP address
-    strncpy(this->ipAddress, ipAddress, sizeof(this->ipAddress) - 1);
-    this->ipAddress[sizeof(this->ipAddress) - 1] = '\0';
+    errlogPrintf("[%s]: store IP address\n", __func__);
+    errlogPrintf("size of ipAddress is %ld\n", strlen(ipAddress));
+    strncpy(this->ipAddress, ipAddress, strlen(ipAddress));
+    this->ipAddress[strlen(ipAddress)] = '\0';
 
     // Initialize MARS ASIC configuration arrays to zero
+    errlogPrintf("[%s]: initialize MARS configuration data\n", __func__);
     memset(globalstr, 0, sizeof(globalstr));
     memset(channelstr, 0, sizeof(channelstr));
     memset(loads, 0, sizeof(loads));
@@ -115,12 +123,15 @@ germaniumDetector::germaniumDetector( const char *portName
           );
 
     // Allocate dynamic data arrays based on actual number of elements
+    errlogPrintf("[%s]: allocating arrays...\n", __func__);
     allocateDataArrays();
 
     // Create all parameters
+    errlogPrintf("[%s]: creating parameters...\n", __func__);
     createGermaniumParameters();
 
     // Set initial values
+    errlogPrintf("[%s]: set initial values\n", __func__);
     setGermaniumInitialValues();
 
     // Initialize hardware
