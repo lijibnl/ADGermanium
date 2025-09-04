@@ -61,22 +61,6 @@ static void germaniumConfigCallFunc(const iocshArgBuf *args)
     int maxBuffers        = args[5].ival; 
     int maxMemory         = args[6].ival;
 
-    errlogPrintf("[%s]: enter...\n", __func__);
-
-    errlogPrintf(" Parameters are %s, %d, %s, %d, %d, %d, %d\n"
-                , args[0].sval
-                , args[2].ival
-                , args[1].sval
-                , args[3].ival
-                , args[4].ival
-                , args[5].ival
-                , args[6].ival
-                );
-
-    errlogPrintf("portName is %s\n", portName);
-    errlogPrintf("numElements is %d\n", numElements);
-    errlogPrintf("ipAddress is %s\n", ipAddress);
-    
     // Create the Germanium detector driver
     // areaDetector R3-12-1 parameters
     new germaniumDetector( portName

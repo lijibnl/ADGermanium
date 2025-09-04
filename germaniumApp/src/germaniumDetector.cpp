@@ -81,13 +81,8 @@ germaniumDetector::germaniumDetector( const char *portName
                                     , acquisitionRunning(false)
 {
     errlogPrintf("[%s]: enter...\n", __func__);
-    errlogPrintf("portName is %s\n", portName);
-    errlogPrintf("numElements is %d\n", numElements);
-    errlogPrintf("ipAddress is %s\n", ipAddress);
 
     // Store IP address
-    errlogPrintf("[%s]: store IP address\n", __func__);
-    errlogPrintf("size of ipAddress is %ld\n", strlen(ipAddress));
     strncpy(this->ipAddress, ipAddress, strlen(ipAddress));
     this->ipAddress[strlen(ipAddress)] = '\0';
 
