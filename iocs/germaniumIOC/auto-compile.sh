@@ -5,49 +5,6 @@
 # - Serializes builds with a lock
 # - Clears screen only when a build actually starts
 
-set -u
-
-### ── Configuration ────────────────────────────────────────────────────────────
-
-# Command to run when a change is detected (use an array for safety)
-BUILD_CMD=( make )
-
-# Debounce window (seconds) to coalesce multiple events from a single save
-DEBOUNCE_SECONDS=0.8
-
-# Inotify events to react to (finalizing events reduce duplicates)
-EVENTS="close_write,moved_to,delete"
-
-# Exclude editor temp/hidden files
-EXCLUDE_REGEX='(^|/)\.|(~$)|(\.sw[pxon]$)|(^#.*#$)'
-
-# Set to 1 to watch subdirectories of all watched dirs; 0 for top-level only
-RECURSIVE=0
-
-# Lockfile path to ensure only one build at a time
-LOCKFILE="/tmp/build.watcher.lock"
-
-# --- Define your directories and file types here ---
-# Use regex ORs (e.g., "c|cpp|hpp|dbd") for the extensions (without leading dot)
-# Example for ADGermanium:
-MODULE_DIR="/epics/base/base-7.0.9/synApps_6_3/support/areaDetector-R3-12-1/ADGermanium"
-LIB_DIR="$MODULE_DIR/lib/linux-x86_64"
-DB_DIR="$MODULE_DIR/db"
-DBD_DIR="$MODULE_DIR/dbd"
-echo $DBD_DIR
-# Map: directory => "ext1|ext2|ext3"
-declare -A WATCH_EXTS=(
-  ["$LIB_DIR"]="c|cpp|hpp|dbd"
-  ["$DB_DIR"]="db|template"
-  ["$DBD_DIR"]="dbd"
-)
-
-# ── Add more:
-# OTHER_DIR="/path/to/other"
-# WATCH_EXTS["$OTHER_DIR"]="py|sh|yaml"
-
-### ── End Configuration ───────────────────────────────────────────────────────
-
 ### ── Functions ───────────────────────────────────────────────────────────────
 # Kill all gdb processes owned by this user
 kill_gdb() {
@@ -75,6 +32,49 @@ kill_gdb() {
 }
 
 ### ── End functions ───────────────────────────────────────────────────────────
+
+set -u
+
+### ── Configuration ────────────────────────────────────────────────────────────
+
+# Command to run when a change is detected (use an array for safety)
+BUILD_CMD=( make )
+
+# Debounce window (seconds) to coalesce multiple events from a single save
+DEBOUNCE_SECONDS=0.8
+
+# Inotify events to react to (finalizing events reduce duplicates)
+EVENTS="close_write,moved_to,delete"
+
+# Exclude editor temp/hidden files
+EXCLUDE_REGEX='(^|/)\.|(~$)|(\.sw[pxon]$)|(^#.*#$)'
+
+# Set to 1 to watch subdirectories of all watched dirs; 0 for top-level only
+RECURSIVE=0
+
+# Lockfile path to ensure only one build at a time
+LOCKFILE="/tmp/build.watcher.lock"
+
+# --- Define directories and file types here ---
+# Use regex ORs (e.g., "c|cpp|hpp|dbd") for the extensions (without leading dot)
+# Example for ADGermanium:
+MODULE_DIR="/epics/base/base-7.0.9/synApps_6_3/support/areaDetector-R3-12-1/ADGermanium"
+LIB_DIR="$MODULE_DIR/lib/linux-x86_64"
+DB_DIR="$MODULE_DIR/db"
+DBD_DIR="$MODULE_DIR/dbd"
+echo $DBD_DIR
+# Map: directory => "ext1|ext2|ext3"
+declare -A WATCH_EXTS=(
+  ["$LIB_DIR"]="a|so"
+  ["$DB_DIR"]="db|template"
+  ["$DBD_DIR"]="dbd"
+)
+
+# ── Add more:
+# OTHER_DIR="/path/to/other"
+# WATCH_EXTS["$OTHER_DIR"]="py|sh|yaml"
+
+### ── End Configuration ───────────────────────────────────────────────────────
 
 # Build inotify args & directory list
 INOTIFY_ARGS=( -m --format '%w %f %e' --event "$EVENTS" --exclude "$EXCLUDE_REGEX" )

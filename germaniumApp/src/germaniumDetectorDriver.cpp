@@ -15,6 +15,7 @@
 
 #include "germaniumDetector.hpp"
 #include "germaniumDetectorTypes.hpp"
+#include "errlog.h"
 #include <algorithm>
 #include <cstring>
 #include <cstdint>
@@ -52,6 +53,8 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
+
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
 
     // First set the parameter locally
     status = ADDriver::setIntegerParam(function, value);
@@ -334,6 +337,11 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             globalstr[chip].saux = 1;
             status = sendMarsConfiguration();
         }
+    }
+
+    else if ( function == GermaniumNELM )
+    {
+        status = udpRegisterWrite( NELM, value );
     }
 
     else if ( function == GermaniumLOAO )

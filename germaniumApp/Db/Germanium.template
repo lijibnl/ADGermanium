@@ -2,9 +2,9 @@
 # Macro: P - PV prefix, R - Record prefix, PORT - asyn port name, ADDR - asyn address
 
 # Basic detector information
-record(ao, "$(P)$(R)NumElements") {
+record(ao, "$(P)$(R)NELM") {
     field(DTYP, "asynInt32")
-    field(OUTP,  "@asyn($(PORT),$(ADDR))GERMANIUM_NELM")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_NELM")
 #    field(SCAN, "I/O Intr")
     field(DESC, "Number of detector elements")
 }

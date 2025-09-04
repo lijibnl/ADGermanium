@@ -36,6 +36,7 @@
 #define FRAME_NO            55
 #define COUNT_MODE          56
 
+#define NELM                70
 #define LOADS               80
 #define TEMP1               90
 #define TEMP2               91

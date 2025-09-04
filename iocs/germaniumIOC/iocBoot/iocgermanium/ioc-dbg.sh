@@ -11,8 +11,8 @@ while true; do
         echo "[Watcher] Starting gdb for $TARGET $ARGS"
         gdb -ex run --args "$TARGET" "$ARGS"
         echo "[Watcher] gdb exited at $(date)"
-        echo "Restarting in 2 seconds..."
-        sleep 2
+        echo "Restarting in 1 seconds..."
+        sleep 1
     else
         # If gdb is running, wait a bit before checking again
         sleep 5

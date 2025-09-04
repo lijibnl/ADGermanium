@@ -326,7 +326,7 @@ void germaniumDetector::createGermaniumParameters()
     createParam("CARD", asynParamInt32, &GermaniumCARD); /* Card number */
 
     /* Detector configuration - exact match to zDDM record */
-    createParam("NELM", asynParamInt32, &GermaniumNELM);     /* Number of elements */
+    createParam( GermaniumNelmString, asynParamInt32, &GermaniumNELM);     /* Number of elements */
     createParam("NCH", asynParamInt32, &GermaniumNCH);       /* Number of channels */
     createParam("NCHIPS", asynParamInt32, &GermaniumNCHIPS); /* Number of chips */
     createParam("CHAN", asynParamInt32, &GermaniumCHAN);     /* Channel in chip */

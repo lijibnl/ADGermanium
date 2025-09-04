@@ -13,6 +13,7 @@
 //===========================================================================//
 
 #include "germaniumDetector.hpp"
+#include "errlog.h"
 #include <cstring>
 #include <cstdio>
 #include <unistd.h>
@@ -144,6 +145,8 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
     if (!udpInitialized) {
         return asynError;
     }
+
+    errlogPrintf( "[%s]: op = %d, data = %d\n", op, data );
     
     // Create proper UDP message structure
     UdpReqMsg msg;

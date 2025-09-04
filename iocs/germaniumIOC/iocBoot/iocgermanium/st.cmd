@@ -33,7 +33,7 @@ echo "NELM=$(NELM)"
 
 germaniumConfig( "$(PORT)", "$(Detector_IP)", $(NELM), 0, 100, 100, 10485760 )
 
-dbLoadRecords( "$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX), R=image1:, PORT=GERM, ADDR=0" )
+dbLoadRecords( "$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX), R=, PORT=GERM, ADDR=0" )
 #
 ## Create a standard arrays plugin
 #NDStdArraysConfigure( "Image1", 5, 0, "$(PORT)", 0, 0 )
