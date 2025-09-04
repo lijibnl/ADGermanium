@@ -71,9 +71,9 @@ static void germaniumConfigCallFunc(const iocshArgBuf *args)
                          , maxBuffers
                          , maxMemory
                          , asynInt32Mask | asynFloat64Mask | asynOctetMask | 
-                           asynInt32ArrayMask | asynFloat64ArrayMask
+                           asynInt32ArrayMask | asynFloat64ArrayMask | asynDrvUserMask
                          , asynInt32Mask | asynFloat64Mask | asynOctetMask |
-                           asynInt32ArrayMask | asynFloat64ArrayMask
+                           asynInt32ArrayMask | asynFloat64ArrayMask | asynDrvUserMask
                          , ASYN_CANBLOCK
                          , 1
                          , 0

@@ -511,6 +511,8 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
+
     // First set the parameter locally
     status = ADDriver::setDoubleParam(function, value);
 
@@ -601,6 +603,8 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
+
     // First set the parameter locally
     status = ADDriver::setStringParam(function, value);
 
@@ -680,6 +684,8 @@ asynStatus germaniumDetector::readInt32( asynUser *pasynUser )
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
+
     if ( function == GermaniumVER )
     {
         status = udpRegisterRead( VERSIONREG );
@@ -740,6 +746,8 @@ asynStatus germaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *va
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
+
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
 
     // Handle array reads for MCA, TDC, etc. using vectors
     if ( function == GermaniumMCA )
@@ -813,6 +821,8 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
+
     // Handle array writes for configuration arrays via UDP
     if ( function == GermaniumCHEN )
     {
@@ -866,6 +876,8 @@ asynStatus germaniumDetector::readNDArray(asynUser *pasynUser, epicsInt32 *value
     asynStatus status = asynSuccess;
     size_t dims[2];
     NDArray *pArray = nullptr;
+
+    errlogPrintf( "[%s]: function is %d\n", __func__, function );
 
     // Determine which array is being requested
     if ( function == GermaniumMCA )

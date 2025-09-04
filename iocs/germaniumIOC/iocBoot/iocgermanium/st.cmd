@@ -22,7 +22,7 @@ epicsEnvSet("CBUFFS", "500")
 # The search path for database files
 epicsEnvSet("EPICS_DB_INCLUDE_PATH", "$(ADCORE)/db")
 
-epicsEnvSet("Detector_IP", "172.16.0.100")
+epicsEnvSet("Detector_IP", "172.16.0.211")
 epicsEnvSet("Detector_PORT", "9527")
 epicsEnvSet("NELM", "384")
 
@@ -31,7 +31,8 @@ epicsEnvSet("NELM", "384")
 #asynOctetSetOutputEos("camserver", 0, "\n")
 echo "NELM=$(NELM)"
 
-germaniumConfig( "$(PORT)", "$(Detector_IP)", $(NELM), 0, 100, 100, 10485760 )
+germaniumConfig( "$(PORT)", "$(Detector_IP)", $(NELM), 2, 512, 100, 10485760 )
+asynReport 5, "$(PORT)"
 
 dbLoadRecords( "$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX), R=, PORT=GERM, ADDR=0" )
 #

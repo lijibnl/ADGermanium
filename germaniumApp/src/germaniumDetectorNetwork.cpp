@@ -146,11 +146,12 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
         return asynError;
     }
 
-    errlogPrintf( "[%s]: op = %d, data = %d\n", op, data );
+    errlogPrintf( "[%s]: op = 0x%x, data = 0x%x\n", __func__, op, data );
     
     // Create proper UDP message structure
     UdpReqMsg msg;
     msg.id = 0x1234;  // Fixed ID for now - could be incremental
+    msg.op = op;
     size_t msgSize;
     
     // Determine if this is a read or write operation based on command
@@ -167,13 +168,13 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
     
     // Send command with mutex protection
     epicsMutexLock(udpMutex);
-    ssize_t sent = sendto( udpControlSocket
-                         , &msg
-                         , msgSize
-                         , 0
-                         , (struct sockaddr*)&deviceAddr
-                         , sizeof(deviceAddr)
-                         );
+    size_t sent = sendto( udpControlSocket
+                        , &msg
+                        , msgSize
+                        , 0
+                        , (struct sockaddr*)&deviceAddr
+                        , sizeof(deviceAddr)
+                        );
     epicsMutexUnlock(udpMutex);
     
     if (sent != msgSize)
@@ -183,6 +184,17 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
               , strerror(errno)
               );
         return asynError;
+    }
+    else
+    {
+        errlogPrintf( "[%s]: msg.id = 0x%x, msg.op = 0x%x, msg.data = 0x%x (0x%x), msg.size = %lu\n"
+                    , __func__
+                    , msg.id
+                    , msg.op
+                    , msg.payload.single_word.data
+                    , ntohl(msg.payload.single_word.data)
+                    , sent
+                    );
     }
     
     return asynSuccess;
