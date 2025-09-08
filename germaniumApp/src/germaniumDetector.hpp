@@ -32,131 +32,131 @@
 /* Note: Macros used here for EPICS convention and database template compatibility */
 
 /* Basic record fields */
-#define GermaniumVersString         "GERMANIUM_VER"        /* Code Version */
-#define GermaniumValString          "GERMANIUM_VAL"         /* Value */
+#define GermaniumVersString         "VER"        /* Code Version */
+#define GermaniumValString          "VAL"         /* Value */
 
 //===========================================================================//
 
-#define GermaniumDetTypeString      "GERMANIUM_DETTYPE"     /* Detector type */
+#define GermaniumDetTypeString      "DETTYPE"     /* Detector type */
 
 /* Data arrays */
-#define GermaniumMcaString          "GERMANIUM_MCA"         /* MCA spectrum data */
-#define GermaniumTdcString          "GERMANIUM_TDC"         /* TDC spectrum data */
-#define GermaniumSpctString         "GERMANIUM_SPCT"        /* Selected channel spectrum */
-#define GermaniumSpctxString        "GERMANIUM_SPCTX"       /* Calibrated X-axis values */
-#define GermaniumIntensString       "GERMANIUM_INTENS"      /* Intensity array */
+#define GermaniumMcaString          "MCA"         /* MCA spectrum data */
+#define GermaniumTdcString          "TDC"         /* TDC spectrum data */
+#define GermaniumSpctString         "SPCT"        /* Selected channel spectrum */
+#define GermaniumSpctxString        "SPCTX"       /* Calibrated X-axis values */
+#define GermaniumIntensString       "INTENS"      /* Intensity array */
 
 /* Display size parameters */
-#define GermaniumExsizeString       "GERMANIUM_EXSIZE"      /* Display X size for energy */
-#define GermaniumEysizeString       "GERMANIUM_EYSIZE"      /* Display Y size for energy */
-#define GermaniumTxsizeString       "GERMANIUM_TXSIZE"      /* Display X size for TDC */
-#define GermaniumTysizeString       "GERMANIUM_TYSIZE"      /* Display Y size for TDC */
+#define GermaniumExsizeString       "EXSIZE"      /* Display X size for energy */
+#define GermaniumEysizeString       "EYSIZE"      /* Display Y size for energy */
+#define GermaniumTxsizeString       "TXSIZE"      /* Display X size for TDC */
+#define GermaniumTysizeString       "TYSIZE"      /* Display Y size for TDC */
 
 /* Network configuration */
-#define GermaniumIpaddrString       "GERMANIUM_IPADDR"      /* Fast data IP address */
-#define GermaniumIpaddrRbvString    "GERMANIUM_IPADDR_RBV"  /* Fast data IP address */
+#define GermaniumIpaddrString       "IPADDR"      /* Fast data IP address */
+#define GermaniumIpaddrRbvString    "IPADDR_RBV"  /* Fast data IP address */
 
 /* File handling */
-#define GermaniumFnamString         "GERMANIUM_FNAM"        /* Filename */
-#define GermaniumCalfString         "GERMANIUM_CALF"        /* Calibration filename */
-#define GermaniumDirString          "GERMANIUM_DIR"         /* Data directory path */
-#define GermaniumFsizeString        "GERMANIUM_FSIZE"       /* Maximum file size */
+#define GermaniumFnamString         "FNAM"        /* Filename */
+#define GermaniumCalfString         "CALF"        /* Calibration filename */
+#define GermaniumDirString          "DIR"         /* Data directory path */
+#define GermaniumFsizeString        "FSIZE"       /* Maximum file size */
 
 /* Timing and control */
-#define GermaniumFreqString         "GERMANIUM_FREQ"        /* Time base frequency */
-#define GermaniumCntString          "GERMANIUM_CNT"         /* Count control */
-#define GermaniumPcntString         "GERMANIUM_PCNT"        /* Previous count */
-#define GermaniumContString         "GERMANIUM_CONT"        /* OneShot/AutoCount mode */
-#define GermaniumModeString         "GERMANIUM_MODE"        /* Timed/Continuous mode */
+#define GermaniumFreqString         "FREQ"        /* Time base frequency */
+#define GermaniumCntString          "CNT"         /* Count control */
+#define GermaniumPcntString         "PCNT"        /* Previous count */
+#define GermaniumContString         "CONT"        /* OneShot/AutoCount mode */
+#define GermaniumModeString         "MODE"        /* Timed/Continuous mode */
 
 /* Display rates */
-#define GermaniumRateString         "GERMANIUM_RATE"        /* Display rate (Hz) */
-#define GermaniumRat1String         "GERMANIUM_RAT1"        /* Auto display rate (Hz) */
+#define GermaniumRateString         "RATE"        /* Display rate (Hz) */
+#define GermaniumRat1String         "RAT1"        /* Auto display rate (Hz) */
 
 /* Delays */
-#define GermaniumDlyString          "GERMANIUM_DLY"         /* Delay */
-#define GermaniumDly1String         "GERMANIUM_DLY1"        /* Auto-mode delay */
+#define GermaniumDlyString          "DLY"         /* Delay */
+#define GermaniumDly1String         "DLY1"        /* Auto-mode delay */
 
 /* Time presets */
-#define GermaniumTpString           "GERMANIUM_TP"          /* Time preset */
-#define GermaniumTp1String          "GERMANIUM_TP1"         /* Auto time preset */
-#define GermaniumPr1String          "GERMANIUM_PR1"         /* Preset in clock ticks */
+#define GermaniumTpString           "TP"          /* Time preset */
+#define GermaniumTp1String          "TP1"         /* Auto time preset */
+#define GermaniumPr1String          "PR1"         /* Preset in clock ticks */
 
 /* State monitoring */
-#define GermaniumSsString           "GERMANIUM_SS"          /* Scaler state */
-#define GermaniumUsString           "GERMANIUM_US"          /* User state */
-#define GermaniumTString            "GERMANIUM_T"           /* Timer */
+#define GermaniumSsString           "SS"          /* Scaler state */
+#define GermaniumUsString           "US"          /* User state */
+#define GermaniumTString            "T"           /* Timer */
 
 /* Run control */
-#define GermaniumRunnoString        "GERMANIUM_RUNNO"       /* Run number */
-#define GermaniumPldelString        "GERMANIUM_PLDEL"       /* Pipeline delay */
-#define GermaniumPldelRbvString     "GERMANIUM_PLDEL_RBV"   /* Pipeline delay */
-#define GermaniumRodelString        "GERMANIUM_RODEL"       /* Readout delay */
-#define GermaniumRodelRbvString     "GERMANIUM_RODEL_RBV"   /* Readout delay */
+#define GermaniumRunnoString        "RUNNO"       /* Run number */
+#define GermaniumPldelString        "PLDEL"       /* Pipeline delay */
+#define GermaniumPldelRbvString     "PLDEL_RBV"   /* Pipeline delay */
+#define GermaniumRodelString        "RODEL"       /* Readout delay */
+#define GermaniumRodelRbvString     "RODEL_RBV"   /* Readout delay */
 
 /* Hardware information */
-#define GermaniumFverString         "GERMANIUM_FVER"        /* Firmware version */
-#define GermaniumCardString         "GERMANIUM_CARD"        /* Card number */
+#define GermaniumFverString         "FVER"        /* Firmware version */
+#define GermaniumCardString         "CARD"        /* Card number */
 
 /* Detector configuration */
-#define GermaniumNelmString         "GERMANIUM_NELM"        /* Number of elements */
-#define GermaniumNchString          "GERMANIUM_NCH"         /* Number of channels */
-#define GermaniumNchipsString       "GERMANIUM_NCHIPS"      /* Number of chips */
-#define GermaniumChanString         "GERMANIUM_CHAN"        /* Channel in chip */
-#define GermaniumChipString         "GERMANIUM_CHIP"        /* Selected chip */
+#define GermaniumNelmString         "NELM"        /* Number of elements */
+#define GermaniumNchString          "NCH"         /* Number of channels */
+#define GermaniumNchipsString       "NCHIPS"      /* Number of chips */
+#define GermaniumChanString         "CHAN"        /* Channel in chip */
+#define GermaniumChipString         "CHIP"        /* Selected chip */
 
 /* Analog settings */
-#define GermaniumShptString         "GERMANIUM_SHPT"        /* Shaping time */
-#define GermaniumGainString         "GERMANIUM_GAIN"        /* Gain setting */
-#define GermaniumPolString          "GERMANIUM_POL"         /* Input polarity */
-#define GermaniumEblkString         "GERMANIUM_EBLK"        /* Enable input bias current */
+#define GermaniumShptString         "SHPT"        /* Shaping time */
+#define GermaniumGainString         "GAIN"        /* Gain setting */
+#define GermaniumPolString          "POL"         /* Input polarity */
+#define GermaniumEblkString         "EBLK"        /* Enable input bias current */
 
 /* Monitor settings */
-#define GermaniumGmonString         "GERMANIUM_GMON"        /* Global monitor mode */
-#define GermaniumMonchString        "GERMANIUM_MONCH"       /* Monitor channel */
-#define GermaniumLoaoString         "GERMANIUM_LOAO"        /* Leakage/pulse monitor select */
+#define GermaniumGmonString         "GMON"        /* Global monitor mode */
+#define GermaniumMonchString        "MONCH"       /* Monitor channel */
+#define GermaniumLoaoString         "LOAO"        /* Leakage/pulse monitor select */
 
 /* Processing settings */
-#define GermaniumPuenString         "GERMANIUM_PUEN"        /* Pileup rejection enable */
-#define GermaniumMfsString          "GERMANIUM_MFS"         /* Multi-fire suppression */
+#define GermaniumPuenString         "PUEN"        /* Pileup rejection enable */
+#define GermaniumMfsString          "MFS"         /* Multi-fire suppression */
 
 /* TDC settings */
-#define GermaniumTdsString          "GERMANIUM_TDS"         /* TDC slope */
-#define GermaniumTdmString          "GERMANIUM_TDM"         /* TDC mode */
+#define GermaniumTdsString          "TDS"         /* TDC slope */
+#define GermaniumTdmString          "TDM"         /* TDC mode */
 
 /* Test pulse settings */
-#define GermaniumTpampString        "GERMANIUM_TPAMP"       /* Test pulse amplitude */
-#define GermaniumTpfrqString        "GERMANIUM_TPFRQ"       /* Test pulse frequency */
-#define GermaniumTpcntString        "GERMANIUM_TPCNT"       /* Number of test pulses */
-#define GermaniumTpenbString        "GERMANIUM_TPENB"       /* Test pulse enable */
+#define GermaniumTpampString        "TPAMP"       /* Test pulse amplitude */
+#define GermaniumTpfrqString        "TPFRQ"       /* Test pulse frequency */
+#define GermaniumTpcntString        "TPCNT"       /* Number of test pulses */
+#define GermaniumTpenbString        "TPENB"       /* Test pulse enable */
 
 /* Per-channel arrays */
-#define GermaniumChenString         "GERMANIUM_CHEN"        /* Channel enable array */
-#define GermaniumTsenString         "GERMANIUM_TSEN"        /* Test pulse input enable array */
-#define GermaniumThtrString         "GERMANIUM_THTR"        /* Threshold trim array */
-#define GermaniumPutrString         "GERMANIUM_PUTR"        /* Pileup threshold trim array */
-#define GermaniumSlpString          "GERMANIUM_SLP"         /* Slope calibration array */
-#define GermaniumOffsString         "GERMANIUM_OFFS"        /* Offset calibration array */
+#define GermaniumChenString         "CHEN"        /* Channel enable array */
+#define GermaniumTsenString         "TSEN"        /* Test pulse input enable array */
+#define GermaniumThtrString         "THTR"        /* Threshold trim array */
+#define GermaniumPutrString         "PUTR"        /* Pileup threshold trim array */
+#define GermaniumSlpString          "SLP"         /* Slope calibration array */
+#define GermaniumOffsString         "OFFS"        /* Offset calibration array */
 
 /* Per-chip arrays */
-#define GermaniumThrshString        "GERMANIUM_THRSH"       /* Threshold array (per chip) */
+#define GermaniumThrshString        "THRSH"       /* Threshold array (per chip) */
 
 /* Display and formatting */
-#define GermaniumEguString          "GERMANIUM_EGU"         /* Engineering units */
-#define GermaniumPrecString         "GERMANIUM_PREC"        /* Display precision */
+#define GermaniumEguString          "EGU"         /* Engineering units */
+#define GermaniumPrecString         "PREC"        /* Display precision */
 
 /* Output links */
-#define GermaniumCoutString         "GERMANIUM_COUT"        /* Count output link */
-#define GermaniumCoutpString        "GERMANIUM_COUTP"       /* Count output prompt */
+#define GermaniumCoutString         "COUT"        /* Count output link */
+#define GermaniumCoutpString        "COUTP"       /* Count output prompt */
 
 /* Device status */
-#define GermaniumTemp1String        "GERMATNIUM_TEMP1"
-#define GermaniumTemp2String        "GERMATNIUM_TEMP2"
-#define GermaniumTemp3String        "GERMATNIUM_TEMP3"
-#define GermaniumZTempString        "GERMATNIUM_ZTEMP"
-#define GermaniumHvString           "GERMATNIUM_HV"
-#define GermaniumHvRbvString        "GERMATNIUM_HV_RBV"
-#define GermaniumHvCurrString       "GERMATNIUM_HV_CURR"
+#define GermaniumTemp1String        "TEMP1"
+#define GermaniumTemp2String        "TEMP2"
+#define GermaniumTemp3String        "TEMP3"
+#define GermaniumZTempString        "ZTEMP"
+#define GermaniumHvString           "HV"
+#define GermaniumHvRbvString        "HV_RBV"
+#define GermaniumHvCurrString       "HV_CURR"
 
 //===========================================================================//
 

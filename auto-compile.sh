@@ -25,7 +25,7 @@ EXCLUDE_REGEX='(^|/)\.|(~$)|(\.sw[pxon]$)|(^#.*#$)'
 RECURSIVE=0
 
 # Lockfile path to ensure only one build at a time
-LOCKFILE="/tmp/build.watcher.lock"
+LOCKFILE="/tmp/germaniumLIB.build.lock"
 
 # --- Define your directories and file types here ---
 # Use regex ORs (e.g., "c|cpp|hpp|dbd") for the extensions (without leading dot)

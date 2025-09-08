@@ -1,9 +1,3 @@
-# Germanium PV Definitions
-
-## 1. PVs
-
-- ### Data
-
 PV | Type | Addr | Value | Note
 :-:|:-:|:-:|:-|:-
 MCA    | NDArray | 1 | `$(NELM)*2048`
@@ -11,7 +5,7 @@ TDC    | NDArray | 1 | `$(NELM)*1024`
 SPCT   | NDArray | 1 | `1*2048`
 INTENS | NDArray | 1 | `1*2048`
 
-- ### Config
+- ## Config
 
 PV | TYPE | ADDR | VALUE | NOTE
 :-:|:-:|:-:|:-|:-
@@ -25,7 +19,7 @@ TDM  | bo   | 0 | 0: Time of arrival<br>1: Time over threshold | Set TDC mode.
 PLDEL | longout | 0 | | Set pipeline delay.
 RODEL | longout | 0 | | Set readout delay.
 
-- ### Test pulse
+- ## Test pulse
 
 PV | TYPE | ADDR | SIZE | VALUE | NOTE
 :-:|:-:|:-:|:-|:-
@@ -34,17 +28,17 @@ POL   | bo | 0 | | 0: Negative<br>1: Positive | Set input polarity.
 TPAMP | longout | 0 | |  | Set test pulse amplitude.
 TPFRQ | longout | 0 | |  | Set test pulse frequency.
 TPCNT | longout | 0 | |  | Set test pulse count.
-CHEN  | waveformout | 0 | | $(NELM) | Channel enable (per channel).
-TPEN  | waveformout | 0 | | $(NELM) | Test pulse enable (per channel).
+CHEN  | waveformout | 0 | $(NELM) |  | Channel enable (per channel).
+TPEN  | waveformout | 0 | $(NELM) |  | Test pulse enable (per channel).
 
-- ### UDP
+- ## UDP
 
 PV | TYPE | ADDR | VALUE | NOTE
 :-:|:-:|:-:|:-|:-
 IPADDR | stringout | 0 |  |
 
 
-- ### Count
+- ## Count
 
 PV | TYPE | ADDR | VALUE | NOTE
 :-:|:-:|:-:|:-|:-
@@ -55,7 +49,7 @@ GMON | mbbo | 0 | 0: Off<br>1: Temperature<br>2: Baseline<br>3: Threshold<br>4: 
 MONCH | longout | 0 |  | Set channel which has monitor out enabled.
 CNT   | bo | 0 | 0: Stop<br>1: Start    | Acquisition control.
 
-- ### Calibration
+- ## Calibration
 
 PV | TYPE | ADDR | VALUE | NOTE
 :-:|:-:|:-:|:-|:-
@@ -67,7 +61,7 @@ THTR | waveform | 0 |  | Array of NCHAN trim DAC values.
 PUTR | waveform | 0 |  | Array of NCHAN pileup threshold trim values.
 THRSH | waveform | 0 |  | Threshold
 
-- ### Environment
+- ## Environment
 
 PV | TYPE | ADDR | VALUE | NOTE
 :-:|:-:|:-:|:-|:-
@@ -78,42 +72,3 @@ Temp1  | ai | 0 |  |
 Temp2  | ai | 0 |  |
 Temp3  | ai | 0 |  |
 ztmp   | ai | 0 |  |
-
-
-## 2. Reference
-
-- P1_CUR
-- P2_CUR
-- P1
-- P2
-- TIME_ELAPSED
-- TIME_LEFT
-
-```
-$ dbpr det1 2
-ACKS: NO_ALARM      ACKT: YES           AMSG:               ASG :               
-BKPT: 00            CALF:               CHAN: 0             CHEN: PTR (nil)     
-CHIP: 0             CNT : Done          CONT: OneShot       COUT: CONSTANT      
-COUTP: CONSTANT     DESC:               DISA: 0             DISP: 0             
-DISS: NO_ALARM      DISV: 1             DLY : 0             DLY1: 0             
-DTYP: NSLS detector EBLK: 2pA           EGU : counts        EVNT:               
-EXSIZE: 4096        EYSIZE: 384         FLNK: CONSTANT      FNAM:               
-FREQ: 1000000       FVER: 18            GAIN: 240keV        GMON: Off           
-INP : VME_IO #C0 S1 @384                INTENS: PTR (nil)   IPADDR: 10.66.211.64
-LCNT: 0             MCA : PTR (nil)     MODE: Framing       MONCH: 0            
-NAME: det1          NAMSG:              NCH : 384           NCHIPS: 12          
-NELM: 384           NSEV: NO_ALARM      NSTA: NO_ALARM      OFFS: PTR (nil)     
-OUT : VME_IO #C0 S0 @                   PACT: 0             PCNT: Done          
-PHAS: 0             PINI: YES           PLDEL: 72           POL : Positive      
-PR1 : 1000000       PREC: 0             PRIO: LOW           PUEN: Disable       
-PUTF: 0             PUTR: PTR (nil)     RAT1: 0             RATE: 2             
-RODEL: 15           RPRO: 0             RUNNO: 0            SCAN: Passive       
-SDIS: CONSTANT      SEVR: NO_ALARM      SHPT: 0.5us         SLP : PTR (nil)     
-SPCT: PTR (nil)     SPCTX: PTR (nil)    STAT: NO_ALARM      T   : 0             
-TDC : PTR (nil)     TDM : Time of arrival                   TDS : 1us           
-TIME: 2019-02-14 05:12:06.937185478     TP  : 1             TP1 : 1             
-TPAMP: 102          TPCNT: 0            TPENB: Off          TPFRQ: 0            
-TPRO: 0             TSE : 0             TSEL: CONSTANT      TSEN: PTR (nil)     
-TXSIZE: 1024        TYSIZE: 384         UDF : 0             UDFS: INVALID       
-VAL : 0             VERS: 1   
-```
