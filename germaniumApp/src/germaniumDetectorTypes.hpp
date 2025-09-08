@@ -82,7 +82,7 @@ namespace DerivedNetwork {
         uint32_t data;
     };
 
-    struct AdcClkSkewReqMsgPayload
+    struct __attribute__((__packed__)) AdcClkSkewReqMsgPayload
     {
         uint16_t chip_num;
         uint16_t skew;
@@ -93,7 +93,7 @@ namespace DerivedNetwork {
         uint32_t loads[12][14];  // MARS configuration data
     };
 
-    struct ZddmArmReqMsgPayload
+    struct __attribute__((__packed__)) ZddmArmReqMsgPayload
     {
         uint16_t mode;
         uint16_t val;
@@ -113,13 +113,13 @@ namespace DerivedNetwork {
         uint32_t data;
     };
 
-    struct PsI2cRespMsgPayload
+    struct __attribute__((__packed__)) PsI2cRespMsgPayload
     {
         uint8_t length;
         uint8_t data[4];
     };
 
-    struct PsXadcRespMsgPayload
+    struct __attribute__((__packed__)) PsXadcRespMsgPayload
     {
         uint8_t length;
         uint8_t data[4];
@@ -137,7 +137,7 @@ namespace DerivedNetwork {
 //===========================================================================//
 
 // Main UDP message structures
-struct UdpReqMsg
+struct __attribute__((__packed__)) UdpReqMsg
 {   
     uint16_t                           id; 
     uint16_t                           op;
@@ -147,7 +147,7 @@ using UdpRxMsg = UdpReqMsg;
 
 //===========================================================================//
 
-struct UdpRespMsg
+struct __attribute__((__packed__)) UdpRespMsg
 {
     uint16_t                           id;
     uint16_t                           op;
@@ -176,7 +176,7 @@ inline uint16_t getOpAddress(uint16_t op) { return op & UDP_OP_ADDR_MASK; }
 //===========================================================================//
 
 // Photon event data structure for UDP data packets
-struct PhotonEvent
+struct __attribute__((__packed__)) PhotonEvent
 {
     uint16_t element;       // Detector element number
     uint16_t energy;        // Energy value
@@ -193,7 +193,7 @@ struct DataPacketHeader
 };
 
 // Event data structure
-struct EventData
+struct __attribute__((__packed__)) EventData
 {
     uint16_t channel;       // Channel number
     uint16_t energy;        // Energy value
@@ -212,7 +212,7 @@ struct StatusData
 };
 
 // File writing structures
-struct FileWriteBuffer
+struct __attribute__((__packed__)) FileWriteBuffer
 {
     uint8_t data[DATA_WRITE_BUFFER_SIZE];
     size_t writeIndex;

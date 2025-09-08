@@ -168,6 +168,16 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
     
     // Send command with mutex protection
     epicsMutexLock(udpMutex);
+    
+    // Debug: dump the actual bytes being sent
+    errlogPrintf("[%s]: Sending %zu bytes:\n", __func__, msgSize);
+    unsigned char *bytes = (unsigned char*)&msg;
+    for (size_t i = 0; i < msgSize; i++) {
+        errlogPrintf("%02x", bytes[i]);
+        if ((i + 1) % 16 == 0) errlogPrintf("\n");
+    }
+    if (msgSize % 16 != 0) errlogPrintf("\n");
+    
     size_t sent = sendto( udpControlSocket
                         , &msg
                         , msgSize
@@ -195,6 +205,9 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
                     , ntohl(msg.payload.single_word.data)
                     , sent
                     );
+
+        for( int i=0; i<sent/2; i++ )
+            errlogPrintf( "[%s]: %x\n", __func__, *((uint16_t*)(&msg)+i) );
     }
     
     return asynSuccess;

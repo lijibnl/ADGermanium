@@ -153,7 +153,7 @@
 #define GermaniumTemp1String        "TEMP1"
 #define GermaniumTemp2String        "TEMP2"
 #define GermaniumTemp3String        "TEMP3"
-#define GermaniumZTempString        "ZTEMP"
+#define GermaniumZtempString        "ZTEMP"
 #define GermaniumHvString           "HV"
 #define GermaniumHvRbvString        "HV_RBV"
 #define GermaniumHvCurrString       "HV_CURR"

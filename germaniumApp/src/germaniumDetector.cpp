@@ -263,7 +263,7 @@ germaniumDetector::~germaniumDetector()
 void germaniumDetector::createGermaniumParameters()
 {
     /* Basic record fields - exact match to zDDM record */
-    createParam( GermaniumVerString,     asynParamInt32, &GermaniumVER);      /* Code version */
+    createParam( GermaniumVersString,    asynParamInt32, &GermaniumVER);      /* Code version */
     createParam( GermaniumDetTypeString, asynParamInt32, &GermaniumDETTYPE);  /* Detector type */
 
     /* Large data arrays - exact match to zDDM record */
@@ -322,8 +322,8 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumRodelRbvString,  asynParamInt32, &GermaniumRODEL_RBV ); /* Readout delay */
 
     /* Hardware information - exact match to zDDM record */
-    createParam( GermaniumFVERString, asynParamInt32, &GermaniumFVER); /* Firmware version */
-    createParam( GermaniumCARDString, asynParamInt32, &GermaniumCARD); /* Card number */
+    createParam( GermaniumFverString, asynParamInt32, &GermaniumFVER); /* Firmware version */
+    createParam( GermaniumCardString, asynParamInt32, &GermaniumCARD); /* Card number */
 
     /* Detector configuration - exact match to zDDM record */
     createParam( GermaniumNelmString,   asynParamInt32, &GermaniumNELM);     /* Number of elements */
@@ -353,13 +353,13 @@ void germaniumDetector::createGermaniumParameters()
 
     /* Test pulse settings - exact match to zDDM record */
     createParam( GermaniumTpampString,     asynParamInt32, &GermaniumTPAMP );     /* Test pulse amplitude */
-    createParam( GermaniumTpampRbvString,  asynParamInt32, &GermaniumTPAMP_RBV ); /* Test pulse amplitude */
+    //createParam( GermaniumTpampRbvString,  asynParamInt32, &GermaniumTPAMP_RBV ); /* Test pulse amplitude */
     createParam( GermaniumTpfrqString,     asynParamInt32, &GermaniumTPFRQ );     /* Test pulse frequency */
-    createParam( GermaniumTpfrqRBVString,  asynParamInt32, &GermaniumTPFRQ_RBV ); /* Test pulse frequency */
+    //createParam( GermaniumTpfrqRBVString,  asynParamInt32, &GermaniumTPFRQ_RBV ); /* Test pulse frequency */
     createParam( GermaniumTpcntString,     asynParamInt32, &GermaniumTPCNT );     /* Number of test pulses */
-    createParam( GermaniumTpcntRbvString,  asynParamInt32, &GermaniumTPCNT_RBV ); /* Number of test pulses */
+    //createParam( GermaniumTpcntRbvString,  asynParamInt32, &GermaniumTPCNT_RBV ); /* Number of test pulses */
     createParam( GermaniumTpenbString,     asynParamInt32, &GermaniumTPENB );     /* Test pulse enable (menu) */
-    createParam( GermaniumTpenbRBVString,  asynParamInt32, &GermaniumTPENB_RBV ); /* Test pulse enable (menu) */
+    //createParam( GermaniumTpenbRBVString,  asynParamInt32, &GermaniumTPENB_RBV ); /* Test pulse enable (menu) */
 
     /* Per-channel arrays - exact match to zDDM record */
     createParam( GermaniumChenString, asynParamInt8Array,    &GermaniumCHEN);    /* Channel enable array */
@@ -373,11 +373,11 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumThrshString, asynParamInt32Array, &GermaniumTHRSH); /* Threshold array (per chip) */
 
     /* Acquisition control - exact match to zDDM record */
-    createParam( GermaniumClreString, asynParamInt32, &GermaniumCLRE);   /* Clear event spectrum */
-    createParam( GermaniumClrmString, asynParamInt32, &GermaniumCLRM);   /* Clear monitor spectrum */
-    createParam( GermaniumClrtString, asynParamInt32, &GermaniumCLRT);   /* Clear timer */
-    createParam( GermaniumStrtString, asynParamInt32, &GermaniumSTRT);   /* Start acquisition */
-    createParam( GermaniumStopString, asynParamInt32, &GermaniumSTOP);   /* Stop acquisition */
+    //createParam( GermaniumClreString, asynParamInt32, &GermaniumCLRE);   /* Clear event spectrum */
+    //createParam( GermaniumClrmString, asynParamInt32, &GermaniumCLRM);   /* Clear monitor spectrum */
+    //createParam( GermaniumClrtString, asynParamInt32, &GermaniumCLRT);   /* Clear timer */
+    //createParam( GermaniumStrtString, asynParamInt32, &GermaniumSTRT);   /* Start acquisition */
+    //createParam( GermaniumStopString, asynParamInt32, &GermaniumSTOP);   /* Stop acquisition */
 
     /* Display and formatting - exact match to zDDM record */
     createParam( GermaniumEguString,  asynParamOctet, &GermaniumEGU);   /* Engineering units */
