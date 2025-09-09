@@ -90,6 +90,15 @@ bool germaniumDetector::initializeUDPSockets()
     // Create event for data processing synchronization
     dataAvailable = epicsEventCreate(epicsEventEmpty);
     
+    // Initialize device address structure
+    memset(&deviceAddr, 0, sizeof(deviceAddr));
+    deviceAddr.sin_family = AF_INET;
+    if (inet_pton(AF_INET, ipAddress, &deviceAddr.sin_addr) <= 0) {
+        printf("Germanium: Invalid IP address: %s\n", ipAddress);
+        return false;
+    }
+    // Port will be set in sendUDPCommand() based on command type
+    
     udpInitialized = true;
     printf("Germanium: UDP sockets initialized - Control: %s:%d, Data port: %d\n",
            ipAddress, controlPort, dataPort);
@@ -166,6 +175,10 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
     // Set destination port for control commands
     deviceAddr.sin_port = htons(controlPort);
     
+    // Debug: print destination details
+    errlogPrintf("[%s]: Sending to %s:%d\n", __func__, 
+                 inet_ntoa(deviceAddr.sin_addr), ntohs(deviceAddr.sin_port));
+    
     // Send command with mutex protection
     epicsMutexLock(udpMutex);
     
@@ -185,6 +198,9 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
                         , (struct sockaddr*)&deviceAddr
                         , sizeof(deviceAddr)
                         );
+    
+    errlogPrintf("[%s]: sendto returned %zd (expected %zu), errno=%d (%s)\n", 
+                 __func__, sent, msgSize, errno, strerror(errno));
     epicsMutexUnlock(udpMutex);
     
     if (sent != msgSize)
@@ -197,11 +213,11 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
     }
     else
     {
-        errlogPrintf( "[%s]: msg.id = 0x%x, msg.op = 0x%x, msg.data = 0x%x (0x%x), msg.size = %lu\n"
+        errlogPrintf( "[%s]: msg.id = 0x%x, msg.op = 0x%x, msg.data = 0x%x, msg.size = %lu\n"
                     , __func__
                     , msg.id
                     , msg.op
-                    , msg.payload.single_word.data
+                    //, msg.payload.single_word.data
                     , ntohl(msg.payload.single_word.data)
                     , sent
                     );
