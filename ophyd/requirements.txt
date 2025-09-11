@@ -1,0 +1,3 @@
+# Requirements for ADGermanium Ophyd interface
+ophyd>=1.6.0
+pyepics>=3.4.0
