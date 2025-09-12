@@ -267,11 +267,11 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumDetTypeString, asynParamInt32, &GermaniumDETTYPE);  /* Detector type */
 
     /* Large data arrays - exact match to zDDM record */
-    createParam( GermaniumMcaString,    asynParamInt32Array,   &GermaniumMCA);    /* MCA spectrum data - NCHAN*4096 */
-    createParam( GermaniumTdcString,    asynParamInt32Array,   &GermaniumTDC);    /* TDC spectrum data - NCHAN*1024 */
-    createParam( GermaniumSpctString,   asynParamInt32Array,   &GermaniumSPCT);   /* Selected channel spectrum - 4096 */
-    createParam( GermaniumSpctxString,  asynParamFloat64Array, &GermaniumSPCTX);  /* Calibrated X-axis values - 4096 */
-    createParam( GermaniumIntensString, asynParamInt32Array,   &GermaniumINTENS); /* Intensity array - NELM */
+    //createParam( GermaniumMcaString,    asynParamInt32Array,   &GermaniumMCA);    /* MCA spectrum data - NCHAN*4096 */
+    //createParam( GermaniumTdcString,    asynParamInt32Array,   &GermaniumTDC);    /* TDC spectrum data - NCHAN*1024 */
+    //createParam( GermaniumSpctString,   asynParamInt32Array,   &GermaniumSPCT);   /* Selected channel spectrum - 4096 */
+    //createParam( GermaniumSpctxString,  asynParamFloat64Array, &GermaniumSPCTX);  /* Calibrated X-axis values - 4096 */
+    //createParam( GermaniumIntensString, asynParamInt32Array,   &GermaniumINTENS); /* Intensity array - NELM */
 
     /* Display size parameters - exact match to zDDM record */
     createParam( GermaniumExsizeString, asynParamInt32, &GermaniumEXSIZE); /* Display X size for energy */

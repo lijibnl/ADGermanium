@@ -78,7 +78,8 @@ def gen_bo(pv: str, addr: str, value: str, note: str) -> str:
     enums = parse_enum_values(value)
     znam = enums.get(0, "Off"); onam = enums.get(1, "On")
     body = [
-        f'record(bo, "$(P){pv}") {{',
+        f'record(bo, "$(P)$(R){pv}") {{',
+        f'    field(DTYP, "asynInt32")',
         f'    field(OUT,  "@asyn($(PORT),{addr}){pv}")',
     ]
     if note: body.append(f'    field(DESC, "{note}")')
@@ -96,7 +97,8 @@ def gen_mbbo(pv: str, addr: str, value: str, note: str) -> str:
         ("TVST","TVVL",12), ("TTST","TTVL",13), ("FTST","FTVL",14), ("FFST","FFVL",15),
     ]
     body = [
-        f'record(mbbo, "$(P){pv}") {{',
+        f'record(mbbo, "$(P)$(R){pv}") {{',
+        f'    field(DTYP, "asynInt32")',
         f'    field(OUT,  "@asyn($(PORT),{addr}){pv}")',
     ]
     if note: body.append(f'    field(DESC, "{note}")')
@@ -109,7 +111,7 @@ def gen_mbbo(pv: str, addr: str, value: str, note: str) -> str:
     return "\n".join(body)
 
 def gen_numeric(rectype: str, pv: str, addr: str, note: str, link: str, dtyp: str|None="") -> str:
-    body = [f'record({rectype}, "$(P){pv}") {{']
+    body = [f'record({rectype}, "$(P)$(R){pv}") {{']
     if dtyp: body.append(dtyp)
     body.append(f'    field({link},  "@asyn($(PORT),{addr}){pv}")')
     if note: body.append(f'    field(DESC, "{note}")')
@@ -119,7 +121,7 @@ def gen_numeric(rectype: str, pv: str, addr: str, note: str, link: str, dtyp: st
 def gen_waveform(typ: str, pv: str, addr: str, note: str, nelm: str|None) -> str:
     rectype, dtyp = map_record_type(typ)
     link = "INP" if typ.lower() == "waveformin" else "OUT"
-    body = [f'record(waveform, "$(P){pv}") {{']
+    body = [f'record(waveform, "$(P)$(R){pv}") {{']
     body += emit_waveform_defaults(nelm)
     if dtyp: body.append(dtyp)
     body.append(f'    field({link},  "@asyn($(PORT),{addr}){pv}")')
@@ -160,10 +162,14 @@ def generate_db(md_text: str) -> str:
             parts.append(gen_bo(ent["pv"], ent["addr"], ent["value"], ent["note"]))
         elif typ == "mbbo":
             parts.append(gen_mbbo(ent["pv"], ent["addr"], ent["value"], ent["note"]))
-        elif typ in ("ai","bi","longin"):
-            parts.append(gen_numeric(typ, ent["pv"], ent["addr"], ent["note"], "INP"))
-        elif typ in ("ao","longout"):
-            parts.append(gen_numeric(typ, ent["pv"], ent["addr"], ent["note"], "OUT"))
+        elif typ == "ai":
+            parts.append(gen_numeric(typ, ent["pv"], ent["addr"], ent["note"], "INP", "asynFloat64"))
+        elif typ in ("bi","longin"):
+            parts.append(gen_numeric(typ, ent["pv"], ent["addr"], ent["note"], "INP", "asynInt32"))
+        elif typ == "ao":
+            parts.append(gen_numeric(typ, ent["pv"], ent["addr"], ent["note"], "OUT", "asynFloat64"))
+        elif typ == "longout":
+            parts.append(gen_numeric(typ, ent["pv"], ent["addr"], ent["note"], "OUT", "asynInt32"))
         elif typ in ("stringin","stringout"):
             rectype, dtyp = map_record_type(typ)
             link = link_field_name(typ)
