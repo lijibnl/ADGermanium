@@ -70,18 +70,20 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     // and sent via bulk configuration, not direct register writes
     if ( function == GermaniumSHPT )
     {
-            // Shaping time - update globalstr for all chips and send bulk config
-            for (int chip = 0; chip < nchips; chip++)
-            {
-                globalstr[chip].st = value;
-            }
-            status = sendMarsConfiguration();
+        errlogPrintf( "Update shaping time\n" );
+        // Shaping time - update globalstr for all chips and send bulk config
+        for (int chip = 0; chip < 12/*nchips*/; chip++)
+        {
+            globalstr[chip].ts = value;
+        }
+        status = sendMarsConfiguration();
     }
 
     else if ( function == GermaniumGAIN )
     {
+        errlogPrintf( "Update gain\n" );
         // Gain setting - update globalstr for all chips and send bulk config
-        for (int chip = 0; chip < nchips; chip++)
+        for (int chip = 0; chip < 12/*nchips*/; chip++)
         {
             globalstr[chip].g = value;
         }
@@ -91,9 +93,9 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if ( function == GermaniumPOL )
     {
         // Polarity - update globalstr for all chips and send bulk config
-        for (int chip = 0; chip < nchips; chip++)
+        for (int chip = 0; chip < 12/*nchips*/; chip++)
         {
-            globalstr[chip].pol = value;
+            globalstr[chip].sp = value;
         }
         status = sendMarsConfiguration();
     }
@@ -127,9 +129,9 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
     else if ( function == GermaniumGMON )
     {
-        // Global monitor mode - implement exact zDDM logic
-        // This is complex logic from original special() function
-        for (int chip = 0; chip < nchips; chip++)
+        errlogPrintf( "Set global monitor mode to %d\n", value );
+
+        for (int chip = 0; chip < 12/*nchips_*/; chip++)
         {
             switch(value)
             {
@@ -215,9 +217,9 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if ( function == GermaniumPUEN )
     {
         // Pileup rejection enable - update globalstr for all chips and send bulk config
-        for (int chip = 0; chip < nchips; chip++)
+        for (int chip = 0; chip < 12/*nchips*/; chip++)
         {
-            globalstr[chip].puen = value;
+            globalstr[chip].spur = value;
         }
         status = sendMarsConfiguration();
     }
@@ -225,69 +227,119 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if ( function == GermaniumMFS )
     {
         // Multi-fire suppression - update globalstr for all chips and send bulk config
-        for (int chip = 0; chip < nchips; chip++)
+        for (int chip = 0; chip < 12/*nchips*/; chip++)
         {
-            globalstr[chip].mfs = value;
+            globalstr[chip].sse = value;
         }
         status = sendMarsConfiguration();
     }
 
     else if ( function == GermaniumTDS )
     {
-        // TDS slope - implement exact zDDM logic from original
-        // Original uses complex timing calculation
-        int tempVal = value;
-        if (tempVal == 0) tempVal = 1; // Prevent divide by zero
-        
-        // Original calculation: tds = 1.0e6 / (16.0 * tempVal);
-        // This gets converted to register value for hardware
-        double tds = 1.0e6 / (16.0 * tempVal);
-        
-        // Update all chips with the calculated TDS value
-        for (int chip = 0; chip < nchips; chip++)
+        errlogPrintf( "Set time detector slope\n" );
+        switch (pscal->tds)
         {
-            // The original uses tds for all chips
-            globalstr[chip].tds = (int)(tds * 10); // Scale for register
+            case 0:
+                j = 0; 
+                rt = 0; 
+                break;
+            case 1:
+                j = 1; 
+                rt = 0; 
+                break;
+            case 2:
+                j = 2; 
+                rt = 0; 
+                break;
+            case 3:
+                j = 3; 
+                rt = 0; 
+                break;
+            case 4:
+                j = 1; 
+                rt = 1; 
+                break;
+            case 5:
+                j = 2; 
+                rt = 1; 
+                break;
+            case 6:
+                j = 3; 
+                rt = 1; 
+                break;
         }
+
+        for (chip = 0; chip < 12/*nchips_*/; chip++)
+        {
+            globalstr[chip].tr = j; 
+            globalstr[chip].rt = rt;
+        }
+
         status = sendMarsConfiguration();
     }
 
     else if ( function == GermaniumTDM )
     {
         // TDC mode - update globalstr for all chips and send bulk config
-        for (int chip = 0; chip < nchips; chip++)
+        for (int chip = 0; chip < 12/*nchips*/; chip++)
         {
-            globalstr[chip].tdm = value;
+            globalstr[chip].tm = value;
         }
         status = sendMarsConfiguration();
     }
 
     else if ( function == GermaniumMONCH )
     {
-        // Monitor channel - implement exact zDDM logic
+        errlogPrintf( "Select to monitor channel %d\n", value );
         // Set CHAN field to the current chip * 64 + MONCH value
-        int currentChip;
-        getIntegerParam(GermaniumCHIP, &currentChip);
-        if (currentChip >= 0 && currentChip < nchips)
-        {
-            int chanValue = currentChip * 64 + value;
-            setIntegerParam(GermaniumCHAN, chanValue);
-        }
         
-        // Update the spectrum if we're in global monitor mode 5 (channel monitor)
-        int gmonMode;
-        getIntegerParam(GermaniumGMON, &gmonMode);
-        if (gmonMode == 5)
+        chip = value / 32;
+        chan = value % 32;
+
+        for ( i = 0; i < 4096; i++ )
         {
-            // Send configuration to update the hardware monitor channel
-            if (currentChip >= 0 && currentChip < nchips)
-            {
-                globalstr[currentChip].c = value;
-                globalstr[currentChip].m0 = 1;
-                globalstr[currentChip].saux = 1;
-                status = sendMarsConfiguration();
-            }
+            spct[i]  = mca[4096 * value + i];
+            spctx[i] = (float)i * slp[value] + offs[value];
         }
+        errlogPrintf( "SPCT and SPCTX updated\n" );
+
+        if (gmon_ == 5)
+        {
+            for (chip = 0; chip < 12; chip++)
+            {
+                globalstr[chip].c = 0;
+                globalstr[chip].m0 = 0;
+                globalstr[chip].saux = 0;
+            }
+            globalstr[pscal->chip].c = pscal->chan;
+            globalstr[pscal->chip].m0 = 1;
+            globalstr[pscal->chip].saux = 1;
+            channelstr[pscal->monch].sel = pscal->loao;
+            status = sendMarsConfiguratoin();
+        }
+
+        //int currentChip;
+        //getIntegerParam(GermaniumCHIP, &currentChip);
+        //if (currentChip >= 0 && currentChip < nchips)
+        //{
+        //    int chanValue = currentChip * 64 + value;
+        //    setIntegerParam(GermaniumCHAN, chanValue);
+        //}
+        //
+        //// Update the spectrum if we're in global monitor mode 5 (channel monitor)
+        //int gmonMode;
+        //getIntegerParam(GermaniumGMON, &gmonMode);
+        //if (gmonMode == 5)
+        //{
+        //    // Send configuration to update the hardware monitor channel
+        //    if (currentChip >= 0 && currentChip < nchips)
+        //    {
+        //        globalstr[currentChip].c = value;
+        //        globalstr[currentChip].m0 = 1;
+        //        globalstr[currentChip].saux = 1;
+        //        status = sendMarsConfiguration();
+        //    }
+        //}
     }
 
     else if ( function == GermaniumCHIP )
@@ -346,29 +398,50 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
     else if ( function == GermaniumLOAO )
     {
-        // Leakage/pulse monitor select - this is a control parameter
-        // May be handled through SIM_EVT_SEL or other control registers
-        status = udpRegisterWrite( SIM_EVT_SEL, value);
+        errlogPrintf( "Set channel monitor to leakage/pulse\n" );
+        channelstr[monch_].sel = value;
+        status = sendMarsConfiguration();
     }
 
     else if ( function == GermaniumTPAMP )
     {
+        errlogPrintf( "Set test pulse amplitude\n" );
+        for (chip = 0; chip < 12/*nchips_*/; chip++)
+        {
+            globalstr[chip].pb = value;
+        }
+
         status = udpRegisterWrite( MARS_CALPULSE, value);
     }
 
     else if ( function == GermaniumTPFRQ )
     {
-        status = udpRegisterWrite( CALPULSE_RATE, value);
+        errlogPrintf( "Set test pulse frequency\n" );
+        status  = udpRegisterWrite( CALPULSE_RATE, 25000000 / value / 2);
+        status |= udpRegisterWrite( CALPULSE_WIDTH, 25000000 / value / 2);
+        status |= sendMarsConfiguration();
     }
 
     else if ( function == GermaniumTPCNT )
     {
-        status = udpRegisterWrite( CALPULSE_CNT, value);
+        status  = udpRegisterWrite( CALPULSE_CNT, value);
+        status |= sendMarsConfiguration();
     }
 
     else if ( function == GermaniumTPENB )
     {
-        status = udpRegisterWrite( CALPULSE_MODE, value);
+        if ( value == 1 )
+        {
+            status  = udpRegisterWrite( MARS_CALPULSE, 0xFFF );
+            status |= udpRegisterWrite( CALPULSE_MODE, 1 );
+        }
+        else
+        {
+            status  = udpRegisterWrite( MARS_CALPULSE, 0 );
+            status |= udpRegisterWrite( CALPULSE_MODE, 0 );
+        }
+        status |= sendMarsConfiguration();
+
     }
 
 //    case GermaniumCNTS)
@@ -826,23 +899,41 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
     // Handle array writes for configuration arrays via UDP
     if ( function == GermaniumCHEN )
     {
-        // Channel enable array - convert to uint8 and send
+        errlogPrintf( "Set channel enabln" );
         uint8_t *chenArray = new uint8_t[nElements];
-        for (size_t i = 0; i < nElements; i++)
+        for (size_t chan = 0; chan < nelm_; chan++)
         {
-            chenArray[i] = (value[i] != 0) ? 1 : 0;
+            channelstr[chan].sm = value[chan];
         }
-//        status = udpWriteIntArray(UDP_CMD_CHANNEL_ENABLE, chenArray,
-//                                  nElements, 0);
-        delete[] chenArray;
+        status = sendMarsConfiguration();
+    }
+
+    else if ( function == GermaniumPUTR )
+    {
+        for ( chan = 0; chan < nelm_; chan++ )
+        {
+            channelstr[chan].dp = value[chan];
+            status = sendMarsConfiguration();
+        }
     }
 
     else if ( function == GermaniumTHRSH )
     {
-        // Threshold array (per chip) - send as uint32 array
-//        status = udpWriteIntArray(UDP_CMD_THRESHOLD_ARRAY, value,
-//                                  nElements * sizeof(epicsInt32), 0);
+        for ( chip = 0; chip < 12/*nchips_*/; chip++ )
+        {
+            globalstr[chip].pa = value[chip];
         }
+        status = sendMarsConfiguration();
+    }
+
+    else if ( function == GermaniumTSEN )
+    {
+        for ( chan = 0; chan < nelm_; chan++ )
+        {
+            channelstr[chan].str = value[chan];
+        }
+        status = sendMarsConfiguration();
+    }
 
     else if ( function == GermaniumSLP || function == GermaniumOFFS )
     {

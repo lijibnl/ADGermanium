@@ -112,16 +112,22 @@ def gen_mbbo(pv: str, addr: str, value: str, note: str) -> str:
 
 def gen_numeric(rectype: str, pv: str, addr: str, note: str, link: str, dtyp: str|None="") -> str:
     body = [f'record({rectype}, "$(P)$(R){pv}") {{']
-    if dtyp: body.append(dtyp)
+    if dtyp: body.append(f'    field(DTYP, "{dtyp}")')
     body.append(f'    field({link},  "@asyn($(PORT),{addr}){pv}")')
     if note: body.append(f'    field(DESC, "{note}")')
     body.append("}")
     return "\n".join(body)
 
 def gen_waveform(typ: str, pv: str, addr: str, note: str, nelm: str|None) -> str:
+    print(f'waveform: {typ}');
     rectype, dtyp = map_record_type(typ)
     link = "INP" if typ.lower() == "waveformin" else "OUT"
-    body = [f'record(waveform, "$(P)$(R){pv}") {{']
+    #body = [f'record(waveform, "$(P)$(R){pv}") {{']
+    body = [
+        f'record(waveform, "$(P)$(R){pv}") {{',
+        f'    field(DTYP, "asynInt32Array")',
+        f'    field(OUT,  "@asyn($(PORT),{addr}){pv}")',
+    ]
     body += emit_waveform_defaults(nelm)
     if dtyp: body.append(dtyp)
     body.append(f'    field({link},  "@asyn($(PORT),{addr}){pv}")')
