@@ -133,6 +133,8 @@
 /* Per-channel arrays */
 #define GermaniumChenString         "CHEN"        /* Channel enable array */
 #define GermaniumTsenString         "TSEN"        /* Test pulse input enable array */
+#define GermaniumChenSetString      "CHEN_SET"    /* Set channel enable array */
+#define GermaniumTsenSetString      "TSEN_SET"    /* Set test pulse input enable array */
 #define GermaniumThtrString         "THTR"        /* Threshold trim array */
 #define GermaniumPutrString         "PUTR"        /* Pileup threshold trim array */
 #define GermaniumSlpString          "SLP"         /* Slope calibration array */
@@ -173,25 +175,43 @@ public:
               int asynFlags, int autoConnect, int priority, int stackSize);
     
     // Destructor
-    virtual ~germaniumDetector();
+    ~germaniumDetector();
     
     // asynPortDriver virtual methods - overridden for UDP communication
-    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-    virtual asynStatus readInt32(asynUser *pasynUser);
-    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
-    virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
-                                  size_t *nActual);
-    virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
-                                      size_t nElements, size_t *nIn);
-    virtual asynStatus writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
-                                       size_t nElements);
+    asynStatus writeInt32( asynUser *pasynUser, epicsInt32 value ) override;
+    asynStatus readInt32( asynUser *pasynUser, epicsInt32* value ) override;
+    asynStatus writeFloat64( asynUser *pasynUser, epicsFloat64 value ) override;
+    
+    asynStatus writeOctet( asynUser *pasynUser
+                         , const char *value
+                         , size_t maxChars
+                         , size_t *nActual
+                         ) override;
+    
+    asynStatus readInt32Array( asynUser *pasynUser
+                             , epicsInt32 *value
+                             , size_t nElements
+                             , size_t *nIn
+                             ) override;
 
-    // ADDriver virtual methods for image acquisition
-    virtual asynStatus readNDArray(asynUser *pasynUser, epicsInt32 *value,
-                                   size_t nElements, size_t *nIn);
-    virtual void report(FILE *fp, int details);
-    virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo,
-                                     const char **pptypeName, size_t *psize);
+    asynStatus writeInt32Array( asynUser *pasynUser
+                              , epicsInt32 *value
+                              , size_t nElements
+                              ) override;
+
+    //// ADDriver virtual methods for image acquisition
+    //asynStatus readNDArray( asynUser *pasynUser
+    //                      , epicsInt32 *value
+    //                      , size_t nElements
+    //                      , size_t *nIn
+    //                      ) override;
+
+    void report(FILE *fp, int details) override;
+    asynStatus drvUserCreate( asynUser *pasynUser
+                            , const char *drvInfo
+                            , const char **pptypeName
+                            , size_t *psize
+                            ) override;
 
     // Parameter creation and initialization
     void createGermaniumParameters();
@@ -258,7 +278,8 @@ protected:
     int GermaniumTDS, GermaniumTDM;
     int GermaniumTPAMP, GermaniumTPFRQ, GermaniumTPCNT, GermaniumTPENB;
     int GermaniumTPAMP_RBV, GermaniumTPFRQ_RBV, GermaniumTPCNT_RBV, GermaniumTPENB_RBV;
-    int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
+    int GermaniumCHEN, GermaniumTSEN, GermaniumCHEN_SET, GermaniumTSEN_SET;
+    int GermaniumTHTR, GermaniumPUTR;
     int GermaniumSLP, GermaniumOFFS, GermaniumTHRSH;
     int GermaniumEGU, GermaniumPREC;
     int GermaniumCOUT, GermaniumCOUTP;
@@ -286,6 +307,7 @@ private:
     void processStatusDat(const uint8_t* data, size_t dataSize);
     
     // Hardware-related methods (now UDP-based instead of direct FIFO access)
+    void wrap();
     void initializeGermaniumHardware();
     void initializeMarsConfig();
     void setupDataAcquisition();
@@ -304,9 +326,16 @@ private:
     void wrapOptimized();
     void wrapBitFields();
     void validateConfiguration();
+
+    // For detector type
+    int nelm_, nchips_;
+
+    // For test pulses
+    epicsInt8 tsen_[384], chen_[384];
+    epicsInt32 thrsh_[12];
     
     // For compatibility with original Mars_DDM (now sends UDP commands)
-    void wrap() { wrapOptimized(); }
+    //void wrap() { wrapOptimized(); }
     
     // MARS configuration management
     void updateLoadsArray();          // Update loads[] from globalstr/channelstr
@@ -346,7 +375,7 @@ private:
     globalstr_t globalstr[MAX_CHIPS];      // Global settings per chip
     channelstr_t channelstr[MAX_CHANNELS]; // Per-channel settings  
     uint32_t loads[12][14];                // SPI configuration data
-    int nchips;                            // Number of chips actually used
+    //int nchips;                            // Number of chips actually used
     
     // Data acquisition state
     int evttot;                       // Total events processed

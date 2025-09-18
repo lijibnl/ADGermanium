@@ -47,38 +47,39 @@ germaniumDetector::germaniumDetector( const char *portName
                                               , priority
                                               , stackSize
                                               )
-                                    , udpControlSocket(-1)
-                                    , udpDataSocket(-1)
-                                    , udpInitialized(false)
-                                    , zDDMWdTimerQ(nullptr)
-                                    , TPgenTimerQ(nullptr)
-                                    , numElements(numElements)
-                                    , controlPort(GERMANIUM_CONTROL_PORT)
-                                    , dataPort(GERMANIUM_DATA_PORT)
-                                    , udpControlThreadId(nullptr)
-                                    , udpDataThreadId(nullptr)
-                                    , dataProcessingThreadId(nullptr)
-                                    , threadsRunning(false)
-                                    , udpMutex(nullptr)
-                                    , dataAvailable(nullptr)
-                                    , udpDataBuffer(nullptr)
-                                    , dataBufferSize(0)
-                                    , evttot(0)
-                                    , framestat(0)
-                                    , fileWritingEnabled(false)
-                                    , currentFileHandle(-1)
-                                    , currentFileSize(0)
-                                    , currentSegmentNumber(0)
-                                    , totalBytesWritten(0)
-                                    , totalFilesWritten(0)
-                                    , writeBufferHead(0)
-                                    , writeBufferTail(0)
-                                    , writeBufferCount(0)
-                                    , writeBufferMutex(nullptr)
-                                    , dataWriteAvailable(nullptr)
-                                    , dataWriteThreadId(nullptr)
-                                    , acquisitionThreadId(nullptr)
-                                    , acquisitionRunning(false)
+                                    , nelm_                 ( numElements            )
+                                    , udpControlSocket      ( -1                     )
+                                    , udpDataSocket         ( -1                     )
+                                    , udpInitialized        ( false                  )
+                                    , zDDMWdTimerQ          ( nullptr                )
+                                    , TPgenTimerQ           ( nullptr                )
+                                    , numElements           ( numElements            )
+                                    , controlPort           ( GERMANIUM_CONTROL_PORT )
+                                    , dataPort              ( GERMANIUM_DATA_PORT    )
+                                    , udpControlThreadId    ( nullptr                )
+                                    , udpDataThreadId       ( nullptr                )
+                                    , dataProcessingThreadId( nullptr                )
+                                    , threadsRunning        ( false                  )
+                                    , udpMutex              ( nullptr                )
+                                    , dataAvailable         ( nullptr                )
+                                    , udpDataBuffer         ( nullptr                )
+                                    , dataBufferSize        ( 0                      )
+                                    , evttot                ( 0                      )
+                                    , framestat             ( 0                      )
+                                    , fileWritingEnabled    ( false                  )
+                                    , currentFileHandle     ( -1                     )
+                                    , currentFileSize       ( 0                      )
+                                    , currentSegmentNumber  ( 0                      )
+                                    , totalBytesWritten     ( 0                      )
+                                    , totalFilesWritten     ( 0                      )
+                                    , writeBufferHead       ( 0                      )
+                                    , writeBufferTail       ( 0                      )
+                                    , writeBufferCount      ( 0                      )
+                                    , writeBufferMutex      ( nullptr                )
+                                    , dataWriteAvailable    ( nullptr                )
+                                    , dataWriteThreadId     ( nullptr                )
+                                    , acquisitionThreadId   ( nullptr                )
+                                    , acquisitionRunning    ( false                  )
 {
     errlogPrintf("[%s]: enter...\n", __func__);
 
@@ -93,27 +94,31 @@ germaniumDetector::germaniumDetector( const char *portName
     memset(loads, 0, sizeof(loads));
 
     // Set detector configuration based on number of elements
+    int det_type;
     switch (numElements)
     {
         case 96:
-            nchips = 3;
+            det_type = 0;
+            nchips_ = 3;
             break;
         case 192:
-            nchips = 6;
+            det_type = 0;
+            nchips_ = 6;
             break;
         case 384:
-            nchips = 12;
+            det_type = 1;
+            nchips_ = 12;
             break;
         default:
             printf("Germanium: Invalid number of elements %d, defaulting to 192\n", numElements);
-            this->numElements = 192;
-            nchips = 6;
+            nelm_ = 192;
+            nchips_ = 6;
             break;
     }
 
     printf( "Germanium detector: %d elements, %d chips, IP: %s\n"
-          , this->numElements
-          , nchips
+          , nelm_
+          , nchips_
           , this->ipAddress
           );
 
@@ -128,9 +133,6 @@ germaniumDetector::germaniumDetector( const char *portName
     // Set initial values
     errlogPrintf("[%s]: set initial values\n", __func__);
     setGermaniumInitialValues();
-
-    // Initialize hardware
-    initializeGermaniumHardware();
 
     // Initialize UDP communication
     if (initializeUDPSockets())
@@ -177,8 +179,13 @@ germaniumDetector::germaniumDetector( const char *portName
         printf("Germanium: Failed to initialize UDP communication\n");
     }
 
+    udpRegisterWrite( DETECTOR_TYPE, det_type );
+
+    // Initialize hardware
+    initializeGermaniumHardware();
+
     // Initialize MARS ASIC configuration
-    initializeMarsConfig();
+    //initializeMarsConfig();
 
     printf("Germanium detector driver initialized successfully\n");
 }
@@ -362,12 +369,14 @@ void germaniumDetector::createGermaniumParameters()
     //createParam( GermaniumTpenbRBVString,  asynParamInt32, &GermaniumTPENB_RBV ); /* Test pulse enable (menu) */
 
     /* Per-channel arrays - exact match to zDDM record */
-    createParam( GermaniumChenString, asynParamInt8Array,    &GermaniumCHEN);    /* Channel enable array */
-    createParam( GermaniumTsenString, asynParamInt8Array,    &GermaniumTSEN);    /* Test pulse input enable array */
-    createParam( GermaniumThtrString, asynParamInt8Array,    &GermaniumTHTR);    /* Threshold trim array */
-    createParam( GermaniumPutrString, asynParamInt8Array,    &GermaniumPUTR);    /* Pileup threshold trim array */
-    createParam( GermaniumSlpString,  asynParamFloat64Array, &GermaniumSLP);     /* Slope calibration array */
-    createParam( GermaniumOffsString, asynParamFloat64Array, &GermaniumOFFS);    /* Offset calibration array */
+    createParam( GermaniumChenString,    asynParamInt8Array,    &GermaniumCHEN);    /* Channel enable array */
+    createParam( GermaniumTsenString,    asynParamInt8Array,    &GermaniumTSEN);    /* Test pulse input enable array */
+    createParam( GermaniumChenSetString, asynParamInt32,        &GermaniumCHEN_SET);/* Set channel enable array */
+    createParam( GermaniumTsenSetString, asynParamInt32,        &GermaniumTSEN_SET);/* Set test pulse input enable array */
+    createParam( GermaniumThtrString,    asynParamInt8Array,    &GermaniumTHTR);    /* Threshold trim array */
+    createParam( GermaniumPutrString,    asynParamInt8Array,    &GermaniumPUTR);    /* Pileup threshold trim array */
+    createParam( GermaniumSlpString,     asynParamFloat64Array, &GermaniumSLP);     /* Slope calibration array */
+    createParam( GermaniumOffsString,    asynParamFloat64Array, &GermaniumOFFS);    /* Offset calibration array */
 
     /* Per-chip arrays - exact match to zDDM record */
     createParam( GermaniumThrshString, asynParamInt32Array, &GermaniumTHRSH); /* Threshold array (per chip) */
@@ -420,8 +429,8 @@ void germaniumDetector::setGermaniumInitialValues()
     setDoubleParam(GermaniumRATE, 2.0);   /* 2 Hz default */
     setDoubleParam(GermaniumTP1, 1.0);    /* 1 second default */
 
-    setIntegerParam(GermaniumNELM, this->numElements);
-    setIntegerParam(GermaniumNCHIPS, this->nchips);
+    setIntegerParam(GermaniumNELM, nelm_ );
+    setIntegerParam(GermaniumNCHIPS, nchips_ );
     setIntegerParam(GermaniumPLDEL, 72); /* ADC setup and FPGA data alignment */
     setIntegerParam(GermaniumRODEL, 15);
 
@@ -456,20 +465,20 @@ void germaniumDetector::setGermaniumInitialValues()
 //===========================================================================//
 
 /*
- * Allocate dynamic data arrays based on numElements using modern C++ containers
+ * Allocate dynamic data arrays based on nelm_ using modern C++ containers
  */
 void germaniumDetector::allocateDataArrays()
 {
     // Resize vectors to appropriate sizes - vectors handle memory automatically
-    countRates.resize(numElements, 0); // Initialize all elements to 0
-    totalCounts.resize(numElements, 0);
+    countRates.resize(nelm_, 0); // Initialize all elements to 0
+    totalCounts.resize(nelm_, 0);
 
     // Resize 2D vectors
-    mcaData.resize(numElements);
-    tdcData.resize(numElements);
+    mcaData.resize(nelm_);
+    tdcData.resize(nelm_);
 
     // Initialize each element's spectrum arrays
-    for (int i = 0; i < numElements; i++)
+    for (int i = 0; i < nelm_; i++)
     {
         mcaData[i].resize(SPECTRUM_SIZE, 0); // Initialize to zero
         tdcData[i].resize(TDC_SIZE, 0);      // Initialize to zero
@@ -478,7 +487,7 @@ void germaniumDetector::allocateDataArrays()
     // Allocate UDP buffer using smart pointer
     udpDataBuffer = std::make_unique<uint8_t[]>(UDP_BUFFER_SIZE);
 
-    printf("Allocated data arrays for %d detector elements using modern C++ containers\n", numElements);
+    printf("Allocated data arrays for %d detector elements using modern C++ containers\n", nelm_);
 }
 
 //===========================================================================//
@@ -509,9 +518,9 @@ void germaniumDetector::deallocateDataArrays()
 void germaniumDetector::processPhotonEvent(int element, int energy, int timestamp)
 {
     // Bounds checking is automatic with vectors, but we can add explicit checks
-    if (element < 0 || element >= numElements)
+    if (element < 0 || element >= nelm_)
     {
-        printf("Germanium: Invalid element %d (max %d)\n", element, numElements - 1);
+        printf("Germanium: Invalid element %d (max %d)\n", element, nelm_ - 1);
         return;
     }
 

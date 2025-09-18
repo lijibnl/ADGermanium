@@ -61,7 +61,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
     if (status != asynSuccess)
     {
-        printf( "setIntegerParam failed with status %d\n", status );
+        errlogPrintf( "setIntegerParam failed with status %d\n", status );
         return status;
     }
 
@@ -77,6 +77,9 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             globalstr[chip].ts = value;
         }
         status = sendMarsConfiguration();
+
+        if ( status == asynSuccess )
+            setIntegerParam( GermaniumSHPT, value );
     }
 
     else if ( function == GermaniumGAIN )
@@ -87,7 +90,11 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         {
             globalstr[chip].g = value;
         }
+        
         status = sendMarsConfiguration();
+        
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumGAIN, value );
     }
 
     else if ( function == GermaniumPOL )
@@ -98,121 +105,116 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             globalstr[chip].sp = value;
         }
         status = sendMarsConfiguration();
+        
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumPOL, value );
     }
 
     else if ( function == GermaniumEBLK )
     {
         // Bias current - update globalstr for all chips and send bulk config
-        for (int chip = 0; chip < nchips; chip++)
+        for (int chip = 0; chip < 12/*nchips_*/; chip++)
         {
-            globalstr[chip].eblk = value;
+            switch( value )
+            {
+                case 0:
+                    globalstr[chip].sl = 1;
+                    break;
+                case 1:
+                    globalstr[chip].sl = 0;
+                    break;
+                case 2:
+                    globalstr[chip].sl  = 0;
+                    globalstr[chip].slh = 1;
+                    break;
+            }
         }
         status = sendMarsConfiguration();
-    }
-
-    else if ( function == GermaniumTHRSH )
-    {
-        // Threshold settings - update globalstr for specific chip
-        int chipIndex;
-        getIntegerParam(GermaniumCHIP, &chipIndex);
-        if (chipIndex >= 0 && chipIndex < nchips)
-        {
-            globalstr[chipIndex].th = value;
-            status = sendMarsConfiguration();
-        }
-        else
-        {
-            status = asynError;
-            printf("Germanium: Invalid chip index %d for threshold\n", chipIndex);
-        }
+        
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumEBLK, value );
     }
 
     else if ( function == GermaniumGMON )
     {
         errlogPrintf( "Set global monitor mode to %d\n", value );
 
-        for (int chip = 0; chip < 12/*nchips_*/; chip++)
-        {
-            switch(value)
+        int gmon, monch, chip;
+        getIntegerParam( GermaniumGMON, &gmon );
+        getIntegerParam( GermaniumMONCH, &monch );
+        chip = monch / 32;
+
+        if (gmon == 0)
+        { /* All monitors off. M0=0, C0-C4=00000*/
+            for (int chip_set = 0; chip_set < 12; chip_set++)
             {
-                case 0:
-                    // All monitors off. M0=0, C0-C4=00000
-                    globalstr[chip].c = 0;
-                    globalstr[chip].m0 = 0;
-                    globalstr[chip].saux = 0;
-                    break;
-                case 1:
-                    // All off except this chip temp. M0=0 C0-C4=00100
-                    globalstr[chip].c = 0;
-                    globalstr[chip].m0 = 0;
-                    globalstr[chip].saux = 0;
-                    break;
-                case 2:
-                    // All off except this chip base M0=0 C0-C4=10100
-                    globalstr[chip].c = 0;
-                    globalstr[chip].m0 = 0;
-                    globalstr[chip].saux = 0;
-                    break;
-                case 3:
-                    // All off except this chip thresh M0=0 C0-C4=01100
-                    globalstr[chip].c = 0;
-                    globalstr[chip].m0 = 0;
-                    globalstr[chip].saux = 0;
-                    break;
-                case 4:
-                    // All off except this chip test pulse M0=0 C0-C4=11100
-                    globalstr[chip].c = 0;
-                    globalstr[chip].m0 = 0;
-                    globalstr[chip].saux = 0;
-                    break;
-                case 5:
-                    // All off except this chip channel monitor M0=1; channel number to C0-C4
-                    globalstr[chip].c = 0;
-                    globalstr[chip].m0 = 0;
-                    globalstr[chip].saux = 0;
-                    break;
+                globalstr[chip_set].c = 0;
+                globalstr[chip_set].m0 = 0;
+                globalstr[chip_set].saux = 0;
             }
         }
-        
-        // Set specific chip settings based on current chip selection
-        int currentChip;
-        getIntegerParam(GermaniumCHIP, &currentChip);
-        if (currentChip >= 0 && currentChip < nchips) {
-            switch(value)
+        if (gmon == 1)
+        { /* All off except this chip_set temp. M0=0 C0-C4=00100*/
+            for (int chip_set = 0; chip_set < 12; chip_set++)
             {
-                case 1:
-                    // Temperature
-                    globalstr[currentChip].c = 4;
-                    globalstr[currentChip].saux = 1;
-                    break;
-                case 2:
-                    // Baseline
-                    globalstr[currentChip].c = 5;
-                    globalstr[currentChip].saux = 1;
-                    break;
-                case 3:
-                    // Threshold
-                    globalstr[currentChip].c = 6;
-                    globalstr[currentChip].saux = 1;
-                    break;
-                case 4:
-                    // Test pulse
-                    globalstr[currentChip].c = 7;
-                    globalstr[currentChip].saux = 1;
-                    break;
-                case 5:
-                    // Channel monitor
-                    int currentChan;
-                    getIntegerParam(GermaniumCHAN, &currentChan);
-                    globalstr[currentChip].c = currentChan;
-                    globalstr[currentChip].m0 = 1;
-                    globalstr[currentChip].saux = 1;
-                    break;
+                globalstr[chip_set].c = 0;
+                globalstr[chip_set].m0 = 0;
+                globalstr[chip_set].saux = 0;
             }
+            globalstr[chip].c = 4;
+            globalstr[chip].saux = 1;
         }
+        if (gmon == 2)
+        { /* All off except this chip_set base M0=0 C0-C4=10100 */
+            for (int chip_set = 0; chip_set < 12; chip_set++)
+            {
+                globalstr[chip_set].c = 0;
+                globalstr[chip_set].m0 = 0;
+                globalstr[chip_set].saux = 0;
+            }
+            globalstr[chip].c = 5;
+            globalstr[chip].saux = 1;
+        }
+        if (gmon == 3)
+        { /* All off except this chip_set thresh M0=0 C0-C4=01100*/
+            for (int chip_set = 0; chip_set < 12; chip_set++)
+            {
+                globalstr[chip_set].c = 0;
+                globalstr[chip_set].m0 = 0;
+                globalstr[chip_set].saux = 0;
+            }
+            globalstr[chip].c = 6;
+            globalstr[chip].saux = 1;
+        }
+        if (gmon == 4)
+        { /* All off except this chip_set test pulse M0=0 C0-C4=11100*/
+            for (int chip_set = 0; chip_set < 12; chip_set++)
+            {
+                globalstr[chip_set].c = 0;
+                globalstr[chip_set].m0 = 0;
+                globalstr[chip_set].saux = 0;
+            }
+            globalstr[chip].c = 7;
+            globalstr[chip].saux = 1;
+        }
+        if (gmon == 5)
+        { /* All off except this chip_set channel monitor M0=1; channel number to C0-C4*/
+            for (int chip_set = 0; chip_set < 12; chip_set++)
+            {
+                globalstr[chip_set].c = 0;
+                globalstr[chip_set].m0 = 0;
+                globalstr[chip_set].saux = 0;
+            }
+            globalstr[chip].c = monch % 32;
+            globalstr[chip].m0 = 1;
+            globalstr[chip].saux = 1;
+        }
+
         status = sendMarsConfiguration();
     
-        }
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumGMON, value );
+    }
 
     else if ( function == GermaniumPUEN )
     {
@@ -222,6 +224,9 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             globalstr[chip].spur = value;
         }
         status = sendMarsConfiguration();
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumPUEN, value );
     }
 
     else if ( function == GermaniumMFS )
@@ -232,12 +237,18 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             globalstr[chip].sse = value;
         }
         status = sendMarsConfiguration();
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumMFS, value );
     }
 
     else if ( function == GermaniumTDS )
     {
         errlogPrintf( "Set time detector slope\n" );
-        switch (pscal->tds)
+        int tds;
+        getIntegerParam( GermaniumTDS, &tds );
+        int j, rt;
+        switch ( tds )
         {
             case 0:
                 j = 0; 
@@ -269,13 +280,16 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
                 break;
         }
 
-        for (chip = 0; chip < 12/*nchips_*/; chip++)
+        for (int chip = 0; chip < 12/*nchips_*/; chip++)
         {
             globalstr[chip].tr = j; 
             globalstr[chip].rt = rt;
         }
 
         status = sendMarsConfiguration();
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumTDS, value );
     }
 
     else if ( function == GermaniumTDM )
@@ -286,37 +300,55 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             globalstr[chip].tm = value;
         }
         status = sendMarsConfiguration();
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumTDM, value );
     }
 
     else if ( function == GermaniumMONCH )
     {
         errlogPrintf( "Select to monitor channel %d\n", value );
         // Set CHAN field to the current chip * 64 + MONCH value
-        
-        chip = value / 32;
-        chan = value % 32;
-
-        for ( i = 0; i < 4096; i++ )
+        if ( value < 0 )
+            value = 0;
+        else
         {
-            spct[i]  = mca[4096 * value + i];
-            spctx[i] = (float)i * slp[value] + offs[value];
+            if ( value > nelm_ - 1 )
+                value = nelm_ - 1;
         }
-        errlogPrintf( "SPCT and SPCTX updated\n" );
 
-        if (gmon_ == 5)
+        int chip_set = value / 32;
+        int chan_set = value % 32;
+
+//        for ( int i = 0; i < 4096; i++ )
+//        {
+//            spct[i]  = mca[4096 * value + i];
+//            spctx[i] = (float)i * slp[value] + offs[value];
+//        }
+//        errlogPrintf( "SPCT and SPCTX updated\n" );
+
+        int gmon, monch, loao;
+        getIntegerParam( GermaniumGMON, &gmon );
+        getIntegerParam( GermaniumMONCH, &monch );
+        getIntegerParam( GermaniumLOAO, &loao );
+
+        if (gmon == 5)
         {
-            for (chip = 0; chip < 12; chip++)
+            for ( int chip = 0; chip < 12; chip++ )
             {
                 globalstr[chip].c = 0;
                 globalstr[chip].m0 = 0;
                 globalstr[chip].saux = 0;
             }
-            globalstr[pscal->chip].c = pscal->chan;
-            globalstr[pscal->chip].m0 = 1;
-            globalstr[pscal->chip].saux = 1;
-            channelstr[pscal->monch].sel = pscal->loao;
-            status = sendMarsConfiguratoin();
+            globalstr[chip_set].c = chan_set;
+            globalstr[chip_set].m0 = 1;
+            globalstr[chip_set].saux = 1;
+            channelstr[value].sel = loao;
+            status = sendMarsConfiguration();
         }
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumMONCH, value );
 
         //int currentChip;
         //getIntegerParam(GermaniumCHIP, &currentChip);
@@ -342,90 +374,197 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         //}
     }
 
-    else if ( function == GermaniumCHIP )
-    {
-        // Chip selection - implement exact zDDM logic
-        // Update CHAN to be CHIP * 64 + (CHAN % 64)
-        int currentChan;
-        getIntegerParam(GermaniumCHAN, &currentChan);
-        int newChan = value * 64 + (currentChan % 64);
-        setIntegerParam(GermaniumCHAN, newChan);
-        
-        // If we're in global monitor mode 5, update the hardware
-        int gmonMode;
-        getIntegerParam(GermaniumGMON, &gmonMode);
-        if (gmonMode == 5)
-        {
-            int monch;
-            getIntegerParam(GermaniumMONCH, &monch);
-            if (value >= 0 && value < nchips)
-            {
-                globalstr[value].c = monch;
-                globalstr[value].m0 = 1;
-                globalstr[value].saux = 1;
-                status = sendMarsConfiguration();
-            }
-        }
-    }
+//    else if ( function == GermaniumCHIP )
+//    {
+//        int currentChan;
+//        getIntegerParam(GermaniumCHAN, &currentChan);
+//        int newChan = value * 64 + (currentChan % 64);
+//        setIntegerParam(GermaniumCHAN, newChan);
+//        
+//        // If we're in global monitor mode 5, update the hardware
+//        int gmonMode;
+//        getIntegerParam(GermaniumGMON, &gmonMode);
+//        if (gmonMode == 5)
+//        {
+//            int monch;
+//            getIntegerParam(GermaniumMONCH, &monch);
+//            if ( value >= 0 && value < nchips_ )
+//            {
+//                globalstr[value].c = monch;
+//                globalstr[value].m0 = 1;
+//                globalstr[value].saux = 1;
+//                status = sendMarsConfiguration();
+//            }
+//        }
+//    }
+//
+//    else if ( function == GermaniumCHAN )
+//    {
+//        // Channel selection - implement exact zDDM logic
+//        // Extract chip and monitor channel from absolute channel
+//        int chip = value / 64;
+//        int monch = value % 64;
+//        
+//        // Update CHIP and MONCH fields
+//        setIntegerParam(GermaniumCHIP, chip);
+//        setIntegerParam(GermaniumMONCH, monch);
+//        
+//        // If we're in global monitor mode 5, update the hardware
+//        int gmonMode;
+//        getIntegerParam(GermaniumGMON, &gmonMode);
+//        if (gmonMode == 5 && chip >= 0 && chip < nchips)
+//        {
+//            globalstr[chip].c = monch;
+//            globalstr[chip].m0 = 1;
+//            globalstr[chip].saux = 1;
+//            status = sendMarsConfiguration();
+//        }
+//    }
+//
+//
+//    else if ( function == GermaniumNELM )
+//    {
+//        status = udpRegisterWrite( NELM, value );
+//    
+//        if ( status == asynSuccess )
+//            status = setIntegerParam( GermaniumNELM, value );
+//    }
 
-    else if ( function == GermaniumCHAN )
-    {
-        // Channel selection - implement exact zDDM logic
-        // Extract chip and monitor channel from absolute channel
-        int chip = value / 64;
-        int monch = value % 64;
-        
-        // Update CHIP and MONCH fields
-        setIntegerParam(GermaniumCHIP, chip);
-        setIntegerParam(GermaniumMONCH, monch);
-        
-        // If we're in global monitor mode 5, update the hardware
-        int gmonMode;
-        getIntegerParam(GermaniumGMON, &gmonMode);
-        if (gmonMode == 5 && chip >= 0 && chip < nchips)
-        {
-            globalstr[chip].c = monch;
-            globalstr[chip].m0 = 1;
-            globalstr[chip].saux = 1;
-            status = sendMarsConfiguration();
-        }
-    }
-
-    else if ( function == GermaniumNELM )
-    {
-        status = udpRegisterWrite( NELM, value );
-    }
+    //else if ( function == GermaniumCONT )
+    //{
+    //    state
+    //}
 
     else if ( function == GermaniumLOAO )
     {
         errlogPrintf( "Set channel monitor to leakage/pulse\n" );
-        channelstr[monch_].sel = value;
+        int monch;
+        getIntegerParam( GermaniumMONCH, &monch );
+        channelstr[monch].sel = value;
         status = sendMarsConfiguration();
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumLOAO, value );
     }
 
     else if ( function == GermaniumTPAMP )
     {
         errlogPrintf( "Set test pulse amplitude\n" );
-        for (chip = 0; chip < 12/*nchips_*/; chip++)
+        for (int chip = 0; chip < 12/*nchips_*/; chip++)
         {
             globalstr[chip].pb = value;
         }
 
         status = udpRegisterWrite( MARS_CALPULSE, value);
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumTPAMP, value );
+    }
+
+    else if ( function == GermaniumCHEN_SET ) // In .bob, create a button to write 1 then 0 to CHEN_SET.PROC
+    {
+        int monch;
+
+        switch( value )
+        {
+            case 0:
+                getIntegerParam( GermaniumMONCH, &monch );
+                chen_[monch] = 1;
+                channelstr[monch].sm = 1;
+                break;
+            case 1:
+                for( int i = 0; i < nelm_; i++ )
+                {
+                    chen_[i] = 1;
+                    channelstr[i].sm = 1;
+                    break;
+                }
+            case 2:
+                getIntegerParam( GermaniumMONCH, &monch );
+                chen_[monch] = 0;
+                channelstr[monch].sm = 0;
+                break;
+            case 3:
+                for( int i = 0; i < nelm_; i++ )
+                {
+                    chen_[i] = 0;
+                    channelstr[i].sm = 0;
+                    break;
+                }
+            default:
+                errlogPrintf( "Wrong value %d for CHEN_SET\n", value );
+                return asynError;
+        }
+        doCallbacksInt8Array( chen_, nelm_, GermaniumCHEN, 0 );
+        setIntegerParam( GermaniumCHEN_SET, value );
+        status = sendMarsConfiguration();
+    }
+
+    else if ( function == GermaniumTSEN_SET ) // In .bob, create a button to write 1 then 0 to TSEN_SET.PROC
+    {
+        int monch;
+
+        switch( value )
+        {
+            case 0:
+                getIntegerParam( GermaniumMONCH, &monch );
+                tsen_[monch] = 1;
+                channelstr[monch].st = 1;
+                break;
+            case 1:
+                for( int i = 0; i < nelm_; i++ )
+                {
+                    tsen_[i] = 1;
+                    channelstr[i].st = 1;
+                    break;
+                }
+            case 2:
+                getIntegerParam( GermaniumMONCH, &monch );
+                tsen_[monch] = 0;
+                channelstr[monch].st = 0;
+                break;
+            case 3:
+                for( int i = 0; i < nelm_; i++ )
+                {
+                    tsen_[i] = 0;
+                    channelstr[i].st = 0;
+                    break;
+                }
+            default:
+                errlogPrintf( "Wrong value %d for TSEN_SET\n", value );
+                return asynError;
+        }
+
+        doCallbacksInt8Array( tsen_, nelm_, GermaniumTSEN, 0 );
+        setIntegerParam( GermaniumTSEN_SET, value );
+        status = sendMarsConfiguration();
     }
 
     else if ( function == GermaniumTPFRQ )
     {
         errlogPrintf( "Set test pulse frequency\n" );
         status  = udpRegisterWrite( CALPULSE_RATE, 25000000 / value / 2);
-        status |= udpRegisterWrite( CALPULSE_WIDTH, 25000000 / value / 2);
-        status |= sendMarsConfiguration();
+        
+        if ( status == asynSuccess )
+            status = udpRegisterWrite( CALPULSE_WIDTH, 25000000 / value / 2);
+
+        if ( status == asynSuccess )
+            status = sendMarsConfiguration();
+    
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumTPFRQ, value );
     }
 
     else if ( function == GermaniumTPCNT )
     {
         status  = udpRegisterWrite( CALPULSE_CNT, value);
-        status |= sendMarsConfiguration();
+        if ( status == asynSuccess )
+        {
+            status = sendMarsConfiguration();
+    
+            if ( status == asynSuccess )
+                status = setIntegerParam( GermaniumTPCNT, value );
+        }
     }
 
     else if ( function == GermaniumTPENB )
@@ -433,14 +572,22 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         if ( value == 1 )
         {
             status  = udpRegisterWrite( MARS_CALPULSE, 0xFFF );
-            status |= udpRegisterWrite( CALPULSE_MODE, 1 );
+            if ( status == asynSuccess )
+                status = udpRegisterWrite( CALPULSE_MODE, 1 );
         }
         else
         {
             status  = udpRegisterWrite( MARS_CALPULSE, 0 );
-            status |= udpRegisterWrite( CALPULSE_MODE, 0 );
+            if ( status == asynSuccess )
+                status = udpRegisterWrite( CALPULSE_MODE, 0 );
         }
-        status |= sendMarsConfiguration();
+        if ( status == asynSuccess )
+        {
+            status = sendMarsConfiguration();
+    
+            if ( status == asynSuccess )
+                status = setIntegerParam( GermaniumTPENB, value );
+        }
 
     }
 
@@ -468,15 +615,22 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         // File size limit - validate and store
         if (value < 1) // Minimum 1MB
         {
-            printf("Germanium: File size too small, setting to 1MB minimum\n");
-            setIntegerParam(GermaniumFSIZE, 1);
+            errlogPrintf("Germanium: File size too small, setting to 1MB minimum\n");
+            status = setIntegerParam(GermaniumFSIZE, 1);
         }
         else if (value > 1000) // Maximum 1TB
         {
-            printf("Germanium: File size too large, setting to 1TB maximum\n");
-            setIntegerParam(GermaniumFSIZE, 1000);
+            errlogPrintf("Germanium: File size too large, setting to 1TB maximum\n");
+            status = setIntegerParam(GermaniumFSIZE, 1000);
         }
-        printf("Germanium: Maximum file size set to %d MBytes\n", value);
+        else
+        {
+            if ( status == asynSuccess )
+            {
+                status = setIntegerParam( GermaniumFSIZE, value );
+                errlogPrintf("Germanium: Maximum file size set to %d MBytes\n", value);
+            }
+        }
     }
 
     else if ( function == GermaniumCNT )
@@ -490,11 +644,39 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         { // Stop acquisition
             stopDataAcquisition();
         }
+        
+        status = setIntegerParam( GermaniumCNT, value );
+    }
+
+    else if ( function == GermaniumTP )
+    {
+        // Time preset - use COUNT_TIME registers
+        uint64_t ticks = (uint64_t)(value * 1000000);
+        status  = udpRegisterWrite( COUNT_TIME_LO, ticks & 0xFFFF );
+        if ( status == asynSuccess )
+        {
+            status = udpRegisterWrite( COUNT_TIME_HI, (ticks >> 16) & 0xFFFF );
+            if ( status == asynSuccess )
+                status = setIntegerParam( function, value );
+        }
+    }
+
+    else if ( function == GermaniumRUNNO )
+    {
+        status = udpRegisterWrite( FRAME_NO, value );
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumRUNNO, value );
     }
     
     else if ( function == GermaniumMODE )
     {
+        // Stop counting if current mode==1
+        // CNT = 0;
+        // frame_done(1);
+
         status = udpRegisterWrite( COUNT_MODE, value);
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumMODE, value );
     }
 
 //    case GermaniumCLRE)
@@ -550,18 +732,23 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if ( function == GermaniumPLDEL )
     {
         status = udpRegisterWrite( MARS_PIPE_DELAY, value);
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumPLDEL, value );
     }
 
     else if ( function == GermaniumRODEL )
     {
-        // Readout delay - may be part of MARS configuration
+        errlogPrintf( "Set readout delay to %d\n", value );
+
         status = udpRegisterWrite( MARS_RDOUT_ENB, value);
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumRODEL, value );
     }
 
     // Add more parameter mappings as needed
     else
     {
-        printf( "Invalid function %d for writeInt32()\n", function );
+        errlogPrintf( "Invalid function %d for writeInt32()\n", function );
         status = asynError;
     }
         
@@ -571,7 +758,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else
     {
-        printf("Germanium: Failed to send parameter %d to device\n", function);
+        errlogPrintf("Germanium: Failed to send parameter %d to device\n", function);
     }
 
     return status;
@@ -579,7 +766,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
 //===========================================================================//
 
-asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
+asynStatus germaniumDetector::writeFloat64( asynUser *pasynUser, epicsFloat64 value )
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -591,7 +778,7 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
 
     if (status != asynSuccess)
     {
-        printf( "setDoubleParam failed with status %d\n", status );
+        errlogPrintf( "setDoubleParam failed with status %d\n", status );
         return status;
     }
 
@@ -605,17 +792,6 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
         if (status == asynSuccess)
         {
             status = udpRegisterWrite( COUNT_TIME_HI, (regValue >> 16) & 0xFFFF );
-        }
-    }
-
-    else if ( function == GermaniumTP )
-    {
-        // Time preset - use COUNT_TIME registers
-        uint32_t ticks = (uint32_t)(value * 1000000); // Convert seconds to microseconds
-        status = udpRegisterWrite( COUNT_TIME_LO, ticks & 0xFFFF );
-        if (status == asynSuccess)
-        {
-            status = udpRegisterWrite( COUNT_TIME_HI, (ticks >> 16) & 0xFFFF );
         }
     }
 
@@ -645,14 +821,14 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
         if (rate != value) {
             // Update parameter with bounded value
             status = ADDriver::setDoubleParam(function, rate);
-            printf("Germanium: RATE bounded to %f Hz\n", rate);
+            errlogPrintf("Germanium: RATE bounded to %f Hz\n", rate);
         }
         // RATE is primarily read-only display parameter, don't send to hardware
     }
 
     else
     {
-        printf( "Invalid function %d for writeFloat64()\n", function );
+        errlogPrintf( "Invalid function %d for writeFloat64()\n", function );
         status = asynError;
     }
 
@@ -662,7 +838,7 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
     }
     else
     {
-        printf("Germanium: Failed to send float parameter %d to device\n", function);
+        errlogPrintf("Germanium: Failed to send float parameter %d to device\n", function);
     }
 
     return status;
@@ -683,38 +859,38 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
     if (status != asynSuccess)
     {
-        printf( "setDoubleParam failed with status %d\n", status );
+        errlogPrintf( "setDoubleParam failed with status %d\n", status );
         return status;
     }
     
     // Send string parameters to device if needed
     if ( function == GermaniumFNAM )
     {
-        // Filename - might trigger file operations on remote device
-//        status = udpSendString(UDP_CMD_SET_FILENAME, value);
+        errlogPrintf( "Set data file name %s\n", value );
+        setStringParam( function, value );
     }
 
     else if ( function == GermaniumCALF )
     {
-        // Calibration filename - load calibration on remote device
-//        status = udpSendString(UDP_CMD_LOAD_CALIBRATION, value);
+        errlogPrintf( "Set calibration file name %s\n", value );
+        setStringParam( function, value );
 
     }
     else if ( function == GermaniumDIR )
     {
+        errlogPrintf( "Set data file directory %s\n", value );
         // Data directory - create if it doesn't exist
         createDataDirectory();
-        printf("Germanium: Data directory set to %s\n", value);
     }
     
     else if ( function == GermaniumIPADDR )
     {
-        printf("Germanium: IP address change to %s\n", value);
+        errlogPrintf( "Set UDP IP address to %s\n", value);
 
         uint32_t host;
         if (!ipStrToU32Host(value, host))
         {
-            printf( "Invalid IP '%s'\n", value );
+            errlogPrintf( "Invalid IP '%s'\n", value );
             return asynError; // leave RBV unchanged
         }
 
@@ -732,7 +908,7 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
     else
     {
-        printf( "Invalid function %d for writeFloat64()\n", function );
+        errlogPrintf( "Invalid function %d for writeFloat64()\n", function );
         status = asynError;
     }
 
@@ -742,7 +918,7 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
     }
     else
     {
-        printf("Germanium: Failed to send string parameter %d to device\n", function);
+        errlogPrintf("Germanium: Failed to send string parameter %d to device\n", function);
     }
 
     *nActual = strlen(value);
@@ -752,7 +928,7 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readInt32( asynUser *pasynUser )
+asynStatus germaniumDetector::readInt32( asynUser *pasynUser, int* value )
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -796,7 +972,7 @@ asynStatus germaniumDetector::readInt32( asynUser *pasynUser )
 
     else
     {
-        printf( "Invalid function %d for readInt32()\n", function );
+        errlogPrintf( "Invalid function %d for readInt32()\n", function );
         status = asynError;
     }
 
@@ -806,7 +982,7 @@ asynStatus germaniumDetector::readInt32( asynUser *pasynUser )
     }
     else
     {
-        printf("Germanium: Failed to read int32 parameter %d from device\n", function);
+        errlogPrintf("Germanium: Failed to read int32 parameter %d from device\n", function);
     }
 
     return status;
@@ -879,7 +1055,7 @@ asynStatus germaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *va
 
     else
     {
-        printf( "Invalid function %d for readInt32Array()\n", function );
+        errlogPrintf( "Invalid function %d for readInt32Array()\n", function );
         status = asynError;
     }
     
@@ -900,9 +1076,10 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
     if ( function == GermaniumCHEN )
     {
         errlogPrintf( "Set channel enabln" );
-        uint8_t *chenArray = new uint8_t[nElements];
-        for (size_t chan = 0; chan < nelm_; chan++)
+        //uint8_t *chenArray = new uint8_t[nElements];
+        for ( int chan = 0; chan < nelm_; chan++ )
         {
+            chen_[chan] = value[chan];
             channelstr[chan].sm = value[chan];
         }
         status = sendMarsConfiguration();
@@ -910,7 +1087,7 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
     else if ( function == GermaniumPUTR )
     {
-        for ( chan = 0; chan < nelm_; chan++ )
+        for ( int chan = 0; chan < nelm_; chan++ )
         {
             channelstr[chan].dp = value[chan];
             status = sendMarsConfiguration();
@@ -919,8 +1096,9 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
     else if ( function == GermaniumTHRSH )
     {
-        for ( chip = 0; chip < 12/*nchips_*/; chip++ )
+        for ( int chip = 0; chip < 12/*nchips_*/; chip++ )
         {
+            thrsh_[chip] = value[chip];
             globalstr[chip].pa = value[chip];
         }
         status = sendMarsConfiguration();
@@ -928,9 +1106,10 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
     else if ( function == GermaniumTSEN )
     {
-        for ( chan = 0; chan < nelm_; chan++ )
+        for ( int chan = 0; chan < nelm_; chan++ )
         {
-            channelstr[chan].str = value[chan];
+            tsen_[chan] = value[chan];
+            channelstr[chan].st = value[chan];
         }
         status = sendMarsConfiguration();
     }
@@ -946,7 +1125,7 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
     {
         // Unknown array parameter
         status = asynError;
-        printf("Germanium: Unknown array parameter %d in writeInt32Array\n", function);
+        errlogPrintf("Germanium: Unknown array parameter %d in writeInt32Array\n", function);
     }
 
     if (status == asynSuccess)
@@ -959,162 +1138,162 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
 //===========================================================================//
 
-// ADDriver virtual method implementations
-asynStatus germaniumDetector::readNDArray(asynUser *pasynUser, epicsInt32 *value,
-                                  size_t nElements, size_t *nIn)
-{
-    int function = pasynUser->reason;
-    asynStatus status = asynSuccess;
-    size_t dims[2];
-    NDArray *pArray = nullptr;
-
-    errlogPrintf( "[%s]: function is %d\n", __func__, function );
-
-    // Determine which array is being requested
-    if ( function == GermaniumMCA )
-    {
-        // Create 2D array: [numElements x SPECTRUM_SIZE]
-        dims[0] = numElements;
-        dims[1] = SPECTRUM_SIZE;
-
-        pArray = this->pNDArrayPool->alloc(2, dims, NDInt32, 0, nullptr);
-        if (pArray)
-        {
-            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-
-            // Copy MCA data from all elements
-            for (int elem = 0; elem < numElements; elem++)
-            {
-                for (int bin = 0; bin < SPECTRUM_SIZE; bin++)
-                {
-                    pData[elem * SPECTRUM_SIZE + bin] = mcaData[elem][bin];
-                }
-            }
-
-            // Set NDArray attributes
-            this->getAttributes(pArray->pAttributeList);
-
-            // Do callbacks to registered clients
-            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-
-            *nIn = dims[0] * dims[1];
-        }
-        else
-        {
-            status = asynError;
-            printf("Germanium: Failed to allocate NDArray for MCA data\n");
-        }
-    }
-
-    else if ( function == GermaniumTDC )
-    {
-        // Create 2D array: [numElements x TDC_SIZE]
-        dims[0] = numElements;
-        dims[1] = TDC_SIZE;
-
-        pArray = this->pNDArrayPool->alloc(2, dims, NDInt32, 0, nullptr);
-        if (pArray)
-        {
-            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-
-            // Copy TDC data from all elements
-            for (int elem = 0; elem < numElements; elem++)
-            {
-                for (int bin = 0; bin < TDC_SIZE; bin++)
-                {
-                    pData[elem * TDC_SIZE + bin] = tdcData[elem][bin];
-                }
-            }
-
-            this->getAttributes(pArray->pAttributeList);
-            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-
-            *nIn = dims[0] * dims[1];
-        }
-        else
-        {
-            status = asynError;
-            printf("Germanium: Failed to allocate NDArray for TDC data\n");
-        }
-    }
-
-    else if ( function == GermaniumINTENS )
-    {
-        // Create 1D array: [numElements] - intensity per element
-        dims[0] = numElements;
-
-        pArray = this->pNDArrayPool->alloc(1, dims, NDInt32, 0, nullptr);
-        if (pArray)
-        {
-            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-
-            // Copy intensity data (total counts per element)
-            for (int elem = 0; elem < numElements; elem++)
-            {
-                pData[elem] = totalCounts[elem];
-            }
-
-            this->getAttributes(pArray->pAttributeList);
-            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-
-            *nIn = dims[0];
-        }
-        else
-        {
-            status = asynError;
-            printf("Germanium: Failed to allocate NDArray for intensity data\n");
-        }
-    }
-
-    else if ( function == GermaniumSPCT )
-    {
-        // Single channel spectrum - 1D array [SPECTRUM_SIZE]
-        int selectedElement;
-        getIntegerParam(GermaniumCHAN, &selectedElement);
-        selectedElement = selectedElement % numElements; // Ensure valid range
-
-        dims[0] = SPECTRUM_SIZE;
-
-        pArray = this->pNDArrayPool->alloc(1, dims, NDInt32, 0, nullptr);
-        if (pArray)
-        {
-            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-
-            // Copy spectrum data for selected element
-            for (int bin = 0; bin < SPECTRUM_SIZE; bin++)
-            {
-                pData[bin] = mcaData[selectedElement][bin];
-            }
-
-            this->getAttributes(pArray->pAttributeList);
-            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-
-            *nIn = dims[0];
-        }
-        else
-        {
-            status = asynError;
-            printf("Germanium: Failed to allocate NDArray for spectrum data\n");
-        }
-    }
-    
-    else
-    {
-        // Unknown array type
-        status = asynError;
-        printf("Germanium: Unknown array parameter %d in readNDArray\n", function);
-        *nIn = 0;
-    }
-    
-
-    // Release NDArray reference
-    if (pArray)
-    {
-        pArray->release();
-    }
-
-    return status;
-}
+//// ADDriver virtual method implementations
+//asynStatus germaniumDetector::readNDArray(asynUser *pasynUser, epicsInt32 *value,
+//                                  size_t nElements, size_t *nIn)
+//{
+//    int function = pasynUser->reason;
+//    asynStatus status = asynSuccess;
+//    size_t dims[2];
+//    NDArray *pArray = nullptr;
+//
+//    errlogPrintf( "[%s]: function is %d\n", __func__, function );
+//
+//    // Determine which array is being requested
+//    if ( function == GermaniumMCA )
+//    {
+//        // Create 2D array: [nelm_ x SPECTRUM_SIZE]
+//        dims[0] = nelm_;
+//        dims[1] = SPECTRUM_SIZE;
+//
+//        pArray = this->pNDArrayPool->alloc(2, dims, NDInt32, 0, nullptr);
+//        if (pArray)
+//        {
+//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
+//
+//            // Copy MCA data from all elements
+//            for (int elem = 0; elem < nelm_; elem++)
+//            {
+//                for (int bin = 0; bin < SPECTRUM_SIZE; bin++)
+//                {
+//                    pData[elem * SPECTRUM_SIZE + bin] = mcaData[elem][bin];
+//                }
+//            }
+//
+//            // Set NDArray attributes
+//            this->getAttributes(pArray->pAttributeList);
+//
+//            // Do callbacks to registered clients
+//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
+//
+//            *nIn = dims[0] * dims[1];
+//        }
+//        else
+//        {
+//            status = asynError;
+//            errlogPrintf("Germanium: Failed to allocate NDArray for MCA data\n");
+//        }
+//    }
+//
+//    else if ( function == GermaniumTDC )
+//    {
+//        // Create 2D array: [nelm_ x TDC_SIZE]
+//        dims[0] = nelm_;
+//        dims[1] = TDC_SIZE;
+//
+//        pArray = this->pNDArrayPool->alloc(2, dims, NDInt32, 0, nullptr);
+//        if (pArray)
+//        {
+//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
+//
+//            // Copy TDC data from all elements
+//            for (int elem = 0; elem < numElements; elem++)
+//            {
+//                for (int bin = 0; bin < TDC_SIZE; bin++)
+//                {
+//                    pData[elem * TDC_SIZE + bin] = tdcData[elem][bin];
+//                }
+//            }
+//
+//            this->getAttributes(pArray->pAttributeList);
+//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
+//
+//            *nIn = dims[0] * dims[1];
+//        }
+//        else
+//        {
+//            status = asynError;
+//            errlogPrintf("Germanium: Failed to allocate NDArray for TDC data\n");
+//        }
+//    }
+//
+//    else if ( function == GermaniumINTENS )
+//    {
+//        // Create 1D array: [numElements] - intensity per element
+//        dims[0] = numElements;
+//
+//        pArray = this->pNDArrayPool->alloc(1, dims, NDInt32, 0, nullptr);
+//        if (pArray)
+//        {
+//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
+//
+//            // Copy intensity data (total counts per element)
+//            for (int elem = 0; elem < numElements; elem++)
+//            {
+//                pData[elem] = totalCounts[elem];
+//            }
+//
+//            this->getAttributes(pArray->pAttributeList);
+//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
+//
+//            *nIn = dims[0];
+//        }
+//        else
+//        {
+//            status = asynError;
+//            errlogPrintf("Germanium: Failed to allocate NDArray for intensity data\n");
+//        }
+//    }
+//
+//    else if ( function == GermaniumSPCT )
+//    {
+//        // Single channel spectrum - 1D array [SPECTRUM_SIZE]
+//        int selectedElement;
+//        getIntegerParam(GermaniumCHAN, &selectedElement);
+//        selectedElement = selectedElement % numElements; // Ensure valid range
+//
+//        dims[0] = SPECTRUM_SIZE;
+//
+//        pArray = this->pNDArrayPool->alloc(1, dims, NDInt32, 0, nullptr);
+//        if (pArray)
+//        {
+//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
+//
+//            // Copy spectrum data for selected element
+//            for (int bin = 0; bin < SPECTRUM_SIZE; bin++)
+//            {
+//                pData[bin] = mcaData[selectedElement][bin];
+//            }
+//
+//            this->getAttributes(pArray->pAttributeList);
+//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
+//
+//            *nIn = dims[0];
+//        }
+//        else
+//        {
+//            status = asynError;
+//            errlogPrintf("Germanium: Failed to allocate NDArray for spectrum data\n");
+//        }
+//    }
+//    
+//    else
+//    {
+//        // Unknown array type
+//        status = asynError;
+//        errlogPrintf("Germanium: Unknown array parameter %d in readNDArray\n", function);
+//        *nIn = 0;
+//    }
+//    
+//
+//    // Release NDArray reference
+//    if (pArray)
+//    {
+//        pArray->release();
+//    }
+//
+//    return status;
+//}
 
 //===========================================================================//
 
@@ -1133,7 +1312,7 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
     // Verify this is a response message
     if ((response->op & 0x8000) == 0)
     {
-        printf("Received non-response message on control channel\n");
+        errlogPrintf("Received non-response message on control channel\n");
         return;
     }
 
@@ -1225,7 +1404,7 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
         //    break;
         //----------------------------------------------//
         default:
-            printf( "Value received for unknown register %d\n", reg );
+            errlogPrintf( "Value received for unknown register %d\n", reg );
     }
 
     callParamCallbacks();
@@ -1236,12 +1415,12 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
 
 void germaniumDetector::report(FILE *fp, int details)
 {
-    fprintf(fp, "Germanium detector: %d elements, %d chips\n", numElements, nchips);
-    fprintf(fp, "IP Address: %s\n", ipAddress);
+    fprintf(fp, "Germanium detector: %d elements, %d chips\n", nelm_, nchips_);
+    fprintf(fp, "UDP IP Address: %s\n", ipAddress);
 
     if (details > 1)
     {
-//        fprintf(fp, "Device FD: %d\n", device_fd);
+//        errlogPrintf(fp, "Device FD: %d\n", device_fd);
         fprintf(fp, "Acquisition running: %s\n", acquisitionRunning ? "Yes" : "No");
     }
 
