@@ -331,7 +331,7 @@ asynStatus germaniumDetector::sendMarsConfiguration()
     
     printf( "Sent MARS configuration (%zu bytes) for %d chips\n"
           , sizeof(msg.payload.stuff_mars)
-          , nchips
+          , nchips_
           );
 
     return asynSuccess;

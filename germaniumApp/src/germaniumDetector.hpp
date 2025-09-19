@@ -21,6 +21,8 @@
 #include <cstdint>
 #include <memory>
 #include <vector>
+#include <span>
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -306,6 +308,21 @@ private:
     void processEventData(const uint8_t* data, size_t dataSize);
     void processStatusDat(const uint8_t* data, size_t dataSize);
     
+    void publish2DUInt32Array( const std::vector<uint32_t>& vec 
+                             , size_t nx
+                             , size_t ny
+                             , int addr
+                             );
+
+    void publish1DUInt32Array( std::span<const uint32_t> vec
+                             , int addr
+                             );
+
+    void publishMCA();
+    void publishTDC();
+    void publishSPCT();
+    void publishINTENS();
+
     // Hardware-related methods (now UDP-based instead of direct FIFO access)
     void wrap();
     void initializeGermaniumHardware();
@@ -327,8 +344,23 @@ private:
     void wrapBitFields();
     void validateConfiguration();
 
+    void publishData();
+
     // For detector type
     int nelm_, nchips_;
+
+    // Arrays
+    const size_t mca_nx_, mca_ny_;
+    const size_t tdc_nx_, tdc_ny_;
+    const size_t spct_len_;
+    const size_t intens_len_;
+
+    const int mca_addr_, tdc_addr_, spct_addr_, intens_addr_;
+
+    std::vector<uint32_t> mca_data_;
+    std::vector<uint32_t> tdc_data_;
+    std::vector<uint32_t> spct_data_;
+    std::vector<uint32_t> intens_data_;
 
     // For test pulses
     epicsInt8 tsen_[384], chen_[384];

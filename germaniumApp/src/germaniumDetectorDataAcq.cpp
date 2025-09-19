@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <thread>
 #include <chrono>
+#include <span>
 
 //===========================================================================//
 
@@ -580,3 +581,138 @@ void germaniumDetector::flushWriteBuffer()
 
 //===========================================================================//
 
+void germaniumDetector::publish2DUInt32Array( const std::vector<uint32_t>& vec
+                                            , size_t nx
+                                            , size_t ny
+                                            , int addr
+                                            )
+{
+    size_t dims[2] = { nx, ny };
+    NDArray* pArray = pNDArrayPool->alloc(2, dims, NDUInt32, 0, nullptr);
+    if (!pArray)
+    {
+        return;
+    }
+
+    lock();
+
+    memcpy(pArray->pData, vec.data(), nx * ny * sizeof(uint32_t));
+
+    doCallbacksGenericPointer( pArray, NDArrayData, addr );
+
+    unlock();
+
+    pArray->release();
+}
+
+//===========================================================================//
+
+void germaniumDetector::publish1DUInt32Array( std::span<const uint32_t> vec
+                                            , int addr
+                                            )
+{
+    size_t dims[1] = { vec.size() };
+    NDArray* pArray = pNDArrayPool->alloc(1, dims, NDUInt32, 0, nullptr);
+    if ( !pArray )
+    {
+        return;
+    }
+
+    lock();
+
+    memcpy(pArray->pData, vec.data(), vec.size() * sizeof(uint32_t));
+
+    doCallbacksGenericPointer( pArray, NDArrayData, addr );
+
+    unlock();
+
+    pArray->release();
+}
+
+//===========================================================================//
+
+void germaniumDetector::publishMCA()
+{
+    publish2DUInt32Array( mca_data_, mca_nx_, mca_ny_, mca_addr_ );
+}
+
+//===========================================================================//
+
+void germaniumDetector::publishTDC()
+{
+    publish2DUInt32Array( tdc_data_, tdc_nx_, tdc_ny_, tdc_addr_ );
+}
+
+//===========================================================================//
+
+void germaniumDetector::publishSPCT()
+{
+    int monch;
+    getIntegerParam( GermaniumMONCH, &monch );
+    const size_t offset = static_cast<size_t>(monch) * mca_nx_;
+    std::span<const uint32_t> spct(mca_data_.data() + offset, mca_nx_);
+    publish1DUInt32Array( spct, spct_addr_ );
+}
+
+//===========================================================================//
+
+void germaniumDetector::publishINTENS()
+{
+    std::span<const uint32_t> intens(intens_data_.data(), intens_data_.size() );
+    publish1DUInt32Array( intens, intens_addr_ );
+}
+
+//===========================================================================//
+
+void germaniumDetector::publishData()
+{
+    publishMCA();
+    publishTDC();
+    publishSPCT();
+    publishINTENS();
+
+//    lock();
+//
+//    // ---- MCA NDArray (2-D) ----
+//    size_t dimsM[2] = {mca_nx_, mca_ny_};
+//    NDArray* pMCA = pNDArrayPool->alloc(2, dimsM, NDUInt32, 0, nullptr);
+//    if (!pMCA) { unlock(); return; }
+//
+//    memcpy(pMCA->pData, mca_data_.data(), mca_nx_ * mca_ny_ * sizeof(uint32_t));
+//
+//    int uid = 0; getIntegerParam(ADUniqueId, &uid); setIntegerParam(ADUniqueId, ++uid);
+//    pMCA->uniqueId = uid;
+//    epicsTimeGetCurrent(&pMCA->epicsTS);
+//
+//    int monch_val = 0; getIntegerParam(pMonCh_, &monch_val);
+//    pMCA->pAttributeList->add("MonCh", "Selected row index", NDAttrInt32, &monch_val);
+//
+//    // ---- SPCT NDArray (1-D, one row) ----
+//    size_t spct_row = (mca_ny_ ? (size_t)std::min(std::max(monch_val, 0), (int)mca_ny_ - 1) : 0);
+//    const uint32_t* rowPtr = mca_data_.data() + spct_row * mca_nx_;
+//    std::copy(rowPtr, rowPtr + mca_nx_, spct_data_.begin());
+//
+//    size_t dimsS[1] = {mca_nx_};
+//    NDArray* pSPCT = pNDArrayPool->alloc(1, dimsS, NDUInt32, 0, nullptr);
+//    if (!pSPCT) { pMCA->release(); unlock(); return; }
+//
+//    memcpy(pSPCT->pData, spct_data_.data(), mca_nx_ * sizeof(uint32_t));
+//    pSPCT->uniqueId = ++uid;
+//    epicsTimeGetCurrent(&pSPCT->epicsTS);
+//    pSPCT->pAttributeList->add("MonCh", "Selected row index", NDAttrInt32, &monch_val);
+//
+//    // ---- Callbacks ----
+//    doCallbacksGenericPointer(pMCA,    NDArrayData, 1);  // MCA @ addr 1
+//    doCallbacksGenericPointer(pTDC,    NDArrayData, 2);  // TDC @ addr 2
+//    doCallbacksGenericPointer(pSPCT,   NDArrayData, 3);  // SPCT @ addr 3
+//    doCallbacksGenericPointer(pINTENS, NDArrayData, 4);  // INTENS @ addr 4
+//
+//    pMCA->release();
+//    pTDC->release();
+//    pSPCT->release();
+//    pINTENS->release();
+//    callParamCallbacks();
+//
+//    unlock();
+
+}

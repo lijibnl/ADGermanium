@@ -1,0 +1,2 @@
+epicsEnvSet("PREFIX", "Det:")
+epicsEnvSet("NELM",   "384")

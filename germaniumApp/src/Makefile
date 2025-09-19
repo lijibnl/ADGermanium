@@ -3,6 +3,8 @@
 TOP=../..
 include $(TOP)/configure/CONFIG
 
+USR_CXXFLAGS += -std=c++20
+
 $(info ADCORE = $(ADCORE))
 
 # Build the IOC application

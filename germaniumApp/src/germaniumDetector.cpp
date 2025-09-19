@@ -48,6 +48,16 @@ germaniumDetector::germaniumDetector( const char *portName
                                               , stackSize
                                               )
                                     , nelm_                 ( numElements            )
+                                    , mca_nx_               ( 4096                   )
+                                    , mca_ny_               ( numElements            )
+                                    , tdc_nx_               ( 1024                   )
+                                    , tdc_ny_               ( numElements            )
+                                    , spct_len_             ( 4096                   )
+                                    , intens_len_           ( numElements            )
+                                    , mca_addr_             ( 1                      )
+                                    , tdc_addr_             ( 2                      )
+                                    , spct_addr_            ( 3                      )
+                                    , intens_addr_          ( 4                      )
                                     , udpControlSocket      ( -1                     )
                                     , udpDataSocket         ( -1                     )
                                     , udpInitialized        ( false                  )
@@ -469,25 +479,28 @@ void germaniumDetector::setGermaniumInitialValues()
  */
 void germaniumDetector::allocateDataArrays()
 {
+    mca_data_.resize( mca_nx_ * mca_ny_ );
+    tdc_data_.resize( tdc_nx_ * tdc_ny_ );
+    spct_data_.resize( spct_len_ );
+    intens_data_.resize( intens_len_ );
+
     // Resize vectors to appropriate sizes - vectors handle memory automatically
     countRates.resize(nelm_, 0); // Initialize all elements to 0
     totalCounts.resize(nelm_, 0);
 
-    // Resize 2D vectors
-    mcaData.resize(nelm_);
-    tdcData.resize(nelm_);
+    //// Resize 2D vectors
+    //mcaData.resize(nelm_);
+    //tdcData.resize(nelm_);
 
-    // Initialize each element's spectrum arrays
-    for (int i = 0; i < nelm_; i++)
-    {
-        mcaData[i].resize(SPECTRUM_SIZE, 0); // Initialize to zero
-        tdcData[i].resize(TDC_SIZE, 0);      // Initialize to zero
-    }
+    //// Initialize each element's spectrum arrays
+    //for (int i = 0; i < nelm_; i++)
+    //{
+    //    mcaData[i].resize(SPECTRUM_SIZE, 0); // Initialize to zero
+    //    tdcData[i].resize(TDC_SIZE, 0);      // Initialize to zero
+    //}
 
     // Allocate UDP buffer using smart pointer
     udpDataBuffer = std::make_unique<uint8_t[]>(UDP_BUFFER_SIZE);
-
-    printf("Allocated data arrays for %d detector elements using modern C++ containers\n", nelm_);
 }
 
 //===========================================================================//
