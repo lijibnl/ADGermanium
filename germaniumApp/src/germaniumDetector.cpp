@@ -28,6 +28,10 @@ germaniumDetector::germaniumDetector( const char *portName
                                     , int numParams
                                     , int maxBuffers
                                     , size_t maxMemory
+                                    , int mcaAddr
+                                    , int tdcAddr
+                                    , int spctAddr
+                                    , int intensAddr
                                     , int interfaceMask
                                     , int interruptMask
                                     , int asynFlags
@@ -54,10 +58,10 @@ germaniumDetector::germaniumDetector( const char *portName
                                     , tdc_ny_               ( numElements            )
                                     , spct_len_             ( 4096                   )
                                     , intens_len_           ( numElements            )
-                                    , mca_addr_             ( 1                      )
-                                    , tdc_addr_             ( 2                      )
-                                    , spct_addr_            ( 3                      )
-                                    , intens_addr_          ( 4                      )
+                                    , mca_addr_             ( mcaAddr                )
+                                    , tdc_addr_             ( tdcAddr                )
+                                    , spct_addr_            ( spctAddr               )
+                                    , intens_addr_          ( intensAddr             )
                                     , udpControlSocket      ( -1                     )
                                     , udpDataSocket         ( -1                     )
                                     , udpInitialized        ( false                  )

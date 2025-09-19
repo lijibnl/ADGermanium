@@ -50,7 +50,18 @@ epicsEnvSet("NELM", "384")
 
 echo "NELM=$(NELM)"
 
-germaniumConfig( "$(PORT)", "$(Detector_IP)", $(NELM), 2, 512, 100, 10485760 )
+germaniumConfig( "$(PORT)"
+               , "$(Detector_IP)"
+               , $(NELM)
+               , 2
+               , 512
+               , 100
+               , 10485760
+               , $(MCA_ADDR)
+               , $(TDC_ADDR)
+               , $(SPCT_ADDR)
+               , $(INTENS_ADDR)
+               )
 asynReport 5, "$(PORT)"
 
 dbLoadRecords( "$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX), R=, PORT=GERM, ADDR=0" )

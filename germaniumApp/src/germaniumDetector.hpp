@@ -173,6 +173,7 @@ public:
     // maxMemory depends on spectrum size: numElements × spectrumSize × sizeof(data)
     germaniumDetector(const char *portName, int numElements, const char *ipAddress,
               int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
+              int mcaAddr, int tdcAddr, int spctAddr, int intensAddr,
               int interfaceMask, int interruptMask,
               int asynFlags, int autoConnect, int priority, int stackSize);
     
