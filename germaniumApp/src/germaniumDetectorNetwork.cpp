@@ -299,7 +299,7 @@ asynStatus germaniumDetector::sendMarsConfiguration()
     // Create proper UDP message for MARS configuration
     UdpReqMsg msg;
     msg.id = 0x1235;  // Different ID for MARS config
-    msg.op = makeWriteOp(0x3000);  // Special operation code for MARS config
+    msg.op = makeWriteOp(LOADS);  // Special operation code for MARS config
     
     memcpy(msg.payload.stuff_mars.loads, loads, sizeof(loads));
     
@@ -382,8 +382,58 @@ void germaniumDetector::udpDataThread()
 
             if (bytesReceived > 0)
             {
-                // Process received data
-                //processReceivedData(receiveBuffer, static_cast<size_t>(bytesReceived));
+                switch (((UdpRxMsg*)receiveBuffer)->op)
+                {
+                    case VERSIONREG:
+                        char* verString = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+                        setStringParam( GermaniumFVER, verString );
+                        break;
+                        
+                    case UDP_IP_ADDR:
+                        uint32_t ip = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+                        char ipStr[16];
+                        snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d",
+                                 (ip >> 24) & 0xFF, (ip >> 16) & 0xFF,
+                                 (ip >> 8) & 0xFF, ip & 0xFF);
+                        setStringParam( germaniumIPAddrRbvString, ipStr );
+                        break;
+                    case TRIG:
+                        uint32_t trig = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+                        setIntegerParam( GermaniumCNT, trig );
+                        break;
+                    case FRAME_NO:
+                        uint32_t frameNo = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+                        setIntegerParam( GermaniumRUNNO, frameNo );
+                        break;
+                    case TEMP1:
+                        double temp1 = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data) / 100.0;
+                        setDoubleParam( GermaniumTEMP1, temp1 );
+                        break;
+                    case TEMP2:
+                        double temp2 = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data) / 100.0;
+                        setDoubleParam( GermaniumTEMP2, temp2 );
+                        break;
+                    case TEMP3:
+                        double temp3 = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data) / 100.0;
+                        setDoubleParam( GermaniumTEMP3, temp3 );
+                        break;
+                    case ZTEMP:
+                        double ztemp = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data) / 100.0;
+                        setDoubleParam( GermaniumZTEMP, ztemp );
+                        break;
+                    case HV_RBV:
+                        double hv = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data) / 100.0;
+                        setDoubleParam( GermaniumHV_RBV, hv );
+                        break;
+                    case HV_CURR:
+                        double hvCurr = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data) / 1000.0;
+                        setDoubleParam( GermaniumHV_CURR, hvCurr );
+                        break;
+                    default:
+                        printf("Germanium: Unknown UDP data op code: 0x%04X\n", ((UdpRxMsg*)receiveBuffer)->op);
+                        break;
+                }
+                callParamCallbacks(0);
             }
             else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
             {

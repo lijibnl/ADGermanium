@@ -311,8 +311,10 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumFsizeString, asynParamInt32, &GermaniumFSIZE); /* Maximum file size in bytes */
 
     /* Timing and control - exact match to zDDM record */
-    createParam( GermaniumFreqString, asynParamFloat64, &GermaniumFREQ);   /* Time base frequency */
-    createParam( GermaniumCntString,  asynParamInt32,   &GermaniumCNT);    /* Count control (menu) */
+    createParam( GermaniumFreqString,   asynParamFloat64, &GermaniumFREQ);    /* Time base frequency */
+    createParam( GermaniumCntString,    asynParamInt32,   &GermaniumCNT);     /* Count control */
+    createParam( GermaniumCntRbvString, asynParamInt32,   &GermaniumCNT_RBV); /* Count status */
+
     createParam( GermaniumPcntString, asynParamInt32,   &GermaniumPCNT);   /* Previous count (menu) */
     createParam( GermaniumContString, asynParamInt32,   &GermaniumCONT);   /* OneShot/AutoCount mode (menu) */
     createParam( GermaniumModeString, asynParamInt32,   &GermaniumMODE);   /* Timed/Continuous mode (menu) */

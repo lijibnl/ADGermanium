@@ -350,6 +350,8 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         if ( status == asynSuccess )
             status = setIntegerParam( GermaniumMONCH, value );
 
+        publishSPCT();
+
         //int currentChip;
         //getIntegerParam(GermaniumCHIP, &currentChip);
         //if (currentChip >= 0 && currentChip < nchips)
@@ -754,7 +756,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -826,6 +828,17 @@ asynStatus germaniumDetector::writeFloat64( asynUser *pasynUser, epicsFloat64 va
         // RATE is primarily read-only display parameter, don't send to hardware
     }
 
+    else if ( function == HV ):
+    {
+        hv = static_cast<int>(value)/10;
+
+        status = setDoubleParam( GermaniumHV, hv );
+        if ( status == asynSuccess )
+        {
+            udpRegisterWrite( HV, hv );
+        }
+    }
+
     else
     {
         errlogPrintf( "Invalid function %d for writeFloat64()\n", function );
@@ -834,7 +847,7 @@ asynStatus germaniumDetector::writeFloat64( asynUser *pasynUser, epicsFloat64 va
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -914,7 +927,7 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -978,7 +991,7 @@ asynStatus germaniumDetector::readInt32( asynUser *pasynUser, int* value )
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -1130,7 +1143,7 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
 
     return status;
@@ -1371,43 +1384,15 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
             break;
         }
         //----------------------------------------------//
-        case TEMP1:
-            setDoubleParam( GermaniumTEMP1, val);
-            break;
-        //----------------------------------------------//
-        case TEMP2:
-            setDoubleParam( GermaniumTEMP2, val);
-            break;
-        //----------------------------------------------//
-        case TEMP3:
-            setDoubleParam( GermaniumTEMP3, val);
-            break;
-        //----------------------------------------------//
-        case ZTEMP:
-            setDoubleParam( GermaniumZTEMP, val);
-            break;
-        //----------------------------------------------//
         case HV:
             setDoubleParam( GermaniumHV, val);
             break;
-        //----------------------------------------------//
-        case HV_RBV:
-            setDoubleParam( GermaniumHV_RBV, val);
-            break;
-        //----------------------------------------------//
-        case HV_CURR:
-            setDoubleParam( GermaniumHV_CURR, val);
-            break;
-        //----------------------------------------------//
-        //case :
-        //    setIntegerParam( Germanium_RBV, val);
-        //    break;
         //----------------------------------------------//
         default:
             errlogPrintf( "Value received for unknown register %d\n", reg );
     }
 
-    callParamCallbacks();
+    callParamCallbacks(0);
 
 }
 
