@@ -64,7 +64,7 @@ germaniumConfig( "$(PORT)"
                )
 asynReport 5, "$(PORT)"
 
-dbLoadRecords( "$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX), R=, PORT=GERM, ADDR=0" )
+dbLoadRecords( "$(ADGERMANIUM)/db/germanium.db", "P=$(PREFIX), R=, PORT=GERM, ADDR=0" )
 #
 ## Create a standard arrays plugin
 #NDStdArraysConfigure( "Image1", 5, 0, "$(PORT)", 0, 0 )

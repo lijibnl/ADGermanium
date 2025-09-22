@@ -20,6 +20,8 @@
 #   continue building even if conflicts are found.
 CHECK_RELEASE = YES
 
+CCC_FLAGS += -std=c++20
+
 # Set this when you only want to compile this application
 #   for a subset of the cross-compiled target architectures
 #   that Base is built for.

@@ -12,7 +12,7 @@ PROD_NAME = germaniumDetector
 PROD_IOC = $(PROD_NAME)
 
 DBD += $(PROD_NAME).dbd
-$(PROD_NAME)_DBD += germaniumDetectorSupport.dbd
+$(PROD_NAME)_DBD += $(ADGERMANIUM)/dbd/germaniumDetectorSupport.dbd
 
 # germanium.dbd will be made up from these files:
 PROD_SRCS += $(PROD_NAME)_registerRecordDeviceDriver.cpp
