@@ -348,6 +348,8 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         if ( status == asynSuccess )
             status = setIntegerParam( GermaniumMONCH, value );
 
+        publishSPCT();
+
         //int currentChip;
         //getIntegerParam(GermaniumCHIP, &currentChip);
         //if (currentChip >= 0 && currentChip < nchips)
@@ -778,7 +780,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -857,6 +859,16 @@ asynStatus germaniumDetector::writeFloat64( asynUser *pasynUser, epicsFloat64 va
         if (status == asynSuccess)
         {
             status = setDoubleParam( GermaniumHV, value );
+=======
+    else if ( function == HV ):
+    {
+        hv = static_cast<int>(value)/10;
+
+        status = setDoubleParam( GermaniumHV, hv );
+        if ( status == asynSuccess )
+        {
+            udpRegisterWrite( HV, hv );
+>>>>>>> 6bd94642f8b1b29366707f81c07ae1085584a3f9
         }
     }
 
@@ -868,7 +880,7 @@ asynStatus germaniumDetector::writeFloat64( asynUser *pasynUser, epicsFloat64 va
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -948,7 +960,7 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -1012,7 +1024,7 @@ asynStatus germaniumDetector::readInt32( asynUser *pasynUser, int* value )
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
     else
     {
@@ -1164,170 +1176,11 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
     if (status == asynSuccess)
     {
-        callParamCallbacks();
+        callParamCallbacks(0);
     }
 
     return status;
 }
-
-//===========================================================================//
-
-//// ADDriver virtual method implementations
-//asynStatus germaniumDetector::readNDArray(asynUser *pasynUser, epicsInt32 *value,
-//                                  size_t nElements, size_t *nIn)
-//{
-//    int function = pasynUser->reason;
-//    asynStatus status = asynSuccess;
-//    size_t dims[2];
-//    NDArray *pArray = nullptr;
-//
-//    errlogPrintf( "[%s]: function is %d\n", __func__, function );
-//
-//    // Determine which array is being requested
-//    if ( function == GermaniumMCA )
-//    {
-//        // Create 2D array: [nelm_ x SPECTRUM_SIZE]
-//        dims[0] = nelm_;
-//        dims[1] = SPECTRUM_SIZE;
-//
-//        pArray = this->pNDArrayPool->alloc(2, dims, NDInt32, 0, nullptr);
-//        if (pArray)
-//        {
-//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-//
-//            // Copy MCA data from all elements
-//            for (int elem = 0; elem < nelm_; elem++)
-//            {
-//                for (int bin = 0; bin < SPECTRUM_SIZE; bin++)
-//                {
-//                    pData[elem * SPECTRUM_SIZE + bin] = mcaData[elem][bin];
-//                }
-//            }
-//
-//            // Set NDArray attributes
-//            this->getAttributes(pArray->pAttributeList);
-//
-//            // Do callbacks to registered clients
-//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-//
-//            *nIn = dims[0] * dims[1];
-//        }
-//        else
-//        {
-//            status = asynError;
-//            errlogPrintf("Germanium: Failed to allocate NDArray for MCA data\n");
-//        }
-//    }
-//
-//    else if ( function == GermaniumTDC )
-//    {
-//        // Create 2D array: [nelm_ x TDC_SIZE]
-//        dims[0] = nelm_;
-//        dims[1] = TDC_SIZE;
-//
-//        pArray = this->pNDArrayPool->alloc(2, dims, NDInt32, 0, nullptr);
-//        if (pArray)
-//        {
-//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-//
-//            // Copy TDC data from all elements
-//            for (int elem = 0; elem < numElements; elem++)
-//            {
-//                for (int bin = 0; bin < TDC_SIZE; bin++)
-//                {
-//                    pData[elem * TDC_SIZE + bin] = tdcData[elem][bin];
-//                }
-//            }
-//
-//            this->getAttributes(pArray->pAttributeList);
-//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-//
-//            *nIn = dims[0] * dims[1];
-//        }
-//        else
-//        {
-//            status = asynError;
-//            errlogPrintf("Germanium: Failed to allocate NDArray for TDC data\n");
-//        }
-//    }
-//
-//    else if ( function == GermaniumINTENS )
-//    {
-//        // Create 1D array: [numElements] - intensity per element
-//        dims[0] = numElements;
-//
-//        pArray = this->pNDArrayPool->alloc(1, dims, NDInt32, 0, nullptr);
-//        if (pArray)
-//        {
-//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-//
-//            // Copy intensity data (total counts per element)
-//            for (int elem = 0; elem < numElements; elem++)
-//            {
-//                pData[elem] = totalCounts[elem];
-//            }
-//
-//            this->getAttributes(pArray->pAttributeList);
-//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-//
-//            *nIn = dims[0];
-//        }
-//        else
-//        {
-//            status = asynError;
-//            errlogPrintf("Germanium: Failed to allocate NDArray for intensity data\n");
-//        }
-//    }
-//
-//    else if ( function == GermaniumSPCT )
-//    {
-//        // Single channel spectrum - 1D array [SPECTRUM_SIZE]
-//        int selectedElement;
-//        getIntegerParam(GermaniumCHAN, &selectedElement);
-//        selectedElement = selectedElement % numElements; // Ensure valid range
-//
-//        dims[0] = SPECTRUM_SIZE;
-//
-//        pArray = this->pNDArrayPool->alloc(1, dims, NDInt32, 0, nullptr);
-//        if (pArray)
-//        {
-//            epicsInt32 *pData = (epicsInt32*)pArray->pData;
-//
-//            // Copy spectrum data for selected element
-//            for (int bin = 0; bin < SPECTRUM_SIZE; bin++)
-//            {
-//                pData[bin] = mcaData[selectedElement][bin];
-//            }
-//
-//            this->getAttributes(pArray->pAttributeList);
-//            doCallbacksGenericPointer(pArray, NDArrayData, 0);
-//
-//            *nIn = dims[0];
-//        }
-//        else
-//        {
-//            status = asynError;
-//            errlogPrintf("Germanium: Failed to allocate NDArray for spectrum data\n");
-//        }
-//    }
-//    
-//    else
-//    {
-//        // Unknown array type
-//        status = asynError;
-//        errlogPrintf("Germanium: Unknown array parameter %d in readNDArray\n", function);
-//        *nIn = 0;
-//    }
-//    
-//
-//    // Release NDArray reference
-//    if (pArray)
-//    {
-//        pArray->release();
-//    }
-//
-//    return status;
-//}
 
 //===========================================================================//
 
@@ -1361,68 +1214,58 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
     {
         //----------------------------------------------//
         case VERSIONREG:
-            setIntegerParam( GermaniumVER, val );
-            break;
-        //----------------------------------------------//
-        case MARS_CALPULSE:
-            setIntegerParam( GermaniumTPAMP_RBV, val);
-            break;
-        //----------------------------------------------//
-        case CALPULSE_RATE:
-            setIntegerParam( GermaniumTPFRQ_RBV, val);
-            break;
-        //----------------------------------------------//
-        case CALPULSE_CNT:
-            setIntegerParam( GermaniumTPCNT_RBV, val);
-            break;
-        //----------------------------------------------//
-        case CALPULSE_MODE:
-            setIntegerParam( GermaniumTPENB_RBV, val);
-            break;
-        //----------------------------------------------//
-        case TRIG:
-            setIntegerParam( ADAcquire, val);
-            break;
-        //----------------------------------------------//
-        case MARS_PIPE_DELAY:
-            setIntegerParam( GermaniumPLDEL_RBV, val);
-            break;
-        //----------------------------------------------//
-        case MARS_RDOUT_ENB:
-            setIntegerParam( GermaniumRODEL_RBV, val);
-            break;
-        //----------------------------------------------//
-        case DETECTOR_TYPE:
-            setIntegerParam( GermaniumDETTYPE, val);
+            char* verString = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            setStringParam( GermaniumFVER, verString );
             break;
         //----------------------------------------------//
         case UDP_IP_ADDR:
-        {
-            uint32_t host = ntohl(val);
-            char s[16];
-            u32HostToIpStr( host, s, sizeof(s) );
-            setStringParam( GermaniumIPADDR_RBV, s );
+            uint32_t ip = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            char ipStr[16];
+            snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d",
+                     (ip >> 24) & 0xFF, (ip >> 16) & 0xFF,
+                     (ip >> 8) & 0xFF, ip & 0xFF);
+            setStringParam( germaniumIPAddrRbvString, ipStr );
             break;
-        }
+        //----------------------------------------------//
+        case TRIG:
+            uint32_t trig = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            setIntegerParam( GermaniumCNT, trig );
+            break;
+        //----------------------------------------------//
+        case FRAME_NO:
+            uint32_t frameNo = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            setIntegerParam( GermaniumRUNNO, frameNo );
+            break;
         //----------------------------------------------//
         case TEMP1:
-            setDoubleParam( GermaniumTEMP1, val);
+            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            temp_raw >>= 4;
+            double temp = tmp_raw * 0.0625f;
+
+            setDoubleParam( GermaniumTEMP1, temp );
             break;
         //----------------------------------------------//
         case TEMP2:
-            setDoubleParam( GermaniumTEMP2, val);
+            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            temp_raw >>= 4;
+            double temp = temp_raw * 0.0625f;
+
+            setDoubleParam( GermaniumTEMP2, temp );
             break;
         //----------------------------------------------//
         case TEMP3:
-            setDoubleParam( GermaniumTEMP3, val);
+            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            temp_raw >>= 4;
+            double temp = temp_raw * 0.0625f;
+
+            setDoubleParam( GermaniumTEMP3, temp );
             break;
         //----------------------------------------------//
         case ZTEMP:
-            setDoubleParam( GermaniumZTEMP, val);
-            break;
-        //----------------------------------------------//
-        case HV:
-            setDoubleParam( GermaniumHV, val);
+            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+            double temp = 503.975 * temp_raw / 4096 - 273.15;
+
+            setDoubleParam( GermaniumZTEMP, temp );
             break;
         //----------------------------------------------//
         case HV_RBV:
@@ -1433,18 +1276,16 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
         }
         //----------------------------------------------//
         case HV_CURR:
-            setDoubleParam( GermaniumHV_CURR, val);
+            double hv_curr = static_cast<double>(ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data)) * 0.001220703;
+            setDoubleParam( GermaniumHV_CURR, hv_curr );
             break;
-        //----------------------------------------------//
-        //case :
-        //    setIntegerParam( Germanium_RBV, val);
-        //    break;
         //----------------------------------------------//
         default:
             errlogPrintf( "Value received for unknown register %d\n", reg );
+        //----------------------------------------------//
     }
 
-    callParamCallbacks();
+    callParamCallbacks(0);
 
 }
 

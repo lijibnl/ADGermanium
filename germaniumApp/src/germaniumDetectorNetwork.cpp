@@ -363,8 +363,13 @@ void germaniumDetector::udpDataThread()
 
             if (bytesReceived > 0)
             {
-                // Process received data
-                //processReceivedData(receiveBuffer, static_cast<size_t>(bytesReceived));
+                switch (((UdpRxMsg*)receiveBuffer)->op)
+                {
+                    default:
+                        printf("Germanium: Unknown UDP data op code: 0x%04X\n", ((UdpRxMsg*)receiveBuffer)->op);
+                        break;
+                }
+                callParamCallbacks(0);
             }
             else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
             {

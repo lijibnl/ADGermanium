@@ -311,11 +311,12 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumFsizeString.c_str(), asynParamInt32, &GermaniumFSIZE); /* Maximum file size in bytes */
 
     /* Timing and control - exact match to zDDM record */
-    createParam( GermaniumFreqString.c_str(), asynParamFloat64, &GermaniumFREQ);   /* Time base frequency */
-    createParam( GermaniumCntString.c_str(),  asynParamInt32,   &GermaniumCNT);    /* Count control (menu) */
-    createParam( GermaniumPcntString.c_str(), asynParamInt32,   &GermaniumPCNT);   /* Previous count (menu) */
-    createParam( GermaniumContString.c_str(), asynParamInt32,   &GermaniumCONT);   /* OneShot/AutoCount mode (menu) */
-    createParam( GermaniumModeString.c_str(), asynParamInt32,   &GermaniumMODE);   /* Timed/Continuous mode (menu) */
+    createParam( GermaniumFreqString.c_str(),   asynParamFloat64, &GermaniumFREQ);    /* Time base frequency */
+    createParam( GermaniumCntString.c_str(),    asynParamInt32,   &GermaniumCNT);     /* Count control */
+    createParam( GermaniumCntRbvString.c_str(), asynParamInt32,   &GermaniumCNT_RBV); /* Count status */
+    createParam( GermaniumPcntString.c_str(),   asynParamInt32,   &GermaniumPCNT);    /* Previous count (menu) */
+    createParam( GermaniumContString.c_str(),   asynParamInt32,   &GermaniumCONT);    /* OneShot/AutoCount mode (menu) */
+    createParam( GermaniumModeString.c_str(),   asynParamInt32,   &GermaniumMODE);    /* Timed/Continuous mode (menu) */
 
     /* Display rates - exact match to zDDM record */
     createParam( GermaniumRateString.c_str(), asynParamFloat64, &GermaniumRATE); /* Display rate (Hz) - READ ONLY */

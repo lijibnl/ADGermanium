@@ -134,7 +134,7 @@ protected:
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
     int GermaniumIPADDR, GermaniumIPADDR_RBV;
     int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
-    int GermaniumFREQ, GermaniumCNT, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
+    int GermaniumFREQ, GermaniumCNT, GermaniumCNT_RBV, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
     int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
     int GermaniumTP, GermaniumTP1, GermaniumPR1;
     int GermaniumSS, GermaniumUS, GermaniumT;
@@ -181,6 +181,7 @@ protected:
     static constexpr std::string GermaniumFsizeString {"FSIZE"};
     static constexpr std::string GermaniumFreqString {"FREQ"};
     static constexpr std::string GermaniumCntString {"CNT"};
+    static constexpr std::string GermaniumCntRbvString {"CNT_RBV"};
     static constexpr std::string GermaniumPcntString {"PCNT"};
     static constexpr std::string GermaniumContString {"CONT"};
     static constexpr std::string GermaniumModeString {"MODE"};
