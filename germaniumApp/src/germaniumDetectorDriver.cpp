@@ -743,6 +743,32 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             status = setIntegerParam( GermaniumRODEL, value );
     }
 
+    else if ( function == GermaniumADC0_SKEW )
+    {
+        errlogPrintf( "Set ADC0 skew to %d\n", value );
+
+        status = ad9252_cnfg( 0, value);
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumADC0_SKEW, value );
+    }
+    else if ( function == GermaniumADC1_SKEW )
+    {
+        errlogPrintf( "Set ADC1 skew to %d\n", value );
+
+        status = ad9252_cnfg( 1, value);
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumADC1_SKEW, value );
+    }
+
+    else if ( function == GermaniumADC2_SKEW )
+    {
+        errlogPrintf( "Set ADC2 skew to %d\n", value );
+
+        status = ad9252_cnfg( 2, value);
+        if ( status == asynSuccess )
+            status = setIntegerParam( GermaniumADC2_SKEW, value );
+    }
+
     // Add more parameter mappings as needed
     else
     {
@@ -1380,43 +1406,20 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
         }
         //----------------------------------------------//
         case TEMP1:
-        {
-            // TMP100 temperature conversion - based on Mars_DDM devTmp100.c
-            // Raw value is 12-bit from TMP100 chip
-            // Apply same scaling as Mars_DDM: ESLO=0.0625, EOFF=0
-            double temp1 = static_cast<double>(val) * 0.0625;
-            setDoubleParam( GermaniumTEMP1, temp1);
+            setDoubleParam( GermaniumTEMP1, val);
             break;
-        }
         //----------------------------------------------//
         case TEMP2:
-        {
-            // TMP100 temperature conversion - based on Mars_DDM devTmp100.c
-            // Raw value is 12-bit from TMP100 chip  
-            // Apply same scaling as Mars_DDM: ESLO=0.0625, EOFF=0
-            double temp2 = static_cast<double>(val) * 0.0625;
-            setDoubleParam( GermaniumTEMP2, temp2);
+            setDoubleParam( GermaniumTEMP2, val);
             break;
-        }
         //----------------------------------------------//
         case TEMP3:
-        {
-            // TMP100 temperature conversion - based on Mars_DDM devTmp100.c
-            // Raw value is 12-bit from TMP100 chip
-            // Apply same scaling as Mars_DDM: ESLO=0.0625, EOFF=0
-            double temp3 = static_cast<double>(val) * 0.0625;
-            setDoubleParam( GermaniumTEMP3, temp3);
+            setDoubleParam( GermaniumTEMP3, val);
             break;
-        }
         //----------------------------------------------//
         case ZTEMP:
-        {
-            // Zynq CPU die temperature conversion - based on Mars_DDM ZTMPAdcs.db
-            // Uses XADC with scaling: ESLO=0.123041, EOFF=-273.03 (Kelvin to Celsius)
-            double ztemp = (static_cast<double>(val) * 0.123041) - 273.03;
-            setDoubleParam( GermaniumZTEMP, ztemp);
+            setDoubleParam( GermaniumZTEMP, val);
             break;
-        }
         //----------------------------------------------//
         case HV:
             setDoubleParam( GermaniumHV, val);
@@ -1424,21 +1427,14 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
         //----------------------------------------------//
         case HV_RBV:
         {
-            // Scale 12-bit ADC value (0-4095) to voltage (0-500V)
-            // Based on Mars_DDM i2cAdcs.db: EGUF=500.0, EGUL=0.0
-            double hv_rbv = static_cast<double>(val) * (500.0 / 4095.0);
+            double hv_rbv = static_cast<double>(val) * 0.122100122f;
             setDoubleParam( GermaniumHV_RBV, hv_rbv);
             break;
         }
         //----------------------------------------------//
         case HV_CURR:
-        {
-            // Scale 12-bit ADC value (0-4095) to current representation (0-5V)
-            // Based on Mars_DDM i2cAdcs.db: EGUF=5.0, EGUL=0.0  
-            double hv_curr = static_cast<double>(val) * (5.0 / 4095.0);
-            setDoubleParam( GermaniumHV_CURR, hv_curr);
+            setDoubleParam( GermaniumHV_CURR, val);
             break;
-        }
         //----------------------------------------------//
         //case :
         //    setIntegerParam( Germanium_RBV, val);

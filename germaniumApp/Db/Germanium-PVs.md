@@ -38,6 +38,9 @@ TDS  | mbbo | MARS | 0 | 0: 1us<br>1: 2us<br>2: 3us<br>3: 4us<br>4: 6us<br>5: 9u
 TDM  | bo   | MARS | 0 | 0: Time of arrival<br>1: Time over threshold | Set TDC mode.
 THRSH | waveform | MARS | 0 | $(NCHIPS) | Threshold
 THTR | waveform | MARS | 0 | $(NELM) | Array of NCHAN trim DAC values.
+ADC0_SKEW | longout | Register | 0 | | Clock skew of ADC 0.
+ADC1_SKEW | longout | Register | 0 | | Clock skew of ADC 1.
+ADC2_SKEW | longout | Register | 0 | | Clock skew of ADC 2.
 
 - ## Test pulse
 
@@ -59,6 +62,9 @@ PV | TYPE | OP | ADDR | VALUE | NOTE
 :-:|:-:|:-:|:-:|:-|:-
 IPADDR | stringout | Register | 0 |  |
 IPADDR_RBV | stringin | Register | 0 |  |
+FNAM | stringin | Soft channel | 0 | | Name of data file.
+FSIZ | stringin | Soft channel | 0 | | Maximum size of data file.
+DIR | stringin | Soft channel | 0 | | Directory of data file.
 
 
 - ## Count

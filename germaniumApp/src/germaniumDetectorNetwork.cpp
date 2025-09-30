@@ -90,15 +90,6 @@ bool germaniumDetector::initializeUDPSockets()
     // Create event for data processing synchronization
     dataAvailable = epicsEventCreate(epicsEventEmpty);
     
-    // Initialize device address structure
-    memset(&deviceAddr, 0, sizeof(deviceAddr));
-    deviceAddr.sin_family = AF_INET;
-    if (inet_pton(AF_INET, ipAddress, &deviceAddr.sin_addr) <= 0) {
-        printf("Germanium: Invalid IP address: %s\n", ipAddress);
-        return false;
-    }
-    // Port will be set in sendUDPCommand() based on command type
-    
     udpInitialized = true;
     printf("Germanium: UDP sockets initialized - Control: %s:%d, Data port: %d\n",
            ipAddress, controlPort, dataPort);
@@ -175,22 +166,8 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
     // Set destination port for control commands
     deviceAddr.sin_port = htons(controlPort);
     
-    // Debug: print destination details
-    errlogPrintf("[%s]: Sending to %s:%d\n", __func__, 
-                 inet_ntoa(deviceAddr.sin_addr), ntohs(deviceAddr.sin_port));
-    
     // Send command with mutex protection
     epicsMutexLock(udpMutex);
-    
-    // Debug: dump the actual bytes being sent
-    errlogPrintf("[%s]: Sending %zu bytes:\n", __func__, msgSize);
-    unsigned char *bytes = (unsigned char*)&msg;
-    for (size_t i = 0; i < msgSize; i++) {
-        errlogPrintf("%02x", bytes[i]);
-        if ((i + 1) % 16 == 0) errlogPrintf("\n");
-    }
-    if (msgSize % 16 != 0) errlogPrintf("\n");
-    
     size_t sent = sendto( udpControlSocket
                         , &msg
                         , msgSize
@@ -198,9 +175,6 @@ asynStatus germaniumDetector::sendUDPCommand( uint16_t op, uint32_t data )
                         , (struct sockaddr*)&deviceAddr
                         , sizeof(deviceAddr)
                         );
-    
-    errlogPrintf("[%s]: sendto returned %zd (expected %zu), errno=%d (%s)\n", 
-                 __func__, sent, msgSize, errno, strerror(errno));
     epicsMutexUnlock(udpMutex);
     
     if (sent != msgSize)
@@ -251,17 +225,17 @@ asynStatus germaniumDetector::udpRegisterRead(uint32_t reg)
 /*
  * ADC configuration via UDP command using proper message format
  */
-void germaniumDetector::ad9252_cnfg(int adc, int reg, int value)
+asynStatus germaniumDetector::ad9252_cnfg(int adc, int value)
 {
     if (!udpInitialized) {
         printf("Germanium: UDP not initialized for ADC config\n");
-        return;
+        return asynError;
     }
     
     // Create proper UDP message for ADC clock skew configuration
     UdpReqMsg msg;
     msg.id = 0x1236;  // Different ID for ADC config
-    msg.op = makeWriteOp(0x4000);  // Special operation code for ADC config
+    msg.op = makeWriteOp(ADC_SKEW);  // Special operation code for ADC config
     
     // Use the AdcClkSkewReqMsgPayload structure
     msg.payload.ad9252_clk_skew.chip_num = htons(adc);
@@ -276,10 +250,15 @@ void germaniumDetector::ad9252_cnfg(int adc, int reg, int value)
                          (struct sockaddr*)&deviceAddr, sizeof(deviceAddr));
     epicsMutexUnlock(udpMutex);
     
-    if (sent != sizeof(msg)) {
+    if (sent != sizeof(msg))
+    {
         printf("Germanium: Failed to send ADC config: %s\n", strerror(errno));
-    } else {
+        return asynError;
+    }
+    else
+    {
         printf("Germanium: ADC[%d] configured with skew=%d\n", adc, value);
+        return asynSuccess;
     }
 }
 
@@ -295,11 +274,13 @@ asynStatus germaniumDetector::sendMarsConfiguration()
         printf("Germanium: UDP not initialized, cannot send MARS configuration\n");
         return asynError;
     }
+
+    wrap();
     
     // Create proper UDP message for MARS configuration
     UdpReqMsg msg;
     msg.id = 0x1235;  // Different ID for MARS config
-    msg.op = makeWriteOp(0x3000);  // Special operation code for MARS config
+    msg.op = makeWriteOp(STUFF_MARS);  // Special operation code for MARS config
     
     memcpy(msg.payload.stuff_mars.loads, loads, sizeof(loads));
     
