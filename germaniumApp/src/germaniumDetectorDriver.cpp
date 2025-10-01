@@ -1191,17 +1191,17 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
 
     const UdpRespMsg* response = reinterpret_cast<const UdpRespMsg*>(data);
 
-    // Verify this is a response message
-    if ((response->op & 0x8000) == 0)
-    {
-        errlogPrintf("Received non-response message on control channel\n");
-        return;
-    }
+    //// Verify this is a response message
+    //if ((response->op & 0x8000) == 0)
+    //{
+    //    errlogPrintf("Received non-response message on control channel\n");
+    //    return;
+    //}
 
     // Extract register address and operation type
     uint16_t reg = response->op & 0x7FFF;
-    bool isRead = (response->op & 0x4000) != 0;
-    uint32_t val = response->payload.single_word.data;
+    //bool isRead  = (response->op & 0x4000) != 0;
+    uint32_t val = ntohl(response->payload.single_word.data);
 
     // Probably ZynqDetector should send readback right after register write
 
@@ -1210,85 +1210,74 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
         //----------------------------------------------//
         case VERSIONREG:
         {
-            const char* verString = std::to_string(ntohl(val)).c_str();
+            const char* verString = std::to_string(val).c_str();
             setStringParam( GermaniumFVER, verString );
             break;
         }
         //----------------------------------------------//
         case UDP_IP_ADDR:
         {
-            uint32_t ip = ntohl(val);
+            //uint32_t ip = ntohl(val);
             char ipStr[16];
             snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d",
-                     (ip >> 24) & 0xFF, (ip >> 16) & 0xFF,
-                     (ip >> 8) & 0xFF, ip & 0xFF);
+                     (val >> 24) & 0xFF, (val >> 16) & 0xFF,
+                     (val >> 8) & 0xFF, val & 0xFF);
             setStringParam( GermaniumIPADDR_RBV, ipStr );
             break;
         }
         //----------------------------------------------//
         case TRIG:
         {
-            uint32_t trig = ntohl(val);
-            setIntegerParam( GermaniumCNT, trig );
+            //uint32_t trig = ntohl(val);
+            setIntegerParam( GermaniumCNT, val );
             break;
         }
         //----------------------------------------------//
         case FRAME_NO:
         {
-            uint32_t frameNo = ntohl(val);
-            setIntegerParam( GermaniumRUNNO, frameNo );
+            //uint32_t frameNo = ntohl(val);
+            setIntegerParam( GermaniumRUNNO, val );
             break;
         }
         //----------------------------------------------//
         case TEMP1:
         {
-            int temp_raw = ntohl(val);
-            temp_raw >>= 4;
-            double temp = temp_raw * 0.0625f;
-
+            double temp = (val >> 4) * 0.0625f;
             setDoubleParam( GermaniumTEMP1, temp );
             break;
         }
         //----------------------------------------------//
         case TEMP2:
         {
-            int temp_raw = ntohl(val);
-            temp_raw >>= 4;
-            double temp = temp_raw * 0.0625f;
-
+            double temp = (val >> 4) * 0.0625f;
             setDoubleParam( GermaniumTEMP2, temp );
             break;
         }
         //----------------------------------------------//
         case TEMP3:
         {
-            int temp_raw = ntohl(val);
-            temp_raw >>= 4;
-            double temp = temp_raw * 0.0625f;
-
+            double temp = (val >> 4) * 0.0625f;
             setDoubleParam( GermaniumTEMP3, temp );
             break;
         }
         //----------------------------------------------//
         case ZTEMP:
         {
-            int temp_raw = ntohl(val);
-            double temp = 503.975 * temp_raw / 4096 - 273.15;
-
+            double temp = 503.975 * val / 4096 - 273.15;
             setDoubleParam( GermaniumZTEMP, temp );
             break;
         }
         //----------------------------------------------//
         case HV_RBV:
         {
-            double hv_rbv = static_cast<double>(ntohl(val)) * 0.122100122f;
+            double hv_rbv = static_cast<double>(val) * 0.122100122f;
             setDoubleParam( GermaniumHV_RBV, hv_rbv);
             break;
         }
         //----------------------------------------------//
         case HV_CURR:
         {
-            double hv_curr = static_cast<double>(ntohl(val)) * 0.001220703;
+            double hv_curr = static_cast<double>(val) * 0.001220703;
             setDoubleParam( GermaniumHV_CURR, hv_curr );
             break;
         }
