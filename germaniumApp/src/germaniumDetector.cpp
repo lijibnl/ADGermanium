@@ -301,8 +301,8 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumTysizeString.c_str(), asynParamInt32, &GermaniumTYSIZE); /* Display Y size for TDC */
 
     /* Network configuration - exact match to zDDM record */
-    createParam( GermaniumIpaddrString.c_str(),    asynParamOctet, &GermaniumIPADDR );     /* Fast data IP address */
-    createParam( GermaniumIpaddrRbvString.c_str(), asynParamOctet, &GermaniumIPADDR_RBV ); /* Fast data IP address */
+    createParam( GermaniumIpAddrString.c_str(),    asynParamOctet, &GermaniumIPADDR );     /* Fast data IP address */
+    createParam( GermaniumIpAddrRbvString.c_str(), asynParamOctet, &GermaniumIPADDR_RBV ); /* Fast data IP address */
 
     /* File handling - exact match to zDDM record */
     createParam( GermaniumFnamString.c_str(),  asynParamOctet, &GermaniumFNAM);  /* Filename */

@@ -173,8 +173,8 @@ protected:
     static constexpr std::string GermaniumEysizeString {"EYSIZE"};
     static constexpr std::string GermaniumTxsizeString {"TXSIZE"};
     static constexpr std::string GermaniumTysizeString {"TYSIZE"};
-    static constexpr std::string GermaniumIpaddrString {"IPADDR"};
-    static constexpr std::string GermaniumIpaddrRbvString {"IPADDR_RBV"};
+    static constexpr std::string GermaniumIpAddrString {"IPADDR"};
+    static constexpr std::string GermaniumIpAddrRbvString {"IPADDR_RBV"};
     static constexpr std::string GermaniumFnamString {"FNAM"};
     static constexpr std::string GermaniumCalfString {"CALF"};
     static constexpr std::string GermaniumDirString {"DIR"};

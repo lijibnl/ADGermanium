@@ -859,16 +859,11 @@ asynStatus germaniumDetector::writeFloat64( asynUser *pasynUser, epicsFloat64 va
         if (status == asynSuccess)
         {
             status = setDoubleParam( GermaniumHV, value );
-=======
-    else if ( function == HV ):
-    {
-        hv = static_cast<int>(value)/10;
+        }
 
-        status = setDoubleParam( GermaniumHV, hv );
         if ( status == asynSuccess )
         {
             udpRegisterWrite( HV, hv );
->>>>>>> 6bd94642f8b1b29366707f81c07ae1085584a3f9
         }
     }
 
@@ -1214,71 +1209,89 @@ void germaniumDetector::processResponse(const uint8_t* data, size_t dataSize)
     {
         //----------------------------------------------//
         case VERSIONREG:
-            char* verString = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            const char* verString = std::to_string(ntohl(val)).c_str();
             setStringParam( GermaniumFVER, verString );
             break;
+        }
         //----------------------------------------------//
         case UDP_IP_ADDR:
-            uint32_t ip = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            uint32_t ip = ntohl(val);
             char ipStr[16];
             snprintf(ipStr, sizeof(ipStr), "%d.%d.%d.%d",
                      (ip >> 24) & 0xFF, (ip >> 16) & 0xFF,
                      (ip >> 8) & 0xFF, ip & 0xFF);
-            setStringParam( germaniumIPAddrRbvString, ipStr );
+            setStringParam( GermaniumIPADDR_RBV, ipStr );
             break;
+        }
         //----------------------------------------------//
         case TRIG:
-            uint32_t trig = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            uint32_t trig = ntohl(val);
             setIntegerParam( GermaniumCNT, trig );
             break;
+        }
         //----------------------------------------------//
         case FRAME_NO:
-            uint32_t frameNo = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            uint32_t frameNo = ntohl(val);
             setIntegerParam( GermaniumRUNNO, frameNo );
             break;
+        }
         //----------------------------------------------//
         case TEMP1:
-            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            int temp_raw = ntohl(val);
             temp_raw >>= 4;
-            double temp = tmp_raw * 0.0625f;
+            double temp = temp_raw * 0.0625f;
 
             setDoubleParam( GermaniumTEMP1, temp );
             break;
+        }
         //----------------------------------------------//
         case TEMP2:
-            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            int temp_raw = ntohl(val);
             temp_raw >>= 4;
             double temp = temp_raw * 0.0625f;
 
             setDoubleParam( GermaniumTEMP2, temp );
             break;
+        }
         //----------------------------------------------//
         case TEMP3:
-            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            int temp_raw = ntohl(val);
             temp_raw >>= 4;
             double temp = temp_raw * 0.0625f;
 
             setDoubleParam( GermaniumTEMP3, temp );
             break;
+        }
         //----------------------------------------------//
         case ZTEMP:
-            int temp_raw = ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data);
+        {
+            int temp_raw = ntohl(val);
             double temp = 503.975 * temp_raw / 4096 - 273.15;
 
             setDoubleParam( GermaniumZTEMP, temp );
             break;
+        }
         //----------------------------------------------//
         case HV_RBV:
         {
-            double hv_rbv = static_cast<double>(val) * 0.122100122f;
+            double hv_rbv = static_cast<double>(ntohl(val)) * 0.122100122f;
             setDoubleParam( GermaniumHV_RBV, hv_rbv);
             break;
         }
         //----------------------------------------------//
         case HV_CURR:
-            double hv_curr = static_cast<double>(ntohl(((UdpRxMsg*)receiveBuffer)->payload.single_word.data)) * 0.001220703;
+        {
+            double hv_curr = static_cast<double>(ntohl(val)) * 0.001220703;
             setDoubleParam( GermaniumHV_CURR, hv_curr );
             break;
+        }
         //----------------------------------------------//
         default:
             errlogPrintf( "Value received for unknown register %d\n", reg );
