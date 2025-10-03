@@ -309,6 +309,7 @@ void germaniumDetector::createGermaniumParameters()
     createParam( GermaniumCalfString.c_str(),  asynParamOctet, &GermaniumCALF);  /* Calibration filename */
     createParam( GermaniumDirString.c_str(),   asynParamOctet, &GermaniumDIR);   /* Data directory path */
     createParam( GermaniumFsizeString.c_str(), asynParamInt32, &GermaniumFSIZE); /* Maximum file size in bytes */
+    createParam( GermaniumBlockSizeString.c_str(), asynParamInt32, &GermaniumBLOCK_SIZE); /* Data block size in KB */
 
     /* Timing and control - exact match to zDDM record */
     createParam( GermaniumFreqString.c_str(),   asynParamFloat64, &GermaniumFREQ);    /* Time base frequency */

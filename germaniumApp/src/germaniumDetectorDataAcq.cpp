@@ -14,6 +14,7 @@
 
 #include "germaniumDetector.hpp"
 #include "germaniumDetectorTypes.hpp"
+#include "germaniumDetectorBuff.hpp"
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -38,9 +39,9 @@ void germaniumDetector::setupDataAcquisition()
     acquisitionRunning = false;
     evttot = 0;
     framestat = 0;
-    currentFileSize = 0;
-    currentSegmentNumber = 0;
-    currentFileHandle = -1;
+    file_size = 0;
+    seg_num = 0;
+    file_handle = -1;
     
     // Initialize file writing state
     fileWritingEnabled = false;
@@ -107,37 +108,6 @@ void germaniumDetector::createDataDirectory()
 //===========================================================================//
 
 /*
- * Generate full filename based on DIR, FNAME, RUNNO, and segment number
- * Format: $(DIR)$(FNAME)-$(RUNNO)-$(SEGMENT-NO).bin
- */
-std::string germaniumDetector::generateFilename(int segmentNumber)
-{
-    char dirPath[256];
-    char fileName[256];
-    int runNumber;
-    
-    getStringParam(GermaniumDIR, sizeof(dirPath), dirPath);
-    getStringParam(GermaniumFNAM, sizeof(fileName), fileName);
-    getIntegerParam(GermaniumRUNNO, &runNumber);
-    
-    // Ensure directory path ends with '/'
-    std::string fullPath(dirPath);
-    if (!fullPath.empty() && fullPath.back() != '/')
-    {
-        fullPath += '/';
-    }
-    
-    // Generate full filename
-    char fullFilename[512];
-    snprintf(fullFilename, sizeof(fullFilename), "%s%s-%06d-%03d.bin",
-             fullPath.c_str(), fileName, runNumber, segmentNumber);
-    
-    return std::string(fullFilename);
-}
-
-//===========================================================================//
-
-/*
  * Open new data file for writing
  */
 bool germaniumDetector::openNewDataFile()
@@ -146,22 +116,22 @@ bool germaniumDetector::openNewDataFile()
     closeCurrentDataFile();
     
     // Generate new filename
-    std::string filename = generateFilename(currentSegmentNumber);
+    std::string filename = generateFilename(seg_num);
     
     // Open new file
-    currentFileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (currentFileHandle < 0)
+    file_handle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (file_handle < 0)
     {
         printf("Failed to open data file: %s (error: %s)\n", 
                filename.c_str(), strerror(errno));
         return false;
     }
     
-    currentFileSize = 0;
-    currentFilename = filename;
+    file_size = 0;
+    file_name = filename;
     
     printf("Opened new data file: %s (segment %d)\n", 
-           filename.c_str(), currentSegmentNumber);
+           filename.c_str(), seg_num);
     
     return true;
 }
@@ -173,16 +143,16 @@ bool germaniumDetector::openNewDataFile()
  */
 void germaniumDetector::closeCurrentDataFile()
 {
-    if (currentFileHandle >= 0)
+    if (file_handle >= 0)
     {
-        close(currentFileHandle);
+        close(file_handle);
         printf("Closed data file: %s (size: %ld bytes)\n", 
-               currentFilename.c_str(), currentFileSize);
+               file_name.c_str(), file_size);
         
-        currentFileHandle = -1;
+        file_handle = -1;
         totalFilesWritten++;
-        totalBytesWritten += currentFileSize;
-        currentFileSize = 0;
+        totalBytesWritten += file_size;
+        file_size = 0;
     }
 }
 
@@ -202,13 +172,13 @@ bool germaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
     getIntegerParam(GermaniumFSIZE, &maxFileSize);
     
     // Check if we need a new file
-    if (currentFileHandle < 0 || 
-        (currentFileSize + dataSize) > static_cast<size_t>(maxFileSize))
+    if (file_handle < 0 || 
+        (file_size + dataSize) > static_cast<size_t>(maxFileSize))
     {
-        if (currentFileHandle >= 0)
+        if (file_handle >= 0)
         {
             closeCurrentDataFile();
-            currentSegmentNumber++;
+            seg_num++;
         }
         
         if (!openNewDataFile())
@@ -218,20 +188,20 @@ bool germaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
     }
     
     // Write data to file
-    ssize_t bytesWritten = write(currentFileHandle, data, dataSize);
+    ssize_t bytesWritten = write(file_handle, data, dataSize);
     if (bytesWritten != static_cast<ssize_t>(dataSize))
     {
         printf("Failed to write data to file: %s (error: %s)\n", 
-               currentFilename.c_str(), strerror(errno));
+               file_name.c_str(), strerror(errno));
         return false;
     }
     
-    currentFileSize += dataSize;
+    file_size += dataSize;
     
     // Sync file periodically for data safety
-    if ((currentFileSize % (1024*1024)) < dataSize) // Every ~1MB
+    if ((file_size % (1024*1024)) < dataSize) // Every ~1MB
     {
-        fsync(currentFileHandle);
+        fsync(file_handle);
     }
     
     return true;
@@ -253,7 +223,7 @@ void germaniumDetector::startDataAcquisition()
     // Reset counters and state
     evttot = 0;
     framestat = 0;
-    currentSegmentNumber = 0;
+    seg_num = 0;
     totalBytesWritten = 0;
     totalFilesWritten = 0;
     
@@ -522,6 +492,36 @@ void germaniumDetector::dataWriteThread()
 //===========================================================================//
 
 /*
+ * Generate full filename based on DIR, FNAME, RUNNO, and segment number
+ * Format: $(DIR)$(FNAME)-$(RUNNO)-$(SEGMENT-NO).bin
+ */
+std::string germaniumDetector::generateFilename( int seg_num, int run_num )
+{
+    char dir[256];
+    char file_name[256];
+    int runNumber;
+    
+    getStringParam( GermaniumDIR, sizeof(dir), dir );
+    getStringParam( GermaniumFNAM, sizeof(file_name), file_name);
+    
+    // Ensure directory path ends with '/'
+    std::string full_path( dir );
+    if ( !full_path.empty() && full_path.back() != '/' )
+    {
+        full_path += '/';
+    }
+    
+    // Generate full filename
+    char full_file_name[512];
+    snprintf(full_file_name, sizeof(full_file_name), "%s%s-%06d-%03d.bin",
+             fullPath.c_str(), file_name, run_num, seg_num);
+    
+    return std::string(full_file_name);
+}
+
+//===========================================================================//
+
+/*
  * Flush any remaining data in write buffer
  */
 void germaniumDetector::flushWriteBuffer()
@@ -670,49 +670,127 @@ void germaniumDetector::publishData()
     publishTDC();
     publishSPCT();
     publishINTENS();
+}
 
-//    lock();
-//
-//    // ---- MCA NDArray (2-D) ----
-//    size_t dimsM[2] = {mca_nx_, mca_ny_};
-//    NDArray* pMCA = pNDArrayPool->alloc(2, dimsM, NDUInt32, 0, nullptr);
-//    if (!pMCA) { unlock(); return; }
-//
-//    memcpy(pMCA->pData, mca_data_.data(), mca_nx_ * mca_ny_ * sizeof(uint32_t));
-//
-//    int uid = 0; getIntegerParam(ADUniqueId, &uid); setIntegerParam(ADUniqueId, ++uid);
-//    pMCA->uniqueId = uid;
-//    epicsTimeGetCurrent(&pMCA->epicsTS);
-//
-//    int monch_val = 0; getIntegerParam(pMonCh_, &monch_val);
-//    pMCA->pAttributeList->add("MonCh", "Selected row index", NDAttrInt32, &monch_val);
-//
-//    // ---- SPCT NDArray (1-D, one row) ----
-//    size_t spct_row = (mca_ny_ ? (size_t)std::min(std::max(monch_val, 0), (int)mca_ny_ - 1) : 0);
-//    const uint32_t* rowPtr = mca_data_.data() + spct_row * mca_nx_;
-//    std::copy(rowPtr, rowPtr + mca_nx_, spct_data_.begin());
-//
-//    size_t dimsS[1] = {mca_nx_};
-//    NDArray* pSPCT = pNDArrayPool->alloc(1, dimsS, NDUInt32, 0, nullptr);
-//    if (!pSPCT) { pMCA->release(); unlock(); return; }
-//
-//    memcpy(pSPCT->pData, spct_data_.data(), mca_nx_ * sizeof(uint32_t));
-//    pSPCT->uniqueId = ++uid;
-//    epicsTimeGetCurrent(&pSPCT->epicsTS);
-//    pSPCT->pAttributeList->add("MonCh", "Selected row index", NDAttrInt32, &monch_val);
-//
-//    // ---- Callbacks ----
-//    doCallbacksGenericPointer(pMCA,    NDArrayData, 1);  // MCA @ addr 1
-//    doCallbacksGenericPointer(pTDC,    NDArrayData, 2);  // TDC @ addr 2
-//    doCallbacksGenericPointer(pSPCT,   NDArrayData, 3);  // SPCT @ addr 3
-//    doCallbacksGenericPointer(pINTENS, NDArrayData, 4);  // INTENS @ addr 4
-//
-//    pMCA->release();
-//    pTDC->release();
-//    pSPCT->release();
-//    pINTENS->release();
-//    callParamCallbacks();
-//
-//    unlock();
+//===========================================================================//
 
+void germaniumDetector::dataProcessingThreadC(void *drvPvt)
+{
+    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
+    pGermanium->dataProcessingThread();
+}
+
+//===========================================================================//
+
+void germaniumDetector::dataProcessingThread()
+{
+    while(1)
+    {
+        uint32_t idx;
+        if ( !rx2cmp_.pop(idx) )
+        {
+            // No data, sleep briefly
+            std::this_thread::yield();
+            continue;
+        }
+        Packet& p = pool_[idx];
+        for ( int i=0; i<p.qw_len_; i++)
+        {
+            // Process data - placeholder
+        }
+
+        if ( p.finish_one())
+        {
+            pool_.release(idx);
+        }
+    }
+}
+
+//===========================================================================//
+
+void germaniumDetector::dataWriteThreadC(void *drvPvt)
+{
+    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
+    pGermanium->dataWriteThread();
+}
+
+//===========================================================================//
+
+void germaniumDetector::dataWriteThread()
+{
+    int block_size, file_size;
+    int fd;
+    int seg_num = 0;
+    int file_handle = -1;
+    std::string file_name;
+
+    // Large bufffer to hold data for writing
+    std::vector<uint8_t> buffer;
+    buffer.reserve(static_cast<size_t>(block_size_.load(std::memory_order_relaxed)) * 2048); // pre-reserve ~2× block
+
+    while(1)
+    {
+        uint32_t runno;
+        uint32_t idx;
+        if ( !write2cmp_.pop(idx) )
+        {
+            // No data, sleep briefly
+            std::this_thread::yield();
+            continue;
+        }
+        Packet& p = pool_[idx];
+
+        // Check if it's the first or last packet of a frame
+        
+
+        auto bytes = std::as_bytes( p.span_qw() );
+        const uint8_t* src = reinterpret_cast<const uint8_t*>(bytes.data());
+        buffer.insert( buffer.end(), src, src + bytes.size() );
+
+        const size_t max_block_size = static_cast<size_t>( block_size_.load(std::memory_order_relaxed)) * 1024;
+
+        if ( (max_block_size != 0) && (buffer.size() < max_block_size))
+        {
+            continue;
+        }
+
+        // Write buffer to file
+        if ( file_handle < 0 )  // Need to open new file
+        {
+            std::string filename = generateFilename(seg_num);
+            file_handle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if ( file_handle < 0 )
+            {
+                errlogPrintf( "Failed to open data file: %s (error: %s)\n"
+                            , filename.c_str()
+                            , strerror(errno)
+                            );
+                pool_.release(idx);
+                continue;
+            }
+            file_size = 0;
+            file_name = filename;
+            printf("Opened new data file: %s (segment %d)\n", 
+                   filename.c_str(), seg_num);
+        }
+
+        // Write data to file - placeholder
+
+        file_size += p.qw_len_ * sizeof(uint64_t);
+        if ( file_size > static_cast<size_t>(file_size) )
+        {
+            seg_num = 0;
+            close(file_handle);
+        }
+        else
+        {
+            seg_num++;
+        }
+
+
+        if ( p.finish_one())
+        {
+            pool_.release(idx);
+        }
+    }
 }

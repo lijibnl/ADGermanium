@@ -225,7 +225,7 @@ asynStatus germaniumDetector::udpRegisterRead(uint32_t reg)
 /*
  * ADC configuration via UDP command using proper message format
  */
-asynStatus germaniumDetector::ad9252_cnfg(int adc, int value)
+asynStatus germaniumDetector::ad9252Config(int adc, int value)
 {
     if (!udpInitialized) {
         printf("Germanium: UDP not initialized for ADC config\n");
@@ -358,18 +358,32 @@ void germaniumDetector::udpDataThread()
         if (result > 0 && FD_ISSET(udpDataSocket, &readfds))
         {   
             // Receive data packet
-            ssize_t bytesReceived = recvfrom(udpDataSocket, receiveBuffer, sizeof(receiveBuffer), 0,
-                                           (struct sockaddr*)&senderAddr, &senderAddrLen);
+            ssize_t bytesReceived = recvfrom( udpDataSocket
+                                            , receiveBuffer
+                                            , sizeof(receiveBuffer)
+                                            , 0
+                                            , (struct sockaddr*)&senderAddr, &senderAddrLen
+                                            );
 
             if (bytesReceived > 0)
             {
-                switch (((UdpRxMsg*)receiveBuffer)->op)
+                // Check packet format
+
+                uint32_t idx;
+                if ( !pool.acquire(idx) )  // Drop the packet if buffer not available
                 {
-                    default:
-                        printf("Germanium: Unknown UDP data op code: 0x%04X\n", ((UdpRxMsg*)receiveBuffer)->op);
-                        break;
+                    errlogPrintf(" Error! Buffer unavailable for received packet!\n" );
+                    continue;
                 }
-                callParamCallbacks(0);
+
+                pool[idx] = static_cast<Packet>(recvBuffer);
+
+                uint32_t qw = static_cast<uint32_t>( bytesReceived / 8 );
+                if ( qw == 0 )
+                {
+                    continue;
+                }
+                pool[idx].set_qw_len( qw );
             }
             else if (bytesReceived < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
             {

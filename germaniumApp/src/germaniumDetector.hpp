@@ -125,7 +125,7 @@ public:
     asynStatus udpSendLoads( uint32_t* loads, size_t count );
     void fifo_reset();                // Now sends UDP command
     void fifo_disable();              // Now sends UDP command  
-    asynStatus ad9252_cnfg(int adc, int value); // Now sends UDP command
+    asynStatus ad9252Config(int adc, int value); // Now sends UDP command
 
 protected:
     // Parameter indices - these will be defined based on createParam() calls
@@ -133,7 +133,7 @@ protected:
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
     int GermaniumIPADDR, GermaniumIPADDR_RBV;
-    int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
+    int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE, GermaniumBLOCK_SIZE;
     int GermaniumFREQ, GermaniumCNT, GermaniumCNT_RBV, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
     int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
     int GermaniumTP, GermaniumTP1, GermaniumPR1;
@@ -179,6 +179,7 @@ protected:
     static constexpr std::string GermaniumCalfString {"CALF"};
     static constexpr std::string GermaniumDirString {"DIR"};
     static constexpr std::string GermaniumFsizeString {"FSIZE"};
+    static constexpr std::string GermaniumBlockSizeString {"BLOCK_SIZE"};
     static constexpr std::string GermaniumFreqString {"FREQ"};
     static constexpr std::string GermaniumCntString {"CNT"};
     static constexpr std::string GermaniumCntRbvString {"CNT_RBV"};
@@ -245,6 +246,9 @@ protected:
     static constexpr std::string GermaniumHvString {"HV"};
     static constexpr std::string GermaniumHvRbvString {"HV_RBV"};
     static constexpr std::string GermaniumHvCurrString {"HV_CURR"};
+
+    static constexpr int MAX_BLOCK_SIZE = 1024 * 1024; // 1 GB maximum block size for file writing
+    int block_size{1024};
 
 private:
     // Data acquisition and file management
@@ -397,6 +401,18 @@ private:
     // Thread management
     epicsThreadId acquisitionThreadId;
     bool acquisitionRunning;
+
+    // Rx Data cache
+    static constexpr size_t BUF_QWORDS = 256;     // per-packet capacity in 64-bit words (256*8 = 2048 bytes)
+    static constexpr size_t POOL_SIZE  = 8192;    // number of packet buffers
+    static constexpr size_t Q_CAP      = 8192;    // SPSC ring capacity (power of two)
+
+    BufferPool<EventPacket> pool_;
+    SPSCQueue<uint32_t, Q_CAP> rx2cmp_;
+    SPSCQueue<uint32_t, Q_CAP> rx2wr_;
+
+    static std::atomic<uint32_t> g_block_kB{1024}; // default 1 MiB
+
     
     // Data packet structure for photon events
     struct PhotonEvent {

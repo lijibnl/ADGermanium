@@ -633,6 +633,26 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         }
     }
 
+    else if ( function == GermaniumBLOCK_SIZE )
+    {
+        // File block size - validate and store
+        if (value < 1) // Minimum 1MB
+        {
+            errlogPrintf("Germanium: Block size too small, setting to 1KB minimum\n");
+            value = 1;
+        }
+        else if (value > MAX_BLOCK_SIZE) // Maximum 100GB
+        {
+            errlogPrintf("Germanium: Block size too large, setting to 100GB maximum\n");
+            value = MAX_BLOCK_SIZE;
+        }
+        
+        status = setIntegerParam( GermaniumBLOCK_SIZE, value );
+        errlogPrintf("Germanium: File block size set to %d MBytes\n", value);
+
+        block_size_.store(value, std::memory_order_release);
+    }
+
     else if ( function == GermaniumCNT )
     {
         // Acquisition control
@@ -749,7 +769,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     {
         errlogPrintf( "Set ADC0 skew to %d\n", value );
 
-        status = ad9252_cnfg( 0, value);
+        status = ad9252Config( 0, value);
         if ( status == asynSuccess )
             status = setIntegerParam( GermaniumADC0_SKEW, value );
     }
@@ -757,7 +777,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     {
         errlogPrintf( "Set ADC1 skew to %d\n", value );
 
-        status = ad9252_cnfg( 1, value);
+        status = ad9252Config( 1, value);
         if ( status == asynSuccess )
             status = setIntegerParam( GermaniumADC1_SKEW, value );
     }
@@ -766,7 +786,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     {
         errlogPrintf( "Set ADC2 skew to %d\n", value );
 
-        status = ad9252_cnfg( 2, value);
+        status = ad9252Config( 2, value);
         if ( status == asynSuccess )
             status = setIntegerParam( GermaniumADC2_SKEW, value );
     }
