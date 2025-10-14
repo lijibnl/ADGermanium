@@ -1,1 +1,1 @@
-registrar("germaniumDetectorRegister")
+registrar("germaniumRegister")

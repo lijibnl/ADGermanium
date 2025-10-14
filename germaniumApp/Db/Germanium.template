@@ -1,0 +1,131 @@
+# Database template for Germanium detector
+# Macro: P - PV prefix, R - Record prefix, PORT - asyn port name, ADDR - asyn address
+
+# Basic detector information
+record(ai, "$(P)$(R)NumElements") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_NELM")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Number of detector elements")
+}
+
+record(ai, "$(P)$(R)NumChips") {
+    field(DTYP, "asynInt32") 
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_NCHIPS")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Number of MARS chips")
+}
+
+# IP address configuration
+record(stringout, "$(P)$(R)IPAddress") {
+    field(DTYP, "asynOctetWrite")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_IPADDR")
+    field(DESC, "Detector IP address")
+}
+
+record(stringin, "$(P)$(R)IPAddress_RBV") {
+    field(DTYP, "asynOctetRead")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_IPADDR")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Detector IP address readback")
+}
+
+# Acquisition control
+record(bo, "$(P)$(R)Acquire") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CNT")
+    field(ZNAM, "Stop")
+    field(ONAM, "Start")
+    field(DESC, "Start/Stop acquisition")
+}
+
+record(bi, "$(P)$(R)Acquire_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_CNT")
+    field(SCAN, "I/O Intr")
+    field(ZNAM, "Stop")
+    field(ONAM, "Start")
+    field(DESC, "Acquisition status")
+}
+
+# Timing settings
+record(ao, "$(P)$(R)AcquireTime") {
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TP")
+    field(EGU,  "s")
+    field(PREC, "3")
+    field(DESC, "Acquisition time")
+}
+
+record(ai, "$(P)$(R)AcquireTime_RBV") {
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TP")
+    field(SCAN, "I/O Intr")
+    field(EGU,  "s")
+    field(PREC, "3")
+    field(DESC, "Acquisition time readback")
+}
+
+# Hardware settings
+record(mbbo, "$(P)$(R)ShapingTime") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_SHPT")
+    field(ZRST, "0.125us")
+    field(ONST, "0.25us")
+    field(TWST, "0.5us")
+    field(THST, "1.0us")
+    field(FRST, "2.0us")
+    field(FVST, "4.0us")
+    field(SXST, "8.0us")
+    field(SVST, "16.0us")
+    field(DESC, "Amplifier shaping time")
+}
+
+record(mbbi, "$(P)$(R)ShapingTime_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_SHPT")
+    field(SCAN, "I/O Intr")
+    field(ZRST, "0.125us")
+    field(ONST, "0.25us")
+    field(TWST, "0.5us")
+    field(THST, "1.0us")
+    field(FRST, "2.0us")
+    field(FVST, "4.0us")
+    field(SXST, "8.0us")
+    field(SVST, "16.0us")
+    field(DESC, "Amplifier shaping time readback")
+}
+
+# MCA spectrum data array
+record(waveform, "$(P)$(R)MCA") {
+    field(DTYP, "asynInt32ArrayIn")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_MCA")
+    field(FTVL, "LONG")
+    field(NELM, "4096")
+    field(SCAN, "I/O Intr")
+    field(DESC, "MCA spectrum data")
+}
+
+# Channel enable array
+record(waveform, "$(P)$(R)ChannelEnable") {
+    field(DTYP, "asynInt8ArrayOut")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN")
+    field(FTVL, "CHAR")
+    field(NELM, "384")
+    field(DESC, "Channel enable array")
+}
+
+# Test pulse settings
+record(ao, "$(P)$(R)TestPulseAmplitude") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPAMP")
+    field(DESC, "Test pulse amplitude")
+}
+
+record(bo, "$(P)$(R)TestPulseEnable") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPENB")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable") 
+    field(DESC, "Test pulse enable/disable")
+}

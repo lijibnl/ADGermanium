@@ -1,347 +1,425 @@
 /**
- * @file GermaniumDetector.hpp
+ * @file germaniumDetector.hpp
+ * @brief Class declaration for germaniumDetector areaDetector driver.
  *
- * @brief This is a driver for a Germanium detector.
- *
- * @author Ji Li
- * @orgniazation Brookhaven National Laboratory
- *
- * @created Aug 21, 2025
- *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/11/2025
+ * @copyright
+ * Copyright (c) 2025 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
  */
- 
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <math.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-#include <ctype.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <cbf_ad.h>
-#include <tiffio.h>
+#pragma once
 
-#include <epicsTime.h>
-#include <epicsThread.h>
-#include <epicsEvent.h>
-#include <epicsMutex.h>
-#include <epicsString.h>
-#include <epicsStdio.h>
-#include <epicsMutex.h>
-#include <cantProceed.h>
-#include <iocsh.h>
-#include <epicsExport.h>
-
-#include <asynOctetSyncIO.h>
+//===========================================================================//
 
 #include "ADDriver.h"
+#include "germaniumDetectorTypes.hpp"
+#include "epicsTimer.h"
+#include "epicsThread.h"
+#include "epicsMutex.h"
+#include "epicsEvent.h"
+#include <cstdint>
+#include <memory>
+#include <vector>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include "germaniumDetectorRegister.hpp"  // Hardware register definitions from original Mars_DDM
 
-#define DRIVER_VERSION      1
-#define DRIVER_REVISION     0
-#define DRIVER_MODIFICATION 0
+//===========================================================================//
 
-/** Messages to/from detector */
-#define MAX_MESSAGE_SIZE 256 
-#define MAX_FILENAME_LEN 256
-#define MAX_HEADER_STRING_LEN 68
-#define MAX_BAD_PIXELS 100
+/* Parameter string definitions for Germanium detector fields */
+/* Note: Macros used here for EPICS convention and database template compatibility */
 
-/** Time to poll when reading from detector */
-#define ASYN_POLL_TIME 1 
-//#define CAMSERVER_DEFAULT_TIMEOUT 1.0
+/* Basic record fields */
+#define GermaniumVersString         "GERMANIUM_VER"        /* Code Version */
+#define GermaniumValString          "GERMANIUM_VAL"         /* Value */
 
-/** Additional time to wait for a camserver response after the acquire should be complete */ 
-//#define CAMSERVER_ACQUIRE_TIMEOUT 10.
-//#define CAMSERVER_RESET_POWER_TIMEOUT 30.
+//===========================================================================//
 
-/** Time between checking to see if image file is complete */
-#define FILE_READ_DELAY .01
+#define GermaniumDetTypeString      "GERMANIUM_DETTYPE"     /* Detector type */
 
-/** Trigger modes */
-typedef enum {
-    TMInternal,
-    TMExternalEnable,
-    TMExternalTrigger,
-    TMMultipleExternalTrigger,
-    TMAlignment
-} GermaniumTriggerMode;
+/* Data arrays */
+#define GermaniumMcaString          "GERMANIUM_MCA"         /* MCA spectrum data */
+#define GermaniumTdcString          "GERMANIUM_TDC"         /* TDC spectrum data */
+#define GermaniumSpctString         "GERMANIUM_SPCT"        /* Selected channel spectrum */
+#define GermaniumSpctxString        "GERMANIUM_SPCTX"       /* Calibrated X-axis values */
+#define GermaniumIntensString       "GERMANIUM_INTENS"      /* Intensity array */
 
+/* Display size parameters */
+#define GermaniumExsizeString       "GERMANIUM_EXSIZE"      /* Display X size for energy */
+#define GermaniumEysizeString       "GERMANIUM_EYSIZE"      /* Display Y size for energy */
+#define GermaniumTxsizeString       "GERMANIUM_TXSIZE"      /* Display X size for TDC */
+#define GermaniumTysizeString       "GERMANIUM_TYSIZE"      /* Display Y size for TDC */
 
-static const char *gainStrings[] = {"", "", "", ""};
+/* Network configuration */
+#define GermaniumIpaddrString       "GERMANIUM_IPADDR"      /* Fast data IP address */
+#define GermaniumIpaddrRbvString    "GERMANIUM_IPADDR_RBV"  /* Fast data IP address */
 
-static const char *driverName = "GermaniumDetector";
+/* File handling */
+#define GermaniumFnamString         "GERMANIUM_FNAM"        /* Filename */
+#define GermaniumCalfString         "GERMANIUM_CALF"        /* Calibration filename */
+#define GermaniumDirString          "GERMANIUM_DIR"         /* Data directory path */
+#define GermaniumFsizeString        "GERMANIUM_FSIZE"       /* Maximum file size */
 
-#define GermaniumDelayTimeString          "DELAY_TIME"
-#define GermaniumThresholdString          "THRESHOLD"
-#define GermaniumThresholdApplyString     "THRESHOLD_APPLY"
-#define GermaniumThresholdAutoApplyString "THRESHOLD_AUTO_APPLY"
-#define GermaniumEnergyString             "ENERGY"
-#define GermaniumArmedString              "ARMED"
-#define GermaniumResetPowerString         "RESET_POWER"
-#define GermaniumResetPowerTimeString     "RESET_POWER_TIME"
-#define GermaniumImageFileTmotString      "IMAGE_FILE_TMOT"
-#define GermaniumDetDistString            "DET_DIST"
-#define GermaniumDetVOffsetString         "DET_VOFFSET"
-#define GermaniumBeamXString              "BEAM_X"
-#define GermaniumBeamYString              "BEAM_Y"
-#define GermaniumFluxString               "FLUX"
-#define GermaniumFilterTransmString       "FILTER_TRANSM"
-#define GermaniumStartAngleString         "START_ANGLE"
-#define GermaniumAngleIncrString          "ANGLE_INCR"
-#define GermaniumDet2thetaString          "DET_2THETA"
-#define GermaniumPolarizationString       "POLARIZATION"
-#define GermaniumAlphaString              "ALPHA"
-#define GermaniumKappaString              "KAPPA"
-#define GermaniumPhiString                "PHI"
-#define GermaniumPhiIncrString            "PHI_INCR"
-#define GermaniumChiString                "CHI"
-#define GermaniumChiIncrString            "CHI_INCR"
-#define GermaniumOmegaString              "OMEGA"
-#define GermaniumOmegaIncrString          "OMEGA_INCR"
-#define GermaniumOscillAxisString         "OSCILL_AXIS"
-#define GermaniumNumOscillString          "NUM_OSCILL"
-#define GermaniumPixelCutOffString        "PIXEL_CUTOFF"
-#define GermaniumThTemp0String            "TH_TEMP_0"
-#define GermaniumThTemp1String            "TH_TEMP_1"
-#define GermaniumThTemp2String            "TH_TEMP_2"
-#define GermaniumThHumid0String           "TH_HUMID_0"
-#define GermaniumThHumid1String           "TH_HUMID_1"
-#define GermaniumThHumid2String           "TH_HUMID_2"
-#define GermaniumTvxVersionString         "TVXVERSION"
-#define GermaniumCbfTemplateFileString    "CBFTEMPLATEFILE"
-#define GermaniumHeaderStringString       "HEADERSTRING"
+/* Timing and control */
+#define GermaniumFreqString         "GERMANIUM_FREQ"        /* Time base frequency */
+#define GermaniumCntString          "GERMANIUM_CNT"         /* Count control */
+#define GermaniumPcntString         "GERMANIUM_PCNT"        /* Previous count */
+#define GermaniumContString         "GERMANIUM_CONT"        /* OneShot/AutoCount mode */
+#define GermaniumModeString         "GERMANIUM_MODE"        /* Timed/Continuous mode */
 
+/* Display rates */
+#define GermaniumRateString         "GERMANIUM_RATE"        /* Display rate (Hz) */
+#define GermaniumRat1String         "GERMANIUM_RAT1"        /* Auto display rate (Hz) */
 
-/** Driver for Dectris Germanium pixel array detectors using their camserver server over TCP/IP socket */
-class GermaniumDetector : public ADDriver {
+/* Delays */
+#define GermaniumDlyString          "GERMANIUM_DLY"         /* Delay */
+#define GermaniumDly1String         "GERMANIUM_DLY1"        /* Auto-mode delay */
+
+/* Time presets */
+#define GermaniumTpString           "GERMANIUM_TP"          /* Time preset */
+#define GermaniumTp1String          "GERMANIUM_TP1"         /* Auto time preset */
+#define GermaniumPr1String          "GERMANIUM_PR1"         /* Preset in clock ticks */
+
+/* State monitoring */
+#define GermaniumSsString           "GERMANIUM_SS"          /* Scaler state */
+#define GermaniumUsString           "GERMANIUM_US"          /* User state */
+#define GermaniumTString            "GERMANIUM_T"           /* Timer */
+
+/* Run control */
+#define GermaniumRunnoString        "GERMANIUM_RUNNO"       /* Run number */
+#define GermaniumPldelString        "GERMANIUM_PLDEL"       /* Pipeline delay */
+#define GermaniumPldelRbvString     "GERMANIUM_PLDEL_RBV"   /* Pipeline delay */
+#define GermaniumRodelString        "GERMANIUM_RODEL"       /* Readout delay */
+#define GermaniumRodelRbvString     "GERMANIUM_RODEL_RBV"   /* Readout delay */
+
+/* Hardware information */
+#define GermaniumFverString         "GERMANIUM_FVER"        /* Firmware version */
+#define GermaniumCardString         "GERMANIUM_CARD"        /* Card number */
+
+/* Detector configuration */
+#define GermaniumNelmString         "GERMANIUM_NELM"        /* Number of elements */
+#define GermaniumNchString          "GERMANIUM_NCH"         /* Number of channels */
+#define GermaniumNchipsString       "GERMANIUM_NCHIPS"      /* Number of chips */
+#define GermaniumChanString         "GERMANIUM_CHAN"        /* Channel in chip */
+#define GermaniumChipString         "GERMANIUM_CHIP"        /* Selected chip */
+
+/* Analog settings */
+#define GermaniumShptString         "GERMANIUM_SHPT"        /* Shaping time */
+#define GermaniumGainString         "GERMANIUM_GAIN"        /* Gain setting */
+#define GermaniumPolString          "GERMANIUM_POL"         /* Input polarity */
+#define GermaniumEblkString         "GERMANIUM_EBLK"        /* Enable input bias current */
+
+/* Monitor settings */
+#define GermaniumGmonString         "GERMANIUM_GMON"        /* Global monitor mode */
+#define GermaniumMonchString        "GERMANIUM_MONCH"       /* Monitor channel */
+#define GermaniumLoaoString         "GERMANIUM_LOAO"        /* Leakage/pulse monitor select */
+
+/* Processing settings */
+#define GermaniumPuenString         "GERMANIUM_PUEN"        /* Pileup rejection enable */
+#define GermaniumMfsString          "GERMANIUM_MFS"         /* Multi-fire suppression */
+
+/* TDC settings */
+#define GermaniumTdsString          "GERMANIUM_TDS"         /* TDC slope */
+#define GermaniumTdmString          "GERMANIUM_TDM"         /* TDC mode */
+
+/* Test pulse settings */
+#define GermaniumTpampString        "GERMANIUM_TPAMP"       /* Test pulse amplitude */
+#define GermaniumTpfrqString        "GERMANIUM_TPFRQ"       /* Test pulse frequency */
+#define GermaniumTpcntString        "GERMANIUM_TPCNT"       /* Number of test pulses */
+#define GermaniumTpenbString        "GERMANIUM_TPENB"       /* Test pulse enable */
+
+/* Per-channel arrays */
+#define GermaniumChenString         "GERMANIUM_CHEN"        /* Channel enable array */
+#define GermaniumTsenString         "GERMANIUM_TSEN"        /* Test pulse input enable array */
+#define GermaniumThtrString         "GERMANIUM_THTR"        /* Threshold trim array */
+#define GermaniumPutrString         "GERMANIUM_PUTR"        /* Pileup threshold trim array */
+#define GermaniumSlpString          "GERMANIUM_SLP"         /* Slope calibration array */
+#define GermaniumOffsString         "GERMANIUM_OFFS"        /* Offset calibration array */
+
+/* Per-chip arrays */
+#define GermaniumThrshString        "GERMANIUM_THRSH"       /* Threshold array (per chip) */
+
+/* Display and formatting */
+#define GermaniumEguString          "GERMANIUM_EGU"         /* Engineering units */
+#define GermaniumPrecString         "GERMANIUM_PREC"        /* Display precision */
+
+/* Output links */
+#define GermaniumCoutString         "GERMANIUM_COUT"        /* Count output link */
+#define GermaniumCoutpString        "GERMANIUM_COUTP"       /* Count output prompt */
+
+/* Device status */
+#define GermaniumTemp1String        "GERMATNIUM_TEMP1"
+#define GermaniumTemp2String        "GERMATNIUM_TEMP2"
+#define GermaniumTemp3String        "GERMATNIUM_TEMP3"
+#define GermaniumZTempString        "GERMATNIUM_ZTEMP"
+#define GermaniumHvString           "GERMATNIUM_HV"
+#define GermaniumHvRbvString        "GERMATNIUM_HV_RBV"
+#define GermaniumHvCurrString       "GERMATNIUM_HV_CURR"
+
+//===========================================================================//
+
+class germaniumDetector : public ADDriver {
 public:
-    GermaniumDetector(const char *portName, const char *camserverPort,
-                    int maxSizeX, int maxSizeY,
-                    int maxBuffers, size_t maxMemory,
-                    int priority, int stackSize);
-                 
-    /* These are the methods that we override from ADDriver */
-    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
-    virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, 
-                                    size_t nChars, size_t *nActual);
-    void report(FILE *fp, int details);
-    /* These should be private but are called from C so must be public */
-    void germaniumTask(); 
+    // Constructor for photon counting Germanium detector
+    // maxAddr should equal numElements (one address per detector element)
+    // numParams is the total number of parameters (calculated from createParam calls)
+    // maxBuffers can be small (10-20) since data accumulates in histograms
+    // maxMemory depends on spectrum size: numElements × spectrumSize × sizeof(data)
+    germaniumDetector(const char *portName, int numElements, const char *ipAddress,
+              int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
+              int interfaceMask, int interruptMask,
+              int asynFlags, int autoConnect, int priority, int stackSize);
     
+    // Destructor
+    virtual ~germaniumDetector();
+    
+    // asynPortDriver virtual methods - overridden for UDP communication
+    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus readInt32(asynUser *pasynUser);
+    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
+    virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
+                                  size_t *nActual);
+    virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
+                                      size_t nElements, size_t *nIn);
+    virtual asynStatus writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
+                                       size_t nElements);
+
+    // ADDriver virtual methods for image acquisition
+    virtual asynStatus readNDArray(asynUser *pasynUser, epicsInt32 *value,
+                                   size_t nElements, size_t *nIn);
+    virtual void report(FILE *fp, int details);
+    virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo,
+                                     const char **pptypeName, size_t *psize);
+
+    // Parameter creation and initialization
+    void createGermaniumParameters();
+    void setGermaniumInitialValues();
+    
+    // Photon counting specific methods
+    void processPhotonEvent(int element, int energy, int time);
+    void updateSpectra();
+    void clearSpectra();
+    void updateCountRates();
+    
+    // Dynamic array management
+    void allocateDataArrays();
+    void deallocateDataArrays();
+    
+    // UDP communication methods (implemented in GermaniumNetwork.cpp)
+    int make_udp_bind(int port);
+    void set_nonblock( int s );
+    bool initializeUDPSockets();
+    void closeUDPSockets();
+    asynStatus sendUDPCommand( uint16_t op, uint32_t data);
+    void udpControlThread();      // Thread for control/status UDP reception
+    void udpDataThread();         // Thread for data UDP reception  
+    void dataProcessingThread();  // Thread for processing received data
+    void dataWriteThread();       // Thread for writing data to files
+    
+    // Static thread entry points (implemented in GermaniumDataAcq.cpp and GermaniumHardware.cpp)
+    static void udpControlThreadC(void *pPvt);
+    static void udpDataThreadC(void *pPvt);
+    static void dataProcessingThreadC(void *pPvt);
+    static void dataWriteThreadC(void *pPvt);
+    
+    // UDP-based hardware interface (implemented in GermaniumNetwork.cpp)
+    asynStatus udpRegisterWrite(uint32_t reg, uint32_t value);
+    asynStatus udpRegisterRead(uint32_t reg);
+    //asynStatus udpSendString(uint32_t command, const char *str);
+    asynStatus sendMarsConfiguration();  // Send entire loads[] array via UDP
+    asynStatus udpWriteIntArray(uint32_t command, const void *data, 
+                                size_t dataSize, uint32_t address);
+    asynStatus udpSendLoads( uint32_t* loads, size_t count );
+    void fifo_reset();                // Now sends UDP command
+    void fifo_disable();              // Now sends UDP command  
+    void ad9252_cnfg(int adc, int reg, int value); // Now sends UDP command
+
 protected:
-    int GermaniumDelayTime;
-    #define FIRST_PILATUS_PARAM GermaniumDelayTime
-    int GermaniumThreshold;
-    int GermaniumThresholdApply;
-    int GermaniumThresholdAutoApply;
-    int GermaniumEnergy;
-    int GermaniumArmed;
-    int GermaniumResetPower;
-    int GermaniumResetPowerTime;
-    int GermaniumImageFileTmot;
-    int GermaniumBadPixelFile;
-    int GermaniumNumBadPixels;
-    int GermaniumFlatFieldFile;
-    int GermaniumMinFlatField;
-    int GermaniumFlatFieldValid;
-    int GermaniumGapFill;
-    int GermaniumWavelength;
-    int GermaniumEnergyLow;
-    int GermaniumEnergyHigh;
-    int GermaniumDetDist;
-    int GermaniumDetVOffset;
-    int GermaniumBeamX;
-    int GermaniumBeamY;
-    int GermaniumFlux;
-    int GermaniumFilterTransm;
-    int GermaniumStartAngle;
-    int GermaniumAngleIncr;
-    int GermaniumDet2theta;
-    int GermaniumPolarization;
-    int GermaniumAlpha;
-    int GermaniumKappa;
-    int GermaniumPhi;
-    int GermaniumPhiIncr;
-    int GermaniumChi;
-    int GermaniumChiIncr;
-    int GermaniumOmega;
-    int GermaniumOmegaIncr;
-    int GermaniumOscillAxis;
-    int GermaniumNumOscill;
-    int GermaniumPixelCutOff;  
-    int GermaniumThTemp0;
-    int GermaniumThTemp1;
-    int GermaniumThTemp2;
-    int GermaniumThHumid0;
-    int GermaniumThHumid1;
-    int GermaniumThHumid2;
-    int GermaniumTvxVersion;
-    int GermaniumCbfTemplateFile;
-    int GermaniumHeaderString;
+    // Parameter indices - these will be defined based on createParam() calls
+    int GermaniumVER, GermaniumVAL, GermaniumDETTYPE;
+    int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
+    int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
+    int GermaniumIPADDR, GermaniumIPADDR_RBV;
+    int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
+    int GermaniumFREQ, GermaniumCNT, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
+    int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
+    int GermaniumTP, GermaniumTP1, GermaniumPR1;
+    int GermaniumSS, GermaniumUS, GermaniumT;
+    int GermaniumRUNNO;
+    int GermaniumPLDEL, GermaniumRODEL;
+    int GermaniumPLDEL_RBV, GermaniumRODEL_RBV;
+    int GermaniumFVER, GermaniumCARD;
+    int GermaniumNELM, GermaniumNCH, GermaniumNCHIPS, GermaniumCHAN, GermaniumCHIP;
+    int GermaniumSHPT, GermaniumGAIN, GermaniumPOL, GermaniumEBLK;
+    int GermaniumGMON, GermaniumMONCH, GermaniumLOAO;
+    int GermaniumPUEN, GermaniumMFS;
+    int GermaniumTDS, GermaniumTDM;
+    int GermaniumTPAMP, GermaniumTPFRQ, GermaniumTPCNT, GermaniumTPENB;
+    int GermaniumTPAMP_RBV, GermaniumTPFRQ_RBV, GermaniumTPCNT_RBV, GermaniumTPENB_RBV;
+    int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
+    int GermaniumSLP, GermaniumOFFS, GermaniumTHRSH;
+    int GermaniumEGU, GermaniumPREC;
+    int GermaniumCOUT, GermaniumCOUTP;
+    int GermaniumCLRE, GermaniumCLRM, GermaniumCLRT, GermaniumSTRT, GermaniumSTOP;
+    int GermaniumTEMP1, GermaniumTEMP2, GermaniumTEMP3, GermaniumZTEMP;
+    int GermaniumHV, GermaniumHV_RBV, GermaniumHV_CURR;
 
 private:
-
-    volatile bool running_ = false;
-
-    int ctrlSock_, dataSock_;
-    struct sockaddr_in ctrlDest, ctrlLocal, dataLocal;
-    int ctrlPort_, dataPort_;
-
-    epicsThreadId ctrlThread_ = nullptr;
-    epicsThreadId dataThread_ = nullptr;
-
-    /* These are the methods that are new to this class */
-    void abortAcquisition();
-    void makeMultipleFileFormat(const char *baseFileName);
-    asynStatus waitForFileToExist(const char *fileName, epicsTimeStamp *pStartTime, double timeout, NDArray *pImage);
-    void correctBadPixels(NDArray *pImage);
-    int stringEndsWith(const char *aString, const char *aSubstring, int shouldIgnoreCase);
-    asynStatus readImageFile(const char *fileName, epicsTimeStamp *pStartTime, double timeout, NDArray *pImage);
-    asynStatus readCbf(const char *fileName, epicsTimeStamp *pStartTime, double timeout, NDArray *pImage);
-    asynStatus readTiff(const char *fileName, epicsTimeStamp *pStartTime, double timeout, NDArray *pImage);
-    asynStatus writeCamserver(double timeout);
-    asynStatus readCamserver(double timeout);
-    asynStatus writeReadCamserver(double timeout);
-    asynStatus setAcquireParams();
-    asynStatus setThreshold();
-    asynStatus resetModulePower();
-    asynStatus germaniumStatus();
-    void readBadPixelFile(const char *badPixelFile);
-    void readFlatFieldFile(const char *flatFieldFile);
-
-    asynStatus writeUIntArray( asynUser* pasynUser, const uint32_t* array, size_t nelm );
-   
-    /* Our data */
-    int imagesRemaining;
-    epicsEventId startEventId;
-    epicsEventId stopEventId;
-    char toCamserver[MAX_MESSAGE_SIZE];
-    char fromCamserver[MAX_MESSAGE_SIZE];
-    NDArray *pFlatField;
-    char multipleFileFormat[MAX_FILENAME_LEN];
-    int multipleFileNumber;
-    asynUser *pasynUserCamserver;
-    badPixel badPixelMap[MAX_BAD_PIXELS];
-    double averageFlatField;
-    double demandedThreshold;
-    double demandedEnergy;
-    int firstStatusCall;
-    int camserverMajor;
-    int camserverMinor;
-    int camserverPatch;
-
-    GermaniumMarsConfLoad;
-    GermaniumLeds;
-    GermaniumMarsConfig;
-    GermaniumVersion;
-    GermaniumMarsCalPulse;
-    GermaniumMarsPipeDelay;
-    GermaniumMarsRdoutEnb;
-    GermaniumEventTimeCntr;
-    GermaniumSimEvtSel;
-    GermaniumSimEvtRate;
-    GermaniumAdcSpi;
-    GermaniumCalPulseCnt;
-    GermaniumCalPulseRate;
-    GermaniumCalPulseWidth;
-    GermaniumCalPulseMode;
-    GermaniumTdCal;
-    GermaniumEvtFifoData;
-    GermaniumEvtFifoCnt;
-    GermaniumEvtFifoCtrl;
-    GermaniumIpAddr;
-    GermaniumTrig;
-    GermaniumCountTimeLo;
-    GermaniumCountTimeHi
-    GermaniumHv;
-    GermaniumHvCurr;
-    GermaniumTemp1;
-    GermaniumTemp2;
-    GermaniumTemp3;
-    GermaniumZTemp;
-    GermaniumDacIntRef;
-    GermaniumStuffMars;
-    GermaniumAdcClkSkew;
-    GermaniumZddmArm;
-    GermaniumDetType;
-
-    createParam( GermaniumMarsConfLoadString,   asynParam          GermaniumMarsConfLoad );
-    createParam( GermaniumLedsString,           asynParamInt32,    GermaniumLeds );
-    createParam( GermaniumMarsConfigString,     asynParamInt32,    GermaniumMarsConfig );
-    createParam( GermaniumVersionString,        asynParamInt32,    GermaniumVersion );
-    createParam( GermaniumMarsCalPulseString,   asynParamInt32,    GermaniumMarsCalPulse );
-    createParam( GermaniumMarsPipeDelayString,  asynParamInt32,    GermaniumMarsPipeDelay );
-    createParam( GermaniumMarsRdoutEnbString,   asynParamInt32,    GermaniumMarsRdoutEnb );
-    createParam( GermaniumEventTimeCntrString,  asynParamInt32,    GermaniumEventTimeCntr );
-    createParam( GermaniumSimEvtSelString,      asynParamInt32,    GermaniumSimEvtSel );
-    createParam( GermaniumSimEvtRateString,     asynParamInt32,    GermaniumSimEvtRate );
-    createParam( GermaniumAdcSpiString,         asynParamInt32,    GermaniumAdcSpi );
-    createParam( GermaniumCalPulseCntString,    asynParamInt32,    GermaniumCalPulseCnt );
-    createParam( GermaniumCalPulseRateString,   asynParamInt32,    GermaniumCalPulseRate );
-    createParam( GermaniumCalPulseWidthString,  asynParamInt32,    GermaniumCalPulseWidth );
-    createParam( GermaniumCalPulseModeString,   asynParamInt32,    GermaniumCalPulseMode );
-    createParam( GermaniumTdCalString,          asynParamInt32,    GermaniumTdCal );
-    createParam( GermaniumEvtFifoDataString,    asynParamInt32,    GermaniumEvtFifoData );
-    createParam( GermaniumEvtFifoCntString,     asynParamInt32,    GermaniumEvtFifoCnt );
-    createParam( GermaniumEvtFifoCtrlString,    asynParamInt32,    GermaniumEvtFifoCtrl );
-    createParam( GermaniumIpAddrString,         asynParamInt32,    GermaniumIpAddr );
-    createParam( GermaniumTrigString,           asynParamInt32,    GermaniumTrig );
-    createParam( GermaniumCountTimeLoString,    asynParamInt32,    GermaniumCountTimeLo );
-    createParam( GermaniumCountTimeHi           asynParamInt32,    GermaniumCountTimeHi
-    createParam( GermaniumHvString,             asynParamInt32,    GermaniumHv );
-    createParam( GermaniumHvCurrString,         asynParamInt32,    GermaniumHvCurr );
-    createParam( GermaniumTemp1String,          asynParamInt32,    GermaniumTemp1 );
-    createParam( GermaniumTemp2String,          asynParamInt32,    GermaniumTemp2 );
-    createParam( GermaniumTemp3String,          asynParamInt32,    GermaniumTemp3 );
-    createParam( GermaniumZTempString,          asynParamInt32,    GermaniumZTemp );
-    createParam( GermaniumDacIntRefString,      asynParamInt32,    GermaniumDacIntRef );
-    createParam( GermaniumStuffMarsString,      asynParamInt32,    GermaniumStuffMars );
-    createParam( GermaniumAdcClkSkewString,     asynParamInt32,    GermaniumAdcClkSkew );
-    createParam( GermaniumZddmArmString,        asynParamInt32,    GermaniumZddmArm );
-    createParam( GermaniumDetTypeString,        asynParamInt32,    GermaniumDetType );
-
-    static constexpr uint16_t MARS_CONF_LOAD    = 0;
-    static constexpr uint16_t LEDS              = 1;
-    static constexpr uint16_t MARS_CONFIG       = 2;
-    static constexpr uint16_t VERSIONREG        = 3;
-    static constexpr uint16_t MARS_CALPULSE     = 4;
-    static constexpr uint16_t MARS_PIPE_DELAY   = 5;
-    static constexpr uint16_t MARS_RDOUT_ENB    = 8;
-    static constexpr uint16_t EVENT_TIME_CNTR   = 9;
-    static constexpr uint16_t SIM_EVT_SEL       = 10;
-    static constexpr uint16_t SIM_EVENT_RATE    = 11;
-    static constexpr uint16_t ADC_SPI           = 12;
-    static constexpr uint16_t CALPULSE_CNT      = 16;
-    static constexpr uint16_t CALPULSE_RATE     = 17;
-    static constexpr uint16_t CALPULSE_WIDTH    = 18;
-    static constexpr uint16_t CALPULSE_MODE     = 19;
-    static constexpr uint16_t TD_CAL            = 20;
-    static constexpr uint16_t EVENT_FIFO_DATA   = 24;
-    static constexpr uint16_t EVENT_FIFO_CNT    = 25;
-    static constexpr uint16_t EVENT_FIFO_CTRL   = 26;
-    static constexpr uint16_t UDP_IP_ADDR       = 40;
-    static constexpr uint16_t TRIG              = 52;
-    static constexpr uint16_t COUNT_TIME        = 53;
-    static constexpr uint16_t FRAME_NO          = 54;
-    static constexpr uint16_t COUNT_MODE        = 55;
-    static constexpr uint16_t HV                = 150;  // High voltage
-    static constexpr uint16_t HV_CUR            = 151;  // High voltage current
-    static constexpr uint16_t TEMP1             = 160;  // Temperature 1
-    static constexpr uint16_t TEMP2             = 161;  // Temperature 2
-    static constexpr uint16_t TEMP3             = 162;  // Temperature 3
-    static constexpr uint16_t ZTEMP             = 170;  // CPU temperature
-    static constexpr uint16_t DAC_INT_REF       = 180;  // Dac7678 internal reference
-
-    static constexpr uint16_t STUFF_MARS        = 190;
-    static constexpr uint16_t ADC_CLK_SKEW      = 191;
-    static constexpr uint16_t ZDDM_ARM          = 192;
-
-    static constexpr uint16_t DETECTOR_TYPE     = 193;
-    static constexpr uint16_t COUNT_TIME_LO     = 194;
-    static constexpr uint16_t COUNT_TIME_HI     = 195;
+    // Data acquisition and file management
+    void startDataAcquisition();
+    void stopDataAcquisition();
+    void createDataDirectory();
+    std::string generateFilename(int segmentNumber);
+    bool openNewDataFile();
+    void closeCurrentDataFile();
+    bool writeDataToFile(const uint8_t* data, size_t dataSize);
+    void addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
+    void flushWriteBuffer();
+    
+    // Data processing methods
+    void processResponse( const uint8_t* data, size_t dataSize );
+    void processReceivedData(const uint8_t* data, size_t dataSize);
+    void processSpectrumData(const uint8_t* data, size_t dataSize);
+    void processEventData(const uint8_t* data, size_t dataSize);
+    void processStatusDat(const uint8_t* data, size_t dataSize);
+    
+    // Hardware-related methods (now UDP-based instead of direct FIFO access)
+    void initializeGermaniumHardware();
+    void initializeMarsConfig();
+    void setupDataAcquisition();
+    //asynStatus udpSendMarsGlobal(int chip, MarsGlobalConfig *config);
+    //asynStatus udpSendMarsChannels();
+    
+    // 
+    // MARS ASIC configuration optimization methods
+    template<typename T>
+    constexpr uint32_t packBits(T value, int position, int width) {
+        return (static_cast<uint32_t>(value) & ((1U << width) - 1)) << position;
+    }
+    
+    uint32_t packGlobalConfig(const globalstr_t& global);
+    uint16_t packChannelConfig(const channelstr_t& channel);
+    void wrapOptimized();
+    void wrapBitFields();
+    void validateConfiguration();
+    
+    // For compatibility with original Mars_DDM (now sends UDP commands)
+    void wrap() { wrapOptimized(); }
+    
+    // MARS configuration management
+    void updateLoadsArray();          // Update loads[] from globalstr/channelstr
+    void sendConfigurationToDevice(); // Send complete configuration via UDP
+    
+    // UDP communication state variables (replacing direct device access)
+    int udpControlSocket;             // Socket for control commands
+    int udpDataSocket;                // Socket for data reception  
+    struct sockaddr_in deviceAddr;   // Device UDP address
+    bool udpInitialized;              // UDP initialization status
+    epicsTimerQueueId zDDMWdTimerQ;   // Watchdog timer queue
+    epicsTimerQueueId TPgenTimerQ;    // Test pulse timer queue
+    
+    // Detector configuration
+    int numElements;                  // Number of detector elements (96/192/384)
+    char ipAddress[32];               // IP address for detector communication
+    uint16_t controlPort;             // UDP port for control commands 
+    uint16_t dataPort;                // UDP port for data reception 
+    
+    // Thread management for UDP communication
+    epicsThreadId udpControlThreadId; // Control/status UDP receiver thread
+    epicsThreadId udpDataThreadId;    // Data UDP receiver thread
+    epicsThreadId dataProcessingThreadId; // Data processing thread
+    bool threadsRunning;              // Flag to control thread execution
+    epicsMutexId udpMutex;            // Mutex for UDP socket access
+    epicsEventId dataAvailable;       // Event for data processing synchronization
+    
+    // Data buffers for UDP reception
+    std::unique_ptr<uint8_t[]> udpDataBuffer;     // Buffer for incoming data packets (smart pointer)
+    size_t dataBufferSize;                        // Current data in buffer
+    
+    // MARS ASIC configuration arrays - stack-based for simplicity
+    static constexpr int MAX_CHIPS = 12;
+    static constexpr int MAX_CHANNELS = 384;
+    static constexpr int MAX_LOADS = 2048;
+    
+    globalstr_t globalstr[MAX_CHIPS];      // Global settings per chip
+    channelstr_t channelstr[MAX_CHANNELS]; // Per-channel settings  
+    uint32_t loads[12][14];                // SPI configuration data
+    int nchips;                            // Number of chips actually used
+    
+    // Data acquisition state
+    int evttot;                       // Total events processed
+    int framestat;                    // Frame status
+    
+    // File handling state
+    bool fileWritingEnabled;          // Whether file writing is active
+    int currentFileHandle;            // Current open file descriptor
+    size_t currentFileSize;           // Current file size in bytes
+    int currentSegmentNumber;         // Current segment number
+    std::string currentFilename;      // Current filename
+    size_t totalBytesWritten;         // Total bytes written across all files
+    int totalFilesWritten;            // Total number of files written
+    
+    // Write buffer for data writing thread
+    std::vector<uint8_t> dataWriteBuffer;  // Circular buffer for file writing
+    size_t writeBufferHead;               // Write position in buffer
+    size_t writeBufferTail;               // Read position in buffer
+    size_t writeBufferCount;              // Number of bytes in buffer
+    epicsMutexId writeBufferMutex;        // Mutex for buffer access
+    epicsEventId dataWriteAvailable;      // Event for data writing thread
+    epicsThreadId dataWriteThreadId;      // Data writing thread
+    
+    // Photon counting data arrays - using modern C++ containers for better memory management
+    std::vector<std::vector<uint32_t>> mcaData;   // MCA spectra per element [numElements][SPECTRUM_SIZE]
+    std::vector<std::vector<uint32_t>> tdcData;   // TDC histograms per element [numElements][TDC_SIZE]
+    std::vector<uint32_t> countRates;             // Current count rate per element [numElements]
+    std::vector<uint64_t> totalCounts;            // Total counts per element [numElements]
+    
+    // Thread management
+    epicsThreadId acquisitionThreadId;
+    bool acquisitionRunning;
+    
+    // Data packet structure for photon events
+    struct PhotonEvent {
+        uint16_t element;             // Detector element (0-383)
+        uint16_t energy;              // Energy (ADC counts)
+        uint32_t timestamp;           // Event timestamp
+    } __attribute__((packed));
+    
+    // Static callback functions for C compatibility (no longer used for direct access)
+    static void frame_done(int sig);
+    static void event_publish(void *arg);
 };
+
+//===========================================================================//
+
+// Bit-field structures for optimized MARS configuration
+struct __attribute__((packed)) MarsGlobalConfigBits {
+    uint32_t pa     : 10;   // Threshold DAC
+    uint32_t pb     : 8;    // Test pulse DAC
+    uint32_t rm     : 1;    // Readout mode
+    uint32_t senfl1 : 1;    // Lock on peak found
+    uint32_t senfl2 : 1;    // Lock on threshold
+    uint32_t m0     : 1;    // Monitor mode
+    uint32_t m1     : 1;    // Peak detector mode
+    uint32_t sbn    : 1;    // Enable buffer
+    uint32_t sb     : 1;    // Enable buffer
+    uint32_t sl     : 2;    // Leakage current
+    uint32_t ts     : 2;    // Shaping time
+    uint32_t rt     : 3;    // Timing ramp
+};
+
+//===========================================================================//
+
+struct __attribute__((packed)) MarsChannelConfigBits {
+    uint16_t dp     : 4;    // Pileup trim DAC
+    uint16_t da     : 4;    // Threshold trim DAC
+    uint16_t sel    : 1;    // Monitor select
+    uint16_t sm     : 1;    // Channel enable
+    uint16_t st     : 1;    // Test input
+    uint16_t unused : 5;    // Padding
+};
+
+//===========================================================================//
 

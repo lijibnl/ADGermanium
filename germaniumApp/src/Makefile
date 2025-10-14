@@ -1,20 +1,27 @@
+# Makefile for Germanium areaDetector driver
+
 TOP=../..
 include $(TOP)/configure/CONFIG
-#----------------------------------------
-#  ADD MACRO DEFINITIONS AFTER THIS LINE
 
-LIBRARY_IOC_Linux = pilatusDetector
-LIBRARY_IOC_Darwin = pilatusDetector
+$(info ADCORE = $(ADCORE))
 
-LIB_SRCS += pilatusDetector.cpp
+# Build the IOC application
+LIBRARY_IOC = germaniumDetector
 
-DBD += pilatusDetectorSupport.dbd
+# GermaniumApp.dbd will be created and installed
+DBD += germaniumDetectorSupport.dbd
+
+# Germanium detector driver source files
+#LIB_SRCS += germaniumDetector.cpp
+#LIB_SRCS += germaniumDetector_network.cpp
+ 
+LIB_SRCS += germaniumDetector.cpp
+LIB_SRCS += germaniumDetectorDriver.cpp
+LIB_SRCS += germaniumDetectorHardware.cpp
+LIB_SRCS += germaniumDetectorNetwork.cpp
+LIB_SRCS += germaniumDetectorDataAcq.cpp
+LIB_SRCS += germaniumDetectorApp.cpp
 
 include $(ADCORE)/ADApp/commonLibraryMakefile
 
-#=============================
-
 include $(TOP)/configure/RULES
-#----------------------------------------
-#  ADD RULES AFTER THIS LINE
-
