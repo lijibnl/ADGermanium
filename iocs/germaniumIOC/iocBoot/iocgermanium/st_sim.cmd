@@ -14,7 +14,7 @@ epicsEnvSet("PORT",   "GERM")
 epicsEnvSet("NELM",   "192")       # Number of elements (96, 192, or 384)
 
 # Zynq IP address (PS network interface where ZMQ server runs)
-epicsEnvSet("ZYNQ_IP", "10.60.0.160")
+epicsEnvSet("ZYNQ_IP", "127.0.0.1")
 
 # Create the Germanium detector driver
 # germaniumConfig(portName, numElements, ipAddress, maxAddr, numParams, maxBuffers, maxMemory)

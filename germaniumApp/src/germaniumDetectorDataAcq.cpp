@@ -1,183 +1,310 @@
 /**
  * @file germaniumDetectorDataAcq.cpp
- * @brief Handles UDP data reception, buffering, and multi-segment file
- *        writing.
+ * @brief PL UDP data reception, file writing, and data processing threads.
+ *
+ * Receives raw detector events from the PL UDP interface (port 32003),
+ * processes events into MCA/TDC spectra, and writes data to segmented
+ * binary files.
  *
  * @author Ji Li <liji@bnl.gov>
- * @date 08/11/2025
+ * @date 04/03/2026
  * @copyright
- * Copyright (c) 2025 Brookhaven National Laboratory
+ * Copyright (c) 2026 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
  */
 
 //===========================================================================//
 
 #include "germaniumDetector.hpp"
-#include "germaniumDetectorTypes.hpp"
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <cstring>
 #include <cstdio>
-#include <thread>
 #include <chrono>
+#include <thread>
 
 //===========================================================================//
 
 /*
- * Data acquisition and file management initialization
+ * Initialize PL UDP socket for raw data from FPGA.
+ * This is the dedicated PL interface (port 32003), independent of ZMQ.
  */
-void germaniumDetector::setupDataAcquisition()
+bool germaniumDetector::initializePlUdpSocket()
 {
-    printf("Setting up data acquisition system...\n");
-    
-    // Initialize acquisition parameters
-    acquisitionRunning = false;
-    evttot = 0;
-    framestat = 0;
-    currentFileSize = 0;
-    currentSegmentNumber = 0;
-    currentFileHandle = -1;
-    
-    // Initialize file writing state
-    fileWritingEnabled = false;
-    totalBytesWritten = 0;
-    totalFilesWritten = 0;
-    
-    // Create directory if it doesn't exist
-    createDataDirectory();
-    
-    // Clear all spectrum data
-    for (size_t i = 0; i < mcaData.size(); i++)
+    plUdpSocket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (plUdpSocket < 0)
     {
-        std::fill(mcaData[i].begin(), mcaData[i].end(), 0);
-        std::fill(tdcData[i].begin(), tdcData[i].end(), 0);
-    }
-    
-    std::fill(countRates.begin(), countRates.end(), 0);
-    std::fill(totalCounts.begin(), totalCounts.end(), 0);
-    
-    // Initialize data buffer for UDP reception
-    if (!udpDataBuffer)
-    {
-        udpDataBuffer = std::make_unique<uint8_t[]>(UDP_BUFFER_SIZE);
-    }
-    
-    // Create circular buffer for data writing thread
-    dataWriteBuffer.resize(DATA_WRITE_BUFFER_SIZE);
-    writeBufferHead = 0;
-    writeBufferTail = 0;
-    writeBufferCount = 0;
-    
-    printf("Data acquisition system initialized\n");
-}
-
-//===========================================================================//
-
-/*
- * Create data directory if it doesn't exist
- */
-void germaniumDetector::createDataDirectory()
-{
-    char dirPath[256];
-    getStringParam(GermaniumDIR, sizeof(dirPath), dirPath);
-    
-    struct stat st = {0};
-    if (stat(dirPath, &st) == -1)
-    {
-        if (mkdir(dirPath, 0755) == 0)
-        {
-            printf("Created data directory: %s\n", dirPath);
-        }
-        else
-        {
-            printf("Failed to create data directory: %s (error: %s)\n", 
-                   dirPath, strerror(errno));
-        }
-    }
-    else
-    {
-        printf("Data directory exists: %s\n", dirPath);
-    }
-}
-
-//===========================================================================//
-
-/*
- * Generate full filename based on DIR, FNAME, RUNNO, and segment number
- * Format: $(DIR)$(FNAME)-$(RUNNO)-$(SEGMENT-NO).bin
- */
-std::string germaniumDetector::generateFilename(int segmentNumber)
-{
-    char dirPath[256];
-    char fileName[256];
-    int runNumber;
-    
-    getStringParam(GermaniumDIR, sizeof(dirPath), dirPath);
-    getStringParam(GermaniumFNAM, sizeof(fileName), fileName);
-    getIntegerParam(GermaniumRUNNO, &runNumber);
-    
-    // Ensure directory path ends with '/'
-    std::string fullPath(dirPath);
-    if (!fullPath.empty() && fullPath.back() != '/')
-    {
-        fullPath += '/';
-    }
-    
-    // Generate full filename
-    char fullFilename[512];
-    snprintf(fullFilename, sizeof(fullFilename), "%s%s-%06d-%03d.bin",
-             fullPath.c_str(), fileName, runNumber, segmentNumber);
-    
-    return std::string(fullFilename);
-}
-
-//===========================================================================//
-
-/*
- * Open new data file for writing
- */
-bool germaniumDetector::openNewDataFile()
-{
-    // Close current file if open
-    closeCurrentDataFile();
-    
-    // Generate new filename
-    std::string filename = generateFilename(currentSegmentNumber);
-    
-    // Open new file
-    currentFileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (currentFileHandle < 0)
-    {
-        printf("Failed to open data file: %s (error: %s)\n", 
-               filename.c_str(), strerror(errno));
+        printf("Germanium: Failed to create PL UDP socket: %s\n", strerror(errno));
         return false;
     }
-    
-    currentFileSize = 0;
-    currentFilename = filename;
-    
-    printf("Opened new data file: %s (segment %d)\n", 
-           filename.c_str(), currentSegmentNumber);
-    
+
+    // Allow address reuse
+    int opt = 1;
+    setsockopt(plUdpSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    // Increase receive buffer
+    int rcvbuf = 1024 * 1024;  // 1MB
+    setsockopt(plUdpSocket, SOL_SOCKET, SO_RCVBUF, &rcvbuf, sizeof(rcvbuf));
+
+    struct sockaddr_in bindAddr = {};
+    bindAddr.sin_family = AF_INET;
+    bindAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    bindAddr.sin_port = htons(PL_UDP_DATA_PORT);
+
+    if (bind(plUdpSocket, (struct sockaddr*)&bindAddr, sizeof(bindAddr)) < 0)
+    {
+        printf("Germanium: Failed to bind PL UDP socket to port %d: %s\n",
+               PL_UDP_DATA_PORT, strerror(errno));
+        close(plUdpSocket);
+        plUdpSocket = -1;
+        return false;
+    }
+
+    plUdpInitialized = true;
+    printf("Germanium: PL UDP socket bound to port %d\n", PL_UDP_DATA_PORT);
     return true;
 }
 
 //===========================================================================//
 
+void germaniumDetector::closePlUdpSocket()
+{
+    plUdpInitialized = false;
+    if (plUdpSocket >= 0)
+    {
+        close(plUdpSocket);
+        plUdpSocket = -1;
+    }
+}
+
+//===========================================================================//
+
 /*
- * Close current data file
+ * PL UDP data reception thread.
+ *
+ * Receives raw packets from FPGA PL interface. Packet format:
+ *   [packet_counter][SOF_MARKER][frame_num][reserved]
+ *   [event_data][timestamp] ... (repeated)
+ *   [num_lost_events][EOF_MARKER]
  */
+void germaniumDetector::plUdpDataThreadC(void *pPvt)
+{
+    static_cast<germaniumDetector*>(pPvt)->plUdpDataThread();
+}
+
+void germaniumDetector::plUdpDataThread()
+{
+    printf("Germanium: PL UDP data thread started\n");
+
+    uint8_t recvBuf[UDP_BUFFER_SIZE];
+    struct sockaddr_in senderAddr;
+    socklen_t addrLen = sizeof(senderAddr);
+
+    while (threadsRunning)
+    {
+        fd_set readfds;
+        struct timeval timeout;
+        FD_ZERO(&readfds);
+        FD_SET(plUdpSocket, &readfds);
+        timeout.tv_sec = 1;
+        timeout.tv_usec = 0;
+
+        int result = select(plUdpSocket + 1, &readfds, nullptr, nullptr, &timeout);
+        if (result <= 0) continue;
+
+        ssize_t bytesReceived = recvfrom(plUdpSocket, recvBuf, sizeof(recvBuf), 0,
+                                         (struct sockaddr*)&senderAddr, &addrLen);
+        if (bytesReceived <= 0) continue;
+
+        if (!acquisitionRunning) continue;
+
+        // Parse packet as big-endian 32-bit words
+        size_t numWords = bytesReceived / sizeof(uint32_t);
+        uint32_t *words = reinterpret_cast<uint32_t*>(recvBuf);
+
+        // Process event data words (skip headers, detect SOF/EOF markers)
+        for (size_t i = 0; i + 1 < numWords; i += 2)
+        {
+            uint32_t w1 = ntohl(words[i]);
+            uint32_t w2 = ntohl(words[i + 1]);
+
+            // Skip markers
+            if (w1 == SOF_MARKER || w1 == EOF_MARKER) continue;
+            if (w2 == SOF_MARKER || w2 == EOF_MARKER) continue;
+
+            // Only process if w2 looks like a timestamp (bit 31 set)
+            if (!(w2 & 0x80000000)) continue;
+
+            int chip = (w1 >> 27) & 0xF;
+            int chan  = (w1 >> 22) & 0x1F;
+            int td   = (w1 >> 12) & 0x3FF;
+            int pd   = w1 & 0xFFF;
+
+            int element = chip * 32 + chan;
+            if (element >= 0 && element < numElements)
+                processPhotonEvent(element, pd, td);
+        }
+
+        // Add raw data to write buffer
+        addDataToWriteBuffer(recvBuf, bytesReceived);
+        epicsEventSignal(dataAvailable);
+    }
+
+    printf("Germanium: PL UDP data thread stopped\n");
+}
+
+//===========================================================================//
+
+void germaniumDetector::dataProcessingThreadC(void *pPvt)
+{
+    static_cast<germaniumDetector*>(pPvt)->dataProcessingThread();
+}
+
+void germaniumDetector::dataProcessingThread()
+{
+    printf("Germanium: Data processing thread started\n");
+
+    while (threadsRunning)
+    {
+        epicsEventWaitWithTimeout(dataAvailable, 1.0);
+
+        setIntegerParam(GermaniumSS, acquisitionRunning ? 1 : 0);
+        callParamCallbacks();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    printf("Germanium: Data processing thread stopped\n");
+}
+
+//===========================================================================//
+
+void germaniumDetector::dataWriteThreadC(void *pPvt)
+{
+    static_cast<germaniumDetector*>(pPvt)->dataWriteThread();
+}
+
+void germaniumDetector::dataWriteThread()
+{
+    printf("Germanium: Data write thread started\n");
+
+    while (threadsRunning)
+    {
+        epicsEventWaitWithTimeout(dataWriteAvailable, 1.0);
+        flushWriteBuffer();
+    }
+
+    printf("Germanium: Data write thread stopped\n");
+}
+
+//===========================================================================//
+
+void germaniumDetector::startDataAcquisition()
+{
+    if (acquisitionRunning) return;
+
+    clearSpectra();
+    currentSegmentNumber = 0;
+    totalBytesWritten = 0;
+    totalFilesWritten = 0;
+
+    createDataDirectory();
+    fileWritingEnabled = true;
+    acquisitionRunning = true;
+
+    // Start hardware acquisition via ZMQ register write
+    zmqRegisterWrite(TRIG, 1);
+
+    setIntegerParam(GermaniumCNT, 1);
+    callParamCallbacks();
+    printf("Germanium: Acquisition started\n");
+}
+
+//===========================================================================//
+
+void germaniumDetector::stopDataAcquisition()
+{
+    if (!acquisitionRunning) return;
+
+    zmqRegisterWrite(TRIG, 0);
+    acquisitionRunning = false;
+    fileWritingEnabled = false;
+
+    flushWriteBuffer();
+    closeCurrentDataFile();
+
+    setIntegerParam(GermaniumCNT, 0);
+    callParamCallbacks();
+    printf("Germanium: Acquisition stopped. %zu bytes in %d files\n",
+           totalBytesWritten, totalFilesWritten);
+}
+
+//===========================================================================//
+
+void germaniumDetector::createDataDirectory()
+{
+    char dirPath[256];
+    getStringParam(GermaniumDIR, sizeof(dirPath), dirPath);
+
+    struct stat st = {};
+    if (stat(dirPath, &st) == -1)
+    {
+        if (mkdir(dirPath, 0755) == 0)
+            printf("Germanium: Created directory %s\n", dirPath);
+        else
+            printf("Germanium: Failed to create %s: %s\n", dirPath, strerror(errno));
+    }
+}
+
+//===========================================================================//
+
+std::string germaniumDetector::generateFilename(int segmentNumber)
+{
+    char dir[256], fname[256];
+    int runno;
+    getStringParam(GermaniumDIR, sizeof(dir), dir);
+    getStringParam(GermaniumFNAM, sizeof(fname), fname);
+    getIntegerParam(GermaniumRUNNO, &runno);
+
+    std::string path(dir);
+    if (!path.empty() && path.back() != '/') path += '/';
+
+    char buf[512];
+    snprintf(buf, sizeof(buf), "%s%s-%06d-%03d.bin",
+             path.c_str(), fname, runno, segmentNumber);
+    return std::string(buf);
+}
+
+//===========================================================================//
+
+bool germaniumDetector::openNewDataFile()
+{
+    closeCurrentDataFile();
+    std::string filename = generateFilename(currentSegmentNumber);
+
+    currentFileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (currentFileHandle < 0)
+    {
+        printf("Germanium: Failed to open %s: %s\n", filename.c_str(), strerror(errno));
+        return false;
+    }
+    currentFileSize = 0;
+    currentFilename = filename;
+    return true;
+}
+
+//===========================================================================//
+
 void germaniumDetector::closeCurrentDataFile()
 {
     if (currentFileHandle >= 0)
     {
         close(currentFileHandle);
-        printf("Closed data file: %s (size: %ld bytes)\n", 
-               currentFilename.c_str(), currentFileSize);
-        
         currentFileHandle = -1;
         totalFilesWritten++;
         totalBytesWritten += currentFileSize;
@@ -187,396 +314,94 @@ void germaniumDetector::closeCurrentDataFile()
 
 //===========================================================================//
 
-/*
- * Write data to current file, handling file size limits and segmentation
- */
 bool germaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
 {
-    if (!fileWritingEnabled || !data || dataSize == 0)
-    {
-        return false;
-    }
-    
-    int maxFileSize;
-    getIntegerParam(GermaniumFSIZE, &maxFileSize);
-    
-    // Check if we need a new file
-    if (currentFileHandle < 0 || 
-        (currentFileSize + dataSize) > static_cast<size_t>(maxFileSize))
+    if (!fileWritingEnabled || !data || dataSize == 0) return false;
+
+    int maxSizeMB;
+    getIntegerParam(GermaniumFSIZE, &maxSizeMB);
+    size_t maxSize = static_cast<size_t>(maxSizeMB) * 1024 * 1024;
+
+    if (currentFileHandle < 0 || (currentFileSize + dataSize) > maxSize)
     {
         if (currentFileHandle >= 0)
         {
             closeCurrentDataFile();
             currentSegmentNumber++;
         }
-        
-        if (!openNewDataFile())
-        {
-            return false;
-        }
+        if (!openNewDataFile()) return false;
     }
-    
-    // Write data to file
-    ssize_t bytesWritten = write(currentFileHandle, data, dataSize);
-    if (bytesWritten != static_cast<ssize_t>(dataSize))
-    {
-        printf("Failed to write data to file: %s (error: %s)\n", 
-               currentFilename.c_str(), strerror(errno));
-        return false;
-    }
-    
+
+    ssize_t written = write(currentFileHandle, data, dataSize);
+    if (written != static_cast<ssize_t>(dataSize)) return false;
+
     currentFileSize += dataSize;
-    
-    // Sync file periodically for data safety
-    if ((currentFileSize % (1024*1024)) < dataSize) // Every ~1MB
-    {
-        fsync(currentFileHandle);
-    }
-    
     return true;
 }
 
 //===========================================================================//
 
 /*
- * Start data acquisition and file writing
- */
-void germaniumDetector::startDataAcquisition()
-{
-    if (acquisitionRunning)
-    {
-        printf("Data acquisition already running\n");
-        return;
-    }
-    
-    // Reset counters and state
-    evttot = 0;
-    framestat = 0;
-    currentSegmentNumber = 0;
-    totalBytesWritten = 0;
-    totalFilesWritten = 0;
-    
-    // Create data directory
-    createDataDirectory();
-    
-    // Enable file writing
-    fileWritingEnabled = true;
-    
-    // Start acquisition
-    acquisitionRunning = true;
-    
-    // Send start command to hardware
-    udpRegisterWrite(TRIG, 1);
-    
-    printf("Data acquisition started\n");
-}
-
-//===========================================================================//
-
-/*
- * Stop data acquisition and file writing
- */
-void germaniumDetector::stopDataAcquisition()
-{
-    if (!acquisitionRunning)
-    {
-        printf("Data acquisition not running\n");
-        return;
-    }
-    
-    // Send stop command to hardware
-    udpRegisterWrite(TRIG, 0);
-    
-    // Stop acquisition
-    acquisitionRunning = false;
-    fileWritingEnabled = false;
-    
-    // Close current data file
-    
-    // Flush any remaining data in write buffer
-    flushWriteBuffer();
-    
-    printf("Data acquisition stopped. Total: %ld bytes in %d files\n", 
-           totalBytesWritten, totalFilesWritten);
-}
-
-//===========================================================================//
-
-/*
- * Data processing thread function (C wrapper)
- */
-//extern "C"
-void germaniumDetector::dataProcessingThreadC(void *drvPvt)
-{
-    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
-    pGermanium->dataProcessingThread();
-}
-
-//===========================================================================//
-
-/*
- * Data processing thread - handles spectrum updates.
- * This thread processes detector data and updates EPICS parameters
- */
-void germaniumDetector::dataProcessingThread()
-{
-    printf("Data processing thread started\n");
-
-    auto lastUpdateTime = std::chrono::steady_clock::now();
-    auto lastRateUpdateTime = std::chrono::steady_clock::now();
-
-    while (threadsRunning)
-    {
-        // Wait for data to be available for processing
-        epicsEventWaitWithTimeout(dataAvailable, 1.0); // 1 second timeout
-
-        auto currentTime = std::chrono::steady_clock::now();
-
-        // Update count rates every second
-        auto rateElapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            currentTime - lastRateUpdateTime).count();
-
-        if (rateElapsed >= 1)
-        {
-            //updateCountRates();
-            lastRateUpdateTime = currentTime;
-        }
-
-        // Update spectrum displays every 2 seconds
-        auto displayElapsed = std::chrono::duration_cast<std::chrono::seconds>(
-            currentTime - lastUpdateTime).count();
-
-        if (displayElapsed >= 2)
-        {
-            //updateSpectra();
-            lastUpdateTime = currentTime;
-        }
-
-        // Update MCA and TDC
-
-        // Update EPICS parameters
-        setIntegerParam(GermaniumSS, acquisitionRunning ? 1 : 0);
-        setIntegerParam(GermaniumUS, framestat);
-
-        // Update frame statistics
-        static int lastFramestat = 0;
-        if (framestat != lastFramestat)
-        {
-            setDoubleParam(GermaniumRATE, static_cast<double>(framestat - lastFramestat) / rateElapsed);
-            lastFramestat = framestat;
-        }
-
-        // Call parameter callbacks
-        callParamCallbacks();
-
-        // Brief sleep to prevent excessive CPU usage
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    printf("Data processing thread stopped\n");
-}
-
-//===========================================================================//
-
-/*
- * Add data to circular write buffer for file writing thread
+ * Enqueue raw data into the lock-free MPSC block queue.
+ *
+ * Producers (zmqDataThread / plUdpDataThread) claim a slot via CAS on
+ * dataQueueHead, memcpy the payload, then publish with release-store on
+ * the per-block state flag.  No mutex is touched on the hot path.
  */
 void germaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
 {
-    if (!data || dataSize == 0 || dataSize > DATA_WRITE_BUFFER_SIZE / 4)
+    if (!data || dataSize == 0 || dataSize > DATA_BLOCK_SIZE) return;
+
+    // CAS loop to claim the next slot
+    uint64_t head = dataQueueHead.load(std::memory_order_relaxed);
+    for (;;)
     {
-        return; // Data too large for buffer
+        uint64_t tail = dataQueueTail.load(std::memory_order_acquire);
+        if (head - tail >= static_cast<uint64_t>(DATA_QUEUE_CAPACITY))
+            return;  // queue full — drop this chunk
+
+        if (dataQueueHead.compare_exchange_weak( head, head + 1
+                                               , std::memory_order_acq_rel
+                                               , std::memory_order_relaxed))
+            break;
     }
-    
-    // Take buffer mutex
-    epicsMutexLock(writeBufferMutex);
-    
-    // Check if buffer has space
-    if (writeBufferCount + dataSize + sizeof(size_t) > DATA_WRITE_BUFFER_SIZE)
-    {
-        epicsMutexUnlock(writeBufferMutex);
-        printf("Write buffer full, dropping data packet\n");
-        return;
-    }
-    
-    // Add data size header
-    size_t* sizePtr = reinterpret_cast<size_t*>(&dataWriteBuffer[writeBufferHead]);
-    *sizePtr = dataSize;
-    writeBufferHead = (writeBufferHead + sizeof(size_t)) % DATA_WRITE_BUFFER_SIZE;
-    writeBufferCount += sizeof(size_t);
-    
-    // Add data - handle wrap-around
-    if (writeBufferHead + dataSize <= DATA_WRITE_BUFFER_SIZE)
-    {
-        // No wrap-around
-        memcpy(&dataWriteBuffer[writeBufferHead], data, dataSize);
-        writeBufferHead = (writeBufferHead + dataSize) % DATA_WRITE_BUFFER_SIZE;
-    }
-    else
-    {
-        // Handle wrap-around
-        size_t firstPart = DATA_WRITE_BUFFER_SIZE - writeBufferHead;
-        memcpy(&dataWriteBuffer[writeBufferHead], data, firstPart);
-        memcpy(&dataWriteBuffer[0], data + firstPart, dataSize - firstPart);
-        writeBufferHead = dataSize - firstPart;
-    }
-    
-    writeBufferCount += dataSize;
-    
-    epicsMutexUnlock(writeBufferMutex);
-    
-    // Signal data writing thread
+
+    // We now own slot `head`
+    DataBlock &block = dataQueue[head & DATA_QUEUE_MASK];
+    memcpy(block.data, data, dataSize);
+    block.size = static_cast<uint32_t>(dataSize);
+    block.state.store(DATA_BLOCK_READY, std::memory_order_release);
+
     epicsEventSignal(dataWriteAvailable);
 }
 
 //===========================================================================//
 
 /*
- * Data writing thread function (C wrapper)
- */
-//extern "C"
-void germaniumDetector::dataWriteThreadC(void *drvPvt)
-{
-    germaniumDetector *pGermanium = static_cast<germaniumDetector*>(drvPvt);
-    pGermanium->dataWriteThread();
-}
-
-//===========================================================================//
-
-/*
- * Data writing thread - handles file writing from buffer
- */
-void germaniumDetector::dataWriteThread()
-{
-    printf("Data writing thread started\n");
-    
-    while (threadsRunning)
-    {
-        // Wait for data to be available
-        epicsEventWaitWithTimeout(dataWriteAvailable, 1.0); // 1 second timeout
-        
-        // Process all available data in buffer
-        while (writeBufferCount > 0 && threadsRunning)
-        {
-            epicsMutexLock(writeBufferMutex);
-            
-            if (writeBufferCount < sizeof(size_t))
-            {
-                epicsMutexUnlock(writeBufferMutex);
-                break;
-            }
-            
-            // Read data size
-            size_t* sizePtr = reinterpret_cast<size_t*>(&dataWriteBuffer[writeBufferTail]);
-            size_t dataSize = *sizePtr;
-            writeBufferTail = (writeBufferTail + sizeof(size_t)) % DATA_WRITE_BUFFER_SIZE;
-            writeBufferCount -= sizeof(size_t);
-            
-            if (writeBufferCount < dataSize)
-            {
-                // Corrupted buffer state
-                printf("Write buffer corruption detected, resetting\n");
-                writeBufferHead = writeBufferTail = writeBufferCount = 0;
-                epicsMutexUnlock(writeBufferMutex);
-                break;
-            }
-            
-            // Create temporary buffer for data
-            std::vector<uint8_t> tempBuffer(dataSize);
-            
-            // Read data - handle wrap-around
-            if (writeBufferTail + dataSize <= DATA_WRITE_BUFFER_SIZE)
-            {
-                // No wrap-around
-                memcpy(tempBuffer.data(), &dataWriteBuffer[writeBufferTail], dataSize);
-                writeBufferTail = (writeBufferTail + dataSize) % DATA_WRITE_BUFFER_SIZE;
-            }
-            else
-            {
-                // Handle wrap-around
-                size_t firstPart = DATA_WRITE_BUFFER_SIZE - writeBufferTail;
-                memcpy(tempBuffer.data(), &dataWriteBuffer[writeBufferTail], firstPart);
-                memcpy(tempBuffer.data() + firstPart, &dataWriteBuffer[0], dataSize - firstPart);
-                writeBufferTail = dataSize - firstPart;
-            }
-            
-            writeBufferCount -= dataSize;
-            
-            epicsMutexUnlock(writeBufferMutex);
-            
-            // Write data to file
-            writeDataToFile(tempBuffer.data(), dataSize);
-        }
-
-        // Close the data file if the data in the buffer is the last in the current count
-        //if ( last_data )
-        //{
-        //    closeCurrentDataFile();
-        //}
-    }
-    
-    printf("Data writing thread stopped\n");
-}
-
-//===========================================================================//
-
-/*
- * Flush any remaining data in write buffer
+ * Drain the lock-free queue from the consumer side (dataWriteThread).
+ *
+ * Reads contiguously from dataQueueTail while blocks are in READY state.
+ * A block stuck in CLAIMED means a producer hasn't finished its memcpy
+ * yet — we stop and retry on the next wakeup to preserve ordering.
  */
 void germaniumDetector::flushWriteBuffer()
 {
-    printf("Flushing write buffer...\n");
-    
-    // Process remaining data
-    while (writeBufferCount > 0)
+    uint64_t tail = dataQueueTail.load(std::memory_order_relaxed);
+    uint64_t head = dataQueueHead.load(std::memory_order_acquire);
+
+    while (tail < head)
     {
-        epicsMutexLock(writeBufferMutex);
-        
-        if (writeBufferCount < sizeof(size_t))
-        {
-            writeBufferCount = 0;
-            epicsMutexUnlock(writeBufferMutex);
-            break;
-        }
-        
-        // Read and write remaining data (similar to dataWriteThread)
-        size_t* sizePtr = reinterpret_cast<size_t*>(&dataWriteBuffer[writeBufferTail]);
-        size_t dataSize = *sizePtr;
-        
-        if (writeBufferCount < dataSize + sizeof(size_t))
-        {
-            writeBufferCount = 0;
-            epicsMutexUnlock(writeBufferMutex);
-            break;
-        }
-        
-        writeBufferTail = (writeBufferTail + sizeof(size_t)) % DATA_WRITE_BUFFER_SIZE;
-        writeBufferCount -= sizeof(size_t);
-        
-        std::vector<uint8_t> tempBuffer(dataSize);
-        
-        if (writeBufferTail + dataSize <= DATA_WRITE_BUFFER_SIZE)
-        {
-            memcpy(tempBuffer.data(), &dataWriteBuffer[writeBufferTail], dataSize);
-            writeBufferTail = (writeBufferTail + dataSize) % DATA_WRITE_BUFFER_SIZE;
-        }
-        else
-        {
-            size_t firstPart = DATA_WRITE_BUFFER_SIZE - writeBufferTail;
-            memcpy(tempBuffer.data(), &dataWriteBuffer[writeBufferTail], firstPart);
-            memcpy(tempBuffer.data() + firstPart, &dataWriteBuffer[0], dataSize - firstPart);
-            writeBufferTail = dataSize - firstPart;
-        }
-        
-        writeBufferCount -= dataSize;
-        
-        epicsMutexUnlock(writeBufferMutex);
-        
-        writeDataToFile(tempBuffer.data(), dataSize);
+        DataBlock &block = dataQueue[tail & DATA_QUEUE_MASK];
+
+        if (block.state.load(std::memory_order_acquire) != DATA_BLOCK_READY)
+            break;  // producer still writing — preserve ordering
+
+        writeDataToFile(block.data, block.size);
+        block.state.store(DATA_BLOCK_FREE, std::memory_order_release);
+        ++tail;
     }
-    
-    printf("Write buffer flushed\n");
+
+    dataQueueTail.store(tail, std::memory_order_release);
 }
 
 //===========================================================================//
-

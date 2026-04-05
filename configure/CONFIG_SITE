@@ -28,30 +28,3 @@ CHECK_RELEASE = YES
 # To install files into a location other than $(TOP) define
 #   INSTALL_LOCATION here.
 #INSTALL_LOCATION=</absolute/path/to/install/top>
-
-# Set this when the IOC and build host use different paths
-#   to the install location. This may be needed to boot from
-#   a Microsoft FTP server say, or on some NFS configurations.
-#IOCS_APPL_TOP = </IOC's/absolute/path/to/install/top>
-
-# For application debugging purposes, override the HOST_OPT and/
-#   or CROSS_OPT settings from base/configure/CONFIG_SITE
-#HOST_OPT = NO
-#CROSS_OPT = NO
-
-# These allow developers to override the CONFIG_SITE variable
-# settings without having to modify the configure/CONFIG_SITE
-# file itself.
-#-include $(TOP)/../CONFIG_SITE.local
-#-include $(TOP)/configure/CONFIG_SITE.local
-#
-# Get settings from AREA_DETECTOR, so we only have to configure once for all detectors if we want to
--include $(AREA_DETECTOR)/configure/CONFIG_SITE
--include $(AREA_DETECTOR)/configure/CONFIG_SITE.$(EPICS_HOST_ARCH)
--include $(AREA_DETECTOR)/configure/CONFIG_SITE.$(EPICS_HOST_ARCH).Common
-ifdef T_A 
-  -include $(AREA_DETECTOR)/configure/CONFIG_SITE.Common.$(T_A)
-  -include $(AREA_DETECTOR)/configure/CONFIG_SITE.$(EPICS_HOST_ARCH).$(T_A)
-endif
-
-

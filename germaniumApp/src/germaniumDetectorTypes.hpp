@@ -1,6 +1,6 @@
 /**
  * @file germaniumDetectorTypes.hpp
- * @brief Type definitions, structures, and constants.
+ * @brief Type definitions, structures, and constants for ADGermaniumZMQ.
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 08/11/2025
@@ -15,211 +15,122 @@
 //===========================================================================//
 
 #include <cstdint>
+#include <atomic>
 #include "germaniumDetectorRegister.hpp"
 
 //===========================================================================//
 
-// Driver-specific constants (not hardware registers)
-#define GERMANIUM_CONTROL_PORT 8000
-#define GERMANIUM_DATA_PORT 8001
+// ZMQ communication ports (matching germ-zmq-server on Zynq)
+#define ZMQ_CONTROL_PORT    5555    // REQ-REP for register access + delta-config
+#define ZMQ_DATA_PORT       5556    // PUB-SUB for event data
+
+// PL UDP data port (raw detector data from FPGA)
+#define PL_UDP_DATA_PORT    0x7D03  // 32003
+
+// Spectrum sizes
 #define SPECTRUM_SIZE 4096
 #define TDC_SIZE 1024
+
+// Buffer sizes
 #define UDP_BUFFER_SIZE 65536
-#define UDP_MAX_STRING_SIZE 256
-#define UDP_MAX_ARRAY_SIZE 8192
-#define DATA_WRITE_BUFFER_SIZE (4*1024*1024)  // 4MB circular buffer for file writing
-
-// Data packet types for UDP communication
-#define PACKET_TYPE_SPECTRUM 0x01
-#define PACKET_TYPE_EVENT 0x02
-#define PACKET_TYPE_STATUS 0x03
-#define PACKET_TYPE_RAW_DATA 0x04
-
-// UDP Message IDs for different operations
-#define UDP_MSG_ID_REGISTER_ACCESS 0x0001
-#define UDP_MSG_ID_MARS_CONFIG 0x0002
-#define UDP_MSG_ID_ADC_CONFIG 0x0003
-#define UDP_MSG_ID_ARM_CONTROL 0x0004
 
 //===========================================================================//
 
-// MARS ASIC configuration structures - match original Mars_DDM
-struct globalstr_t
+// Lock-free MPSC block queue for the data-write path.
+// Two producers (ZMQ data thread, PL UDP thread) enqueue; one consumer
+// (file-write thread) dequeues.  Producers claim slots via atomic
+// fetch-add / CAS; per-block state flags ensure correct ordering.
+
+static constexpr size_t DATA_BLOCK_SIZE     = 65536;                    // max payload per block
+static constexpr int    DATA_QUEUE_BITS     = 7;                        // log2(capacity)
+static constexpr int    DATA_QUEUE_CAPACITY = 1 << DATA_QUEUE_BITS;     // 128 blocks ≈ 8 MB
+static constexpr int    DATA_QUEUE_MASK     = DATA_QUEUE_CAPACITY - 1;
+
+static constexpr uint32_t DATA_BLOCK_FREE    = 0;
+static constexpr uint32_t DATA_BLOCK_CLAIMED = 1;
+static constexpr uint32_t DATA_BLOCK_READY   = 2;
+
+struct DataBlock
 {
-    int st;      // Shaping time
-    int g;       // Gain  
-    int pol;     // Polarity
-    int eblk;    // Bias current enable
-    int gmon;    // Global monitor mode
-    int puen;    // Pileup rejection enable
-    int mfs;     // Multi-fire suppression
-    int tds;     // TDC slope
-    int tdm;     // TDC mode
-    int th;      // Threshold
-    int c;       // Monitor channel
-    int m0;      // Monitor mode
-    int saux;    // Auxiliary select
+    std::atomic<uint32_t> state;   // FREE → CLAIMED → READY → FREE
+    uint32_t              size;    // actual payload bytes
+    uint8_t               data[DATA_BLOCK_SIZE];
+};
+
+// ZMQ command codes — register ops (matching germ-zmq-server)
+// Register addr is a word offset (see germaniumDetectorRegister.hpp).
+#define ZMQ_CMD_REG_READ    0x0
+#define ZMQ_CMD_REG_WRITE   0x1
+
+// ZMQ command codes — MARS delta-config protocol
+// The IOC sends lightweight per-field deltas; the Zynq server
+// (germ-zmq-server) maintains chipstr/chanstr state, packs into
+// loads[12][14] via wrap(), and writes to the MARS ASICs.
+//
+// Message format (same 3×uint32 ZmqCommandMsg):
+//
+//   CMD_MARS_SET_GLOBAL:
+//     cmd   = 0x10
+//     addr  = chip_mask[27:16] | field_id[15:0]
+//     value = new value
+//     chip_mask: 12-bit, one bit per chip (0xFFF = all)
+//     field_id:  MarsGlobalField enum
+//
+//   CMD_MARS_SET_CHANNEL:
+//     cmd   = 0x11
+//     addr  = channel[27:16] | field_id[15:0]
+//     value = new value
+//     channel: 0..383, or 0xFFF = all channels
+//
+//   CMD_MARS_LOAD:
+//     cmd   = 0x12
+//     addr  = chip_mask[11:0]
+//     value = 0
+//     Triggers wrap() + stuff_mars() on Zynq for selected chips.
+//
+#define ZMQ_CMD_MARS_SET_GLOBAL  0x10
+#define ZMQ_CMD_MARS_SET_CHANNEL 0x11
+#define ZMQ_CMD_MARS_LOAD        0x12
+
+// Field IDs for CMD_MARS_SET_GLOBAL
+enum MarsGlobalField
+{
+    MARS_FIELD_ST   = 0,
+    MARS_FIELD_GAIN = 1,
+    MARS_FIELD_POL  = 2,
+    MARS_FIELD_EBLK = 3,
+    MARS_FIELD_GMON = 4,
+    MARS_FIELD_PUEN = 5,
+    MARS_FIELD_MFS  = 6,
+    MARS_FIELD_TDS  = 7,
+    MARS_FIELD_TDM  = 8,
+    MARS_FIELD_TH   = 9,
+    MARS_FIELD_C    = 10,
+    MARS_FIELD_M0   = 11,
+    MARS_FIELD_SAUX = 12,
+};
+
+// Field IDs for CMD_MARS_SET_CHANNEL
+enum MarsChannelField
+{
+    MARS_CH_CHEN = 0,
+    MARS_CH_TSEN = 1,
+    MARS_CH_THTR = 2,
+    MARS_CH_PUTR = 3,
+};
+
+// ZMQ message structure: 3 x uint32_t
+struct ZmqCommandMsg
+{
+    uint32_t cmd;       // Command code (0x00..0x12)
+    uint32_t addr;      // Register word offset or field encoding
+    uint32_t value;     // Data value
 };
 
 //===========================================================================//
 
-struct channelstr_t
-{
-    int chen;    // Channel enable
-    int tsen;    // Test pulse input enable
-    int thtr;    // Threshold trim
-    int putr;    // Pileup threshold trim
-};
+// PL UDP data markers
+#define SOF_MARKER  0xFEEDFACE
+#define EOF_MARKER  0xDECAFBAD
 
 //===========================================================================//
-
-// UDP protocol structures - Based on actual hardware specification
-namespace DerivedNetwork {
-
-    // Request payload structures
-    struct SingleWordReqMsgPayload
-    {
-        uint32_t data;
-    };
-
-    struct AdcClkSkewReqMsgPayload
-    {
-        uint16_t chip_num;
-        uint16_t skew;
-    };
-
-    struct StuffMarsReqMsgPayload
-    {
-        uint32_t loads[12][14];  // MARS configuration data
-    };
-
-    struct ZddmArmReqMsgPayload
-    {
-        uint16_t mode;
-        uint16_t val;
-    };
-
-    union UdpReqMsgPayload
-    {
-        SingleWordReqMsgPayload  single_word;
-        AdcClkSkewReqMsgPayload  ad9252_clk_skew;
-        StuffMarsReqMsgPayload   stuff_mars;
-        ZddmArmReqMsgPayload     zddm_arm;
-    };
-
-    // Response payload structures
-    struct SingleWordRespMsgPayload
-    {
-        uint32_t data;
-    };
-
-    struct PsI2cRespMsgPayload
-    {
-        uint8_t length;
-        uint8_t data[4];
-    };
-
-    struct PsXadcRespMsgPayload
-    {
-        uint8_t length;
-        uint8_t data[4];
-    };
-
-    union UdpRespMsgPayload
-    {
-        SingleWordRespMsgPayload single_word;
-        PsI2cRespMsgPayload      psi2c;
-        PsXadcRespMsgPayload     psxadc;
-    };
-
-} // namespace DerivedNetwork
-
-//===========================================================================//
-
-// Main UDP message structures
-struct UdpReqMsg
-{   
-    uint16_t                           id; 
-    uint16_t                           op;
-    DerivedNetwork::UdpReqMsgPayload   payload;
-};  
-using UdpRxMsg = UdpReqMsg;
-
-//===========================================================================//
-
-struct UdpRespMsg
-{
-    uint16_t                           id;
-    uint16_t                           op;
-    DerivedNetwork::UdpRespMsgPayload  payload;
-};
-using UdpTxMsg = UdpRespMsg;
-
-//===========================================================================//
-
-#define UDP_REQ_MSG_ID  = 0xbeef;
-#define UDP_RESP_MSG_ID = 0xcafe;
-
-
-// Helper functions for operation codes
-#define UDP_OP_READ_BIT 0x8000
-#define UDP_OP_WRITE_BIT 0x0000
-#define UDP_OP_ADDR_MASK 0x7FFF
-
-//===========================================================================//
-
-inline uint16_t makeReadOp(uint16_t address) { return UDP_OP_READ_BIT | (address & UDP_OP_ADDR_MASK); }
-inline uint16_t makeWriteOp(uint16_t address) { return UDP_OP_WRITE_BIT | (address & UDP_OP_ADDR_MASK); }
-inline bool isReadOp(uint16_t op) { return (op & UDP_OP_READ_BIT) != 0; }
-inline uint16_t getOpAddress(uint16_t op) { return op & UDP_OP_ADDR_MASK; }
-
-//===========================================================================//
-
-// Photon event data structure for UDP data packets
-struct PhotonEvent
-{
-    uint16_t element;       // Detector element number
-    uint16_t energy;        // Energy value
-    uint32_t timestamp;     // Event timestamp
-};
-
-// Data packet header for received data
-struct DataPacketHeader
-{
-    uint32_t packetType;    // Packet type (spectrum, event, status, etc.)
-    uint32_t sequenceNumber; // Sequence number for packet ordering
-    uint32_t timestamp;     // Hardware timestamp
-    uint32_t dataLength;    // Length of data following header
-};
-
-// Event data structure
-struct EventData
-{
-    uint16_t channel;       // Channel number
-    uint16_t energy;        // Energy value
-    uint32_t timestamp;     // Event timestamp
-};
-
-// Status data structure
-struct StatusData
-{
-    uint32_t totalEvents;   // Total event count
-    uint32_t totalTime;     // Total acquisition time
-    uint32_t liveTime;      // Live time
-    uint32_t deadTime;      // Dead time
-    uint16_t temperature;   // System temperature
-    uint16_t voltage;       // System voltage
-};
-
-// File writing structures
-struct FileWriteBuffer
-{
-    uint8_t data[DATA_WRITE_BUFFER_SIZE];
-    size_t writeIndex;
-    size_t readIndex;
-    size_t bytesUsed;
-    bool overflow;
-};
-
-//===========================================================================//
-
