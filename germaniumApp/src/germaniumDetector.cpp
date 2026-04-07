@@ -305,6 +305,11 @@ void germaniumDetector::createGermaniumParameters()
     createParam(GermaniumHvString,      asynParamFloat64, &GermaniumHV);
     createParam(GermaniumHvRbvString,   asynParamFloat64, &GermaniumHV_RBV);
     createParam(GermaniumHvCurrString,  asynParamFloat64, &GermaniumHV_CURR);
+    createParam(GermaniumP1String,       asynParamFloat64, &GermaniumP1);
+    createParam(GermaniumP2String,       asynParamFloat64, &GermaniumP2);
+    createParam(GermaniumP1CurrString,   asynParamFloat64, &GermaniumP1_CURR);
+    createParam(GermaniumP2CurrString,   asynParamFloat64, &GermaniumP2_CURR);
+    createParam(GermaniumAdcClkSkewString, asynParamInt32Array, &GermaniumADC_CLK_SKEW);
 }
 
 //===========================================================================//
@@ -347,6 +352,19 @@ void germaniumDetector::setGermaniumInitialValues()
 
     setStringParam(GermaniumEGU, "counts");
     setIntegerParam(GermaniumPREC, 0);
+
+    // Placeholders — I2C sensors not available via ZMQ yet
+    setDoubleParam(GermaniumTEMP1, 0.0);
+    setDoubleParam(GermaniumTEMP2, 0.0);
+    setDoubleParam(GermaniumTEMP3, 0.0);
+    setDoubleParam(GermaniumZTEMP, 0.0);
+    setDoubleParam(GermaniumHV, 0.0);
+    setDoubleParam(GermaniumHV_RBV, 0.0);
+    setDoubleParam(GermaniumHV_CURR, 0.0);
+    setDoubleParam(GermaniumP1, 0.0);
+    setDoubleParam(GermaniumP2, 0.0);
+    setDoubleParam(GermaniumP1_CURR, 0.0);
+    setDoubleParam(GermaniumP2_CURR, 0.0);
 
     callParamCallbacks();
 }

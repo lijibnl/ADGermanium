@@ -162,6 +162,11 @@
 #define GermaniumHvString           "GERMANIUM_HV"
 #define GermaniumHvRbvString        "GERMANIUM_HV_RBV"
 #define GermaniumHvCurrString       "GERMANIUM_HV_CURR"
+#define GermaniumP1String           "GERMANIUM_P1"
+#define GermaniumP2String           "GERMANIUM_P2"
+#define GermaniumP1CurrString       "GERMANIUM_P1_CURR"
+#define GermaniumP2CurrString       "GERMANIUM_P2_CURR"
+#define GermaniumAdcClkSkewString   "GERMANIUM_ADC_CLK_SKEW"
 
 //===========================================================================//
 
@@ -266,6 +271,8 @@ protected:
     int GermaniumCLRE, GermaniumCLRM, GermaniumCLRT, GermaniumSTRT, GermaniumSTOP;
     int GermaniumTEMP1, GermaniumTEMP2, GermaniumTEMP3, GermaniumZTEMP;
     int GermaniumHV, GermaniumHV_RBV, GermaniumHV_CURR;
+    int GermaniumP1, GermaniumP2, GermaniumP1_CURR, GermaniumP2_CURR;
+    int GermaniumADC_CLK_SKEW;
 
 private:
     // Data acquisition helpers

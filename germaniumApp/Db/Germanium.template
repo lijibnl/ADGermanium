@@ -57,6 +57,14 @@ record(bi, "$(P)$(R)Acquire_RBV") {
     field(DESC, "Acquisition status")
 }
 
+record(bo, "$(P)$(R)AutoCount") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CONT")
+    field(ZNAM, "OneShot")
+    field(ONAM, "AutoCount")
+    field(DESC, "Continuous acquisition mode")
+}
+
 # =====================================================================
 # Timing (areaDetector standard: AcquireTime)
 # =====================================================================
@@ -76,6 +84,37 @@ record(ai, "$(P)$(R)AcquireTime_RBV") {
     field(EGU,  "s")
     field(PREC, "3")
     field(DESC, "Acquisition time readback")
+}
+
+record(ao, "$(P)$(R)AcquireTime1") {
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TP1")
+    field(EGU,  "s")
+    field(PREC, "3")
+    field(VAL,  "1.0")
+    field(DESC, "Acquisition time preset 1")
+}
+
+record(longout, "$(P)$(R)RunNumber") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_RUNNO")
+    field(DESC, "Run number")
+}
+
+record(longin, "$(P)$(R)RunNumber_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_RUNNO")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Run number readback")
+}
+
+record(ai, "$(P)$(R)ElapsedTime") {
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_T")
+    field(SCAN, "I/O Intr")
+    field(EGU,  "s")
+    field(PREC, "1")
+    field(DESC, "Elapsed acquisition time")
 }
 
 # =====================================================================
@@ -353,6 +392,14 @@ record(waveform, "$(P)$(R)ChannelEnable") {
     field(DESC, "Channel enable array")
 }
 
+record(waveform, "$(P)$(R)Threshold") {
+    field(DTYP, "asynInt32ArrayOut")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_THRSH")
+    field(FTVL, "LONG")
+    field(NELM, "12")
+    field(DESC, "Per-chip threshold")
+}
+
 # =====================================================================
 # Test pulse settings
 # =====================================================================
@@ -443,7 +490,7 @@ record(ao, "$(P)$(R)FileSize") {
 record(ai, "$(P)$(R)Temperature1") {
     field(DTYP, "asynFloat64")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TEMP1")
-    field(SCAN, "5 second")
+    field(SCAN, "I/O Intr")
     field(EGU,  "C")
     field(PREC, "1")
     field(DESC, "Temperature sensor 1")
@@ -452,7 +499,7 @@ record(ai, "$(P)$(R)Temperature1") {
 record(ai, "$(P)$(R)Temperature2") {
     field(DTYP, "asynFloat64")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TEMP2")
-    field(SCAN, "5 second")
+    field(SCAN, "I/O Intr")
     field(EGU,  "C")
     field(PREC, "1")
     field(DESC, "Temperature sensor 2")
@@ -461,17 +508,93 @@ record(ai, "$(P)$(R)Temperature2") {
 record(ai, "$(P)$(R)Temperature3") {
     field(DTYP, "asynFloat64")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TEMP3")
-    field(SCAN, "5 second")
+    field(SCAN, "I/O Intr")
     field(EGU,  "C")
     field(PREC, "1")
     field(DESC, "Temperature sensor 3")
 }
 
-record(ai, "$(P)$(R)HV_RBV") {
+record(ai, "$(P)$(R)HighVoltage_RBV") {
     field(DTYP, "asynFloat64")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_HV_RBV")
-    field(SCAN, "5 second")
+    field(SCAN, "I/O Intr")
     field(EGU,  "V")
     field(PREC, "1")
     field(DESC, "High voltage readback")
+}
+
+record(ai, "$(P)$(R)HighVoltageCurrent") {
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_HV_CURR")
+    field(SCAN, "I/O Intr")
+    field(EGU,  "mA")
+    field(PREC, "2")
+    field(DESC, "High voltage current")
+}
+
+record(ai, "$(P)$(R)ZynqTemperature") {
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_ZTEMP")
+    field(SCAN, "I/O Intr")
+    field(EGU,  "C")
+    field(PREC, "1")
+    field(DESC, "Zynq internal temperature")
+}
+
+record(ao, "$(P)$(R)HighVoltage") {
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_HV")
+    field(EGU,  "V")
+    field(PREC, "1")
+    field(DESC, "High voltage setpoint")
+}
+
+# =====================================================================
+# Peltier control / readback (DAC7678 + LTC2309 on I2C bus 1)
+# =====================================================================
+
+record(ao, "$(P)$(R)Peltier1") {
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_P1")
+    field(EGU,  "V")
+    field(PREC, "2")
+    field(DESC, "Peltier 1 DAC setpoint")
+}
+
+record(ao, "$(P)$(R)Peltier2") {
+    field(DTYP, "asynFloat64")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_P2")
+    field(EGU,  "V")
+    field(PREC, "2")
+    field(DESC, "Peltier 2 DAC setpoint")
+}
+
+record(ai, "$(P)$(R)Peltier1Current") {
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_P1_CURR")
+    field(SCAN, "I/O Intr")
+    field(EGU,  "mA")
+    field(PREC, "2")
+    field(DESC, "Peltier 1 current readback")
+}
+
+record(ai, "$(P)$(R)Peltier2Current") {
+    field(DTYP, "asynFloat64")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_P2_CURR")
+    field(SCAN, "I/O Intr")
+    field(EGU,  "mA")
+    field(PREC, "2")
+    field(DESC, "Peltier 2 current readback")
+}
+
+# =====================================================================
+# ADC clock skew (AD9252 SPI — per-chip, 8 values)
+# =====================================================================
+
+record(waveform, "$(P)$(R)AdcClkSkew") {
+    field(DTYP, "asynInt32ArrayOut")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_ADC_CLK_SKEW")
+    field(FTVL, "LONG")
+    field(NELM, "12")
+    field(DESC, "ADC clock skew per chip")
 }

@@ -25,14 +25,14 @@ epicsEnvSet("NCHANS", "2048")
 epicsEnvSet("CBUFFS", "500")
 epicsEnvSet("EPICS_DB_INCLUDE_PATH", "$(ADCORE)/db")
 
-NDStdArraysConfigure("Image1", 5, 0, "$(PORT)", 0, 0)
-dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int32,FTVL=LONG,NELEMENTS=786432")
+#NDStdArraysConfigure("Image1", 5, 0, "$(PORT)", 0, 0)
+#dbLoadRecords("$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int32,FTVL=LONG,NELEMENTS=786432")
 
-< $(ADCORE)/iocBoot/commonPlugins.cmd
+#< $(ADCORE)/iocBoot/commonPlugins.cmd
 set_requestfile_path("$(ADGERMANIUM)/germaniumApp/Db")
 
 cd "${TOP}/iocBoot/${IOC}"
 iocInit
 
 # Save/restore
-create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
+#create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
