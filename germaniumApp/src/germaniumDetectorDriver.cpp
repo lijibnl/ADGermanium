@@ -110,6 +110,53 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     {
         status = zmqRegisterWrite(COUNT_MODE, value);
     }
+    else if (function == GermaniumTDS)
+    {
+        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_TDS, value);
+        if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
+    }
+
+    //------------------------------------------------------------------
+    // Chip/Channel selection
+    //------------------------------------------------------------------
+    else if (function == GermaniumCHIP)
+    {
+        int currentChan;
+        getIntegerParam(GermaniumCHAN, &currentChan);
+        int newChan = value * 32 + (currentChan % 32);
+        setIntegerParam(GermaniumCHAN, newChan);
+
+        int gmonMode;
+        getIntegerParam(GermaniumGMON, &gmonMode);
+        if (gmonMode == 5 && value >= 0 && value < nchips)
+        {
+            int monch;
+            getIntegerParam(GermaniumMONCH, &monch);
+            uint32_t chipBit = 1U << value;
+            zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
+            zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
+            zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+            status = zmqMarsLoad(chipBit);
+        }
+    }
+    else if (function == GermaniumCHAN)
+    {
+        int chip = value / 32;
+        int monch = value % 32;
+        setIntegerParam(GermaniumCHIP, chip);
+        setIntegerParam(GermaniumMONCH, monch);
+
+        int gmonMode;
+        getIntegerParam(GermaniumGMON, &gmonMode);
+        if (gmonMode == 5 && chip >= 0 && chip < nchips)
+        {
+            uint32_t chipBit = 1U << chip;
+            zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
+            zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
+            zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+            status = zmqMarsLoad(chipBit);
+        }
+    }
 
     //------------------------------------------------------------------
     // Acquisition control
@@ -204,6 +251,40 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             }
         }
         status = zmqMarsLoad(allChipMask);
+    }
+
+    //------------------------------------------------------------------
+    // Simplified channel enable / test-enable operations
+    //------------------------------------------------------------------
+    else if (function == GermaniumCHEN_SEL)
+    {
+        int chan;
+        getIntegerParam(GermaniumCHAN, &chan);
+        if (chan >= 0 && chan < numElements)
+        {
+            zmqMarsSetChannel(chan, MARS_CH_CHEN, value ? 1 : 0);
+            status = zmqMarsLoad((1U << nchips) - 1);
+        }
+    }
+    else if (function == GermaniumCHEN_ALL)
+    {
+        zmqMarsSetChannel(0xFFF, MARS_CH_CHEN, value ? 1 : 0);
+        status = zmqMarsLoad((1U << nchips) - 1);
+    }
+    else if (function == GermaniumTSEN_SEL)
+    {
+        int chan;
+        getIntegerParam(GermaniumCHAN, &chan);
+        if (chan >= 0 && chan < numElements)
+        {
+            zmqMarsSetChannel(chan, MARS_CH_TSEN, value ? 1 : 0);
+            status = zmqMarsLoad((1U << nchips) - 1);
+        }
+    }
+    else if (function == GermaniumTSEN_ALL)
+    {
+        zmqMarsSetChannel(0xFFF, MARS_CH_TSEN, value ? 1 : 0);
+        status = zmqMarsLoad((1U << nchips) - 1);
     }
 
     else
@@ -388,6 +469,99 @@ asynStatus germaniumDetector::drvUserCreate(asynUser *pasynUser, const char *drv
                                     const char **pptypeName, size_t *psize)
 {
     return ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);
+}
+
+//===========================================================================//
+
+asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
+{
+    int function = pasynUser->reason;
+    asynStatus status = asynSuccess;
+    uint32_t regVal = 0;
+
+    if (function == GermaniumVER)
+    {
+        status = zmqRegisterRead(VERSIONREG, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumVER, *value);
+        }
+    }
+    else if (function == GermaniumDETTYPE)
+    {
+        status = zmqRegisterRead(DETECTOR_TYPE, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumDETTYPE, *value);
+        }
+    }
+    else if (function == GermaniumTPAMP_RBV)
+    {
+        status = zmqRegisterRead(MARS_CALPULSE, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumTPAMP_RBV, *value);
+        }
+    }
+    else if (function == GermaniumTPFRQ_RBV)
+    {
+        status = zmqRegisterRead(CALPULSE_RATE, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumTPFRQ_RBV, *value);
+        }
+    }
+    else if (function == GermaniumTPCNT_RBV)
+    {
+        status = zmqRegisterRead(CALPULSE_CNT, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumTPCNT_RBV, *value);
+        }
+    }
+    else if (function == GermaniumTPENB_RBV)
+    {
+        status = zmqRegisterRead(CALPULSE_MODE, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumTPENB_RBV, *value);
+        }
+    }
+    else if (function == GermaniumPLDEL_RBV)
+    {
+        status = zmqRegisterRead(MARS_PIPE_DELAY, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumPLDEL_RBV, *value);
+        }
+    }
+    else if (function == GermaniumRODEL_RBV)
+    {
+        status = zmqRegisterRead(MARS_RDOUT_ENB, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsInt32>(regVal);
+            setIntegerParam(GermaniumRODEL_RBV, *value);
+        }
+    }
+    else
+    {
+        // Fall through to base class for standard AD parameters
+        status = ADDriver::readInt32(pasynUser, value);
+        return status;
+    }
+
+    if (status == asynSuccess)
+        callParamCallbacks();
+
+    return status;
 }
 
 //===========================================================================//

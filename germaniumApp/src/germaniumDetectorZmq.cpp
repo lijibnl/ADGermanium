@@ -22,6 +22,7 @@
 #include "germaniumDetector.hpp"
 #include <cstring>
 #include <cstdio>
+#include <arpa/inet.h>
 
 //===========================================================================//
 
@@ -221,14 +222,65 @@ asynStatus germaniumDetector::zmqRegisterWrite(uint32_t addr, uint32_t value)
     }
 
     epicsMutexUnlock(zmqMutex);
+
+    // Update readback (RBV) parameters from the echoed reply
+    updateRbvFromReply(addr, reply.value);
+
     return asynSuccess;
 }
 
 //===========================================================================//
 
 /*
- * Read a value from an FPGA register via ZMQ REQ-REP.
- *
+ * Update readback PVs based on echoed register write replies.
+ */
+void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
+{
+    switch (addr)
+    {
+        case MARS_CALPULSE:
+            setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
+            break;
+        case CALPULSE_RATE:
+            setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
+            break;
+        case CALPULSE_CNT:
+            setIntegerParam(GermaniumTPCNT_RBV, static_cast<int>(value));
+            break;
+        case CALPULSE_MODE:
+            setIntegerParam(GermaniumTPENB_RBV, static_cast<int>(value));
+            break;
+        case MARS_PIPE_DELAY:
+            setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
+            break;
+        case MARS_RDOUT_ENB:
+            setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
+            break;
+        case DETECTOR_TYPE:
+            setIntegerParam(GermaniumDETTYPE, static_cast<int>(value));
+            break;
+        case VERSIONREG:
+            setIntegerParam(GermaniumVER, static_cast<int>(value));
+            break;
+        case UDP_IP_ADDR:
+        {
+            uint32_t host = ntohl(value);
+            struct in_addr a;
+            a.s_addr = htonl(host);
+            char buf[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &a, buf, sizeof(buf));
+            setStringParam(GermaniumIPADDR_RBV, buf);
+            break;
+        }
+        default:
+            break;
+    }
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
+/*
  * Sends: [CMD_REG_READ, addr, 0] (3 x uint32_t = 12 bytes)
  * Receives: [CMD_REG_READ, addr, value] with value filled in
  */

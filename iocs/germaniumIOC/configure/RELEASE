@@ -1,5 +1,9 @@
 ADGERMANIUM=$(TOP)/../..
 
+EPICS_BASE = /epics/base
+ASYN = /epics/modules/asyn
+ADCORE = /epics/modules/ADCore
+
 -include $(TOP)/../../../configure/RELEASE_PRODS_INCLUDE
 -include $(TOP)/RELEASE.local
 -include $(TOP)/configure/RELEASE.local

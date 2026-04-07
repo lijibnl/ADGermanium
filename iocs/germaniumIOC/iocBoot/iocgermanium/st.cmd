@@ -6,15 +6,8 @@ errlogInit(20000)
 dbLoadDatabase("$(TOP)/dbd/germaniumDetector.dbd")
 germaniumDetector_registerRecordDeviceDriver(pdbbase)
 
-# PV prefix and asyn port
-epicsEnvSet("PREFIX", "XF:28IDC-ES:1{Det:GeRM1}")
-epicsEnvSet("PORT",   "GERM")
-
-# Detector configuration
-epicsEnvSet("NELM",   "192")       # Number of elements (96, 192, or 384)
-
-# Zynq IP address (PS network interface where ZMQ server runs)
-epicsEnvSet("ZYNQ_IP", "10.60.0.160")
+# Load environment specific configurations
+< env.lab
 
 # Create the Germanium detector driver
 # germaniumConfig(portName, numElements, ipAddress, maxAddr, numParams, maxBuffers, maxMemory)
@@ -22,7 +15,7 @@ germaniumConfig("$(PORT)", $(NELM), "$(ZYNQ_IP)", 0, 0, 50, 0)
 
 # Load detector PV records
 # MCA_NELM = NELM * 4096, TDC_NELM = NELM * 1024
-dbLoadRecords("$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX),R=,PORT=$(PORT),ADDR=0,NELM=$(NELM),MCA_NELM=786432,TDC_NELM=196608")
+dbLoadRecords("$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX),R=,PORT=$(PORT),ADDR=0,NELM=$(NELM),MCA_NELM=$(MCA_NELM),TDC_NELM=$(TDC_NELM)")
 
 # Standard areaDetector plugins
 epicsEnvSet("QSIZE",  "20")

@@ -137,6 +137,12 @@
 #define GermaniumSlpString          "GERMANIUM_SLP"
 #define GermaniumOffsString         "GERMANIUM_OFFS"
 
+/* Simplified channel enable/test-enable operations */
+#define GermaniumChenSelString      "GERMANIUM_CHEN_SEL"
+#define GermaniumChenAllString      "GERMANIUM_CHEN_ALL"
+#define GermaniumTsenSelString      "GERMANIUM_TSEN_SEL"
+#define GermaniumTsenAllString      "GERMANIUM_TSEN_ALL"
+
 /* Per-chip arrays */
 #define GermaniumThrshString        "GERMANIUM_THRSH"
 
@@ -170,6 +176,7 @@ public:
 
     // asynPortDriver overrides
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
+    virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
     virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
                                   size_t *nActual);
@@ -198,6 +205,7 @@ public:
     asynStatus zmqRegisterWrite(uint32_t addr, uint32_t value);
     asynStatus zmqRegisterRead(uint32_t addr, uint32_t *value);
     asynStatus zmqSendRecv(ZmqCommandMsg &msg, ZmqCommandMsg *reply);
+    void updateRbvFromReply(uint32_t addr, uint32_t value);
 
     // ZMQ MARS delta-config protocol (germaniumDetectorZmq.cpp)
     // Sends lightweight field updates; Zynq assembles + loads locally.
@@ -251,6 +259,7 @@ protected:
     int GermaniumTPAMP, GermaniumTPFRQ, GermaniumTPCNT, GermaniumTPENB;
     int GermaniumTPAMP_RBV, GermaniumTPFRQ_RBV, GermaniumTPCNT_RBV, GermaniumTPENB_RBV;
     int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
+    int GermaniumCHEN_SEL, GermaniumCHEN_ALL, GermaniumTSEN_SEL, GermaniumTSEN_ALL;
     int GermaniumSLP, GermaniumOFFS, GermaniumTHRSH;
     int GermaniumEGU, GermaniumPREC;
     int GermaniumCOUT, GermaniumCOUTP;

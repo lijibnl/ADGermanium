@@ -145,6 +145,126 @@ record(bo, "$(P)$(R)MultiFire") {
     field(DESC, "Multi-fire suppression")
 }
 
+record(ao, "$(P)$(R)TDCSlope") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TDS")
+    field(DESC, "TDC slope (timing ramp)")
+}
+
+record(mbbo, "$(P)$(R)TDCMode") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TDM")
+    field(ZRST, "ToA")
+    field(ONST, "ToT")
+    field(DESC, "TDC mode")
+}
+
+record(bo, "$(P)$(R)LeakageCurrent") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_EBLK")
+    field(ZNAM, "Off")
+    field(ONAM, "On")
+    field(DESC, "Input bias current enable")
+}
+
+record(mbbo, "$(P)$(R)CountMode") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_MODE")
+    field(ZRST, "Timed")
+    field(ONST, "Continuous")
+    field(DESC, "Counting mode")
+}
+
+# =====================================================================
+# Chip/channel selection and monitor
+# =====================================================================
+
+record(ao, "$(P)$(R)Chip") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHIP")
+    field(DESC, "Selected chip number")
+}
+
+record(ao, "$(P)$(R)Channel") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHAN")
+    field(DESC, "Selected channel number")
+}
+
+record(ao, "$(P)$(R)MonitorChannel") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_MONCH")
+    field(DESC, "Monitor channel in chip")
+}
+
+record(mbbo, "$(P)$(R)MonitorMode") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_GMON")
+    field(ZRST, "Off")
+    field(ONST, "Temperature")
+    field(TWST, "Baseline")
+    field(THST, "Threshold")
+    field(FRST, "TestPulse")
+    field(FVST, "Channel")
+    field(DESC, "Global monitor mode")
+}
+
+record(bo, "$(P)$(R)SimEventSel") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_LOAO")
+    field(ZNAM, "Real")
+    field(ONAM, "Simulated")
+    field(DESC, "Event source select")
+}
+
+# =====================================================================
+# Pipeline and readout delays
+# =====================================================================
+
+record(ao, "$(P)$(R)PipelineDelay") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_PLDEL")
+    field(DESC, "MARS pipeline delay")
+}
+
+record(ai, "$(P)$(R)PipelineDelay_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_PLDEL_RBV")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Pipeline delay readback")
+}
+
+record(ao, "$(P)$(R)ReadoutDelay") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_RODEL")
+    field(DESC, "Readout enable delay")
+}
+
+record(ai, "$(P)$(R)ReadoutDelay_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_RODEL_RBV")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Readout delay readback")
+}
+
+# =====================================================================
+# Hardware information
+# =====================================================================
+
+record(ai, "$(P)$(R)FirmwareVersion") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_FVER")
+    field(SCAN, "I/O Intr")
+    field(DESC, "FPGA firmware version")
+}
+
+record(ai, "$(P)$(R)DetectorType") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_DETTYPE")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Detector type code")
+}
+
 # =====================================================================
 # MCA spectrum data
 # =====================================================================
@@ -186,7 +306,43 @@ record(waveform, "$(P)$(R)Intensity") {
 }
 
 # =====================================================================
-# Channel enable array
+# Channel enable / Test pulse enable (simplified operations)
+# =====================================================================
+
+record(bo, "$(P)$(R)ChenSel") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN_SEL")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
+    field(DESC, "Enable/disable selected channel")
+}
+
+record(bo, "$(P)$(R)ChenAll") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN_ALL")
+    field(ZNAM, "Disable All")
+    field(ONAM, "Enable All")
+    field(DESC, "Enable/disable all channels")
+}
+
+record(bo, "$(P)$(R)TsenSel") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TSEN_SEL")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
+    field(DESC, "Test enable selected channel")
+}
+
+record(bo, "$(P)$(R)TsenAll") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TSEN_ALL")
+    field(ZNAM, "Disable All")
+    field(ONAM, "Enable All")
+    field(DESC, "Test enable all channels")
+}
+
+# =====================================================================
+# Channel enable array (bulk — kept for completeness)
 # =====================================================================
 
 record(waveform, "$(P)$(R)ChannelEnable") {
@@ -207,12 +363,54 @@ record(ao, "$(P)$(R)TestPulseAmplitude") {
     field(DESC, "Test pulse amplitude")
 }
 
+record(ai, "$(P)$(R)TestPulseAmplitude_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPAMP_RBV")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Test pulse amplitude readback")
+}
+
+record(ao, "$(P)$(R)TestPulseFrequency") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPFRQ")
+    field(DESC, "Test pulse frequency")
+}
+
+record(ai, "$(P)$(R)TestPulseFrequency_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPFRQ_RBV")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Test pulse frequency readback")
+}
+
+record(ao, "$(P)$(R)TestPulseCount") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPCNT")
+    field(DESC, "Test pulse count")
+}
+
+record(ai, "$(P)$(R)TestPulseCount_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPCNT_RBV")
+    field(SCAN, "I/O Intr")
+    field(DESC, "Test pulse count readback")
+}
+
 record(bo, "$(P)$(R)TestPulseEnable") {
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPENB")
     field(ZNAM, "Disable")
     field(ONAM, "Enable")
     field(DESC, "Test pulse enable/disable")
+}
+
+record(bi, "$(P)$(R)TestPulseEnable_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TPENB_RBV")
+    field(SCAN, "I/O Intr")
+    field(ZNAM, "Disable")
+    field(ONAM, "Enable")
+    field(DESC, "Test pulse enable readback")
 }
 
 # =====================================================================
