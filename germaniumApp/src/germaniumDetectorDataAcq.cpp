@@ -169,6 +169,9 @@ void germaniumDetector::dataProcessingThread()
 {
     printf("Germanium: Data processing thread started\n");
 
+    int arrayCounter = 0;
+    int colorMode = NDColorModeMono;
+
     while (threadsRunning)
     {
         epicsEventWaitWithTimeout(dataAvailable, 1.0);
@@ -176,6 +179,68 @@ void germaniumDetector::dataProcessingThread()
         setIntegerParam(GermaniumSS, acquisitionRunning ? 1 : 0);
         callParamCallbacks();
 
+        // Publish MCA and TDC as NDArrays for plugin chain
+        if (acquisitionRunning)
+        {
+            int arrayCallbacks;
+            getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
+
+            if (arrayCallbacks)
+            {
+                // --- MCA NDArray (SPECTRUM_SIZE × numElements, Int32) on addr 0 ---
+                size_t mcaDims[2] = { static_cast<size_t>(SPECTRUM_SIZE),
+                                      static_cast<size_t>(numElements) };
+                NDArray *pMCA = this->pNDArrayPool->alloc(2, mcaDims, NDInt32, 0, nullptr);
+                if (pMCA)
+                {
+                    epicsInt32 *pDest = static_cast<epicsInt32*>(pMCA->pData);
+                    size_t total = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+                    for (size_t i = 0; i < total; i++)
+                        pDest[i] = mcaData[i].load(std::memory_order_relaxed);
+
+                    pMCA->uniqueId = arrayCounter;
+                    updateTimeStamp(&pMCA->epicsTS);
+                    pMCA->timeStamp = pMCA->epicsTS.secPastEpoch
+                                    + pMCA->epicsTS.nsec * 1e-9;
+                    pMCA->pAttributeList->add("ColorMode", "Color mode",
+                        NDAttrInt32, &colorMode);
+
+                    this->unlock();
+                    doCallbacksGenericPointer(pMCA, NDArrayData, 0);
+                    this->lock();
+                    pMCA->release();
+                }
+
+                // --- TDC NDArray (TDC_SIZE × numElements, Int32) on addr 1 ---
+                size_t tdcDims[2] = { static_cast<size_t>(TDC_SIZE),
+                                      static_cast<size_t>(numElements) };
+                NDArray *pTDC = this->pNDArrayPool->alloc(2, tdcDims, NDInt32, 0, nullptr);
+                if (pTDC)
+                {
+                    epicsInt32 *pDest = static_cast<epicsInt32*>(pTDC->pData);
+                    size_t total = static_cast<size_t>(numElements) * TDC_SIZE;
+                    for (size_t i = 0; i < total; i++)
+                        pDest[i] = tdcData[i].load(std::memory_order_relaxed);
+
+                    pTDC->uniqueId = arrayCounter;
+                    updateTimeStamp(&pTDC->epicsTS);
+                    pTDC->timeStamp = pTDC->epicsTS.secPastEpoch
+                                    + pTDC->epicsTS.nsec * 1e-9;
+                    pTDC->pAttributeList->add("ColorMode", "Color mode",
+                        NDAttrInt32, &colorMode);
+
+                    this->unlock();
+                    doCallbacksGenericPointer(pTDC, NDArrayData, 1);
+                    this->lock();
+                    pTDC->release();
+                }
+
+                arrayCounter++;
+                setIntegerParam(NDArrayCounter, arrayCounter);
+            }
+        }
+
+        callParamCallbacks();
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
