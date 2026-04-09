@@ -207,6 +207,8 @@ public:
     // ZMQ communication (germaniumDetectorZmq.cpp)
     bool initializeZmq();
     void closeZmq();
+    inline int zmqTx( void* socket, ZmqCommandMsg* msg, size_t len, int flags);
+    inline int zmqRx( void* socket, ZmqCommandMsg* msg, size_t len, int flags);
     asynStatus zmqRegisterWrite(uint32_t addr, uint32_t value);
     asynStatus zmqRegisterRead(uint32_t addr, uint32_t *value);
     asynStatus zmqSendRecv(ZmqCommandMsg &msg, ZmqCommandMsg *reply);

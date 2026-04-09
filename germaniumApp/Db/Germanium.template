@@ -132,6 +132,14 @@ record(mbbo, "$(P)$(R)ShapingTime") {
     field(FVST, "4.0us")
     field(SXST, "8.0us")
     field(SVST, "16.0us")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(TWVL, 2)
+    field(THVL, 3)
+    field(FRVL, 4)
+    field(FVVL, 5)
+    field(SXVL, 6)
+    field(SVVL, 7)
     field(DESC, "Amplifier shaping time")
 }
 
@@ -147,6 +155,14 @@ record(mbbi, "$(P)$(R)ShapingTime_RBV") {
     field(FVST, "4.0us")
     field(SXST, "8.0us")
     field(SVST, "16.0us")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(TWVL, 2)
+    field(THVL, 3)
+    field(FRVL, 4)
+    field(FVVL, 5)
+    field(SXVL, 6)
+    field(SVVL, 7)
     field(DESC, "Shaping time readback")
 }
 
@@ -157,6 +173,10 @@ record(mbbo, "$(P)$(R)Gain") {
     field(ONST, "120keV")
     field(TWST, "60keV")
     field(THST, "30keV")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(TWVL, 2)
+    field(THVL, 3)
     field(DESC, "Gain setting")
 }
 
@@ -195,6 +215,8 @@ record(mbbo, "$(P)$(R)TDCMode") {
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TDM")
     field(ZRST, "ToA")
     field(ONST, "ToT")
+    field(ZRVL, 0)
+    field(ONVL, 1)
     field(DESC, "TDC mode")
 }
 
@@ -211,7 +233,30 @@ record(mbbo, "$(P)$(R)CountMode") {
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_MODE")
     field(ZRST, "Timed")
     field(ONST, "Continuous")
+    field(ZRVL, 0)
+    field(ONVL, 1)
     field(DESC, "Counting mode")
+}
+
+record(mbbo, "$(P)$(R)ImageMode") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_MODE")
+    field(ZRST, "Timed")
+    field(ONST, "Continuous")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(DESC, "Image acquisition mode")
+}
+
+record(mbbi, "$(P)$(R)ImageMode_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_MODE")
+    field(SCAN, "I/O Intr")
+    field(ZRST, "Timed")
+    field(ONST, "Continuous")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(DESC, "Image mode readback")
 }
 
 # =====================================================================
@@ -245,6 +290,12 @@ record(mbbo, "$(P)$(R)MonitorMode") {
     field(THST, "Threshold")
     field(FRST, "TestPulse")
     field(FVST, "Channel")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(TWVL, 2)
+    field(THVL, 3)
+    field(FRVL, 4)
+    field(FVVL, 5)
     field(DESC, "Global monitor mode")
 }
 

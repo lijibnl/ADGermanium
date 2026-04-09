@@ -178,7 +178,24 @@ void germaniumDetector::closeZmq()
 }
 
 //===========================================================================//
+// ZMQ message Tx/Rx wrappers.
+//
+int germaniumDetector::zmqTx( void* socket, ZmqCommandMsg* msg, size_t len, int flags)
+{
+    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n\n",
+           __func__, msg->cmd, msg->addr, msg->value);
+    return zmq_send( socket, msg, len, flags );
+}
 
+int germaniumDetector::zmqRx( void* socket, ZmqCommandMsg* msg, size_t len, int flags)
+{
+    int rc = zmq_recv(socket, msg, len, flags);
+    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n",
+           __func__, msg->cmd, msg->addr, msg->value);
+    return rc;
+}
+
+//===========================================================================//
 /*
  * Write a value to an FPGA register via ZMQ REQ-REP.
  *
@@ -198,10 +215,13 @@ asynStatus germaniumDetector::zmqRegisterWrite(uint32_t addr, uint32_t value)
     msg.addr  = addr;
     msg.value = value;
 
+    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n",
+           __func__, msg.cmd, msg.addr, msg.value);
+
     epicsMutexLock(zmqMutex);
 
     // Send command
-    int rc = zmq_send(zmqControlSocket, &msg, sizeof(msg), 0);
+    int rc = zmqTx(zmqControlSocket, &msg, sizeof(msg), 0);
     if (rc != sizeof(msg))
     {
         printf("Germanium: ZMQ send failed for write reg %u: %s\n",
@@ -212,7 +232,7 @@ asynStatus germaniumDetector::zmqRegisterWrite(uint32_t addr, uint32_t value)
 
     // Wait for reply (REQ-REP pattern requires recv after send)
     ZmqCommandMsg reply;
-    rc = zmq_recv(zmqControlSocket, &reply, sizeof(reply), 0);
+    rc = zmqRx(zmqControlSocket, &reply, sizeof(reply), 0);
     if (rc != sizeof(reply))
     {
         printf("Germanium: ZMQ recv failed for write reg %u: %s\n",
@@ -300,7 +320,7 @@ asynStatus germaniumDetector::zmqRegisterRead(uint32_t addr, uint32_t *value)
     epicsMutexLock(zmqMutex);
 
     // Send command
-    int rc = zmq_send(zmqControlSocket, &msg, sizeof(msg), 0);
+    int rc = zmqTx(zmqControlSocket, &msg, sizeof(msg), 0);
     if (rc != sizeof(msg))
     {
         printf("Germanium: ZMQ send failed for read reg %u: %s\n",
@@ -311,7 +331,7 @@ asynStatus germaniumDetector::zmqRegisterRead(uint32_t addr, uint32_t *value)
 
     // Wait for reply
     ZmqCommandMsg reply;
-    rc = zmq_recv(zmqControlSocket, &reply, sizeof(reply), 0);
+    rc = zmqRx(zmqControlSocket, &reply, sizeof(reply), 0);
     if (rc != sizeof(reply))
     {
         printf("Germanium: ZMQ recv failed for read reg %u: %s\n",
@@ -338,14 +358,14 @@ asynStatus germaniumDetector::zmqSendRecv(ZmqCommandMsg &msg, ZmqCommandMsg *rep
 
     epicsMutexLock(zmqMutex);
 
-    int rc = zmq_send(zmqControlSocket, &msg, sizeof(msg), 0);
+    int rc = zmqTx(zmqControlSocket, &msg, sizeof(msg), 0);
     if (rc != sizeof(msg))
     {
         epicsMutexUnlock(zmqMutex);
         return asynError;
     }
 
-    rc = zmq_recv(zmqControlSocket, reply, sizeof(*reply), 0);
+    rc = zmqRx(zmqControlSocket, reply, sizeof(*reply), 0);
     if (rc != sizeof(*reply))
     {
         epicsMutexUnlock(zmqMutex);
@@ -371,6 +391,9 @@ asynStatus germaniumDetector::zmqMarsSetGlobal(uint32_t chipMask, MarsGlobalFiel
     msg.cmd   = ZMQ_CMD_MARS_SET_GLOBAL;
     msg.addr  = (chipMask << 16) | static_cast<uint32_t>(field);
     msg.value = value;
+
+    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n\n",
+           __func__, msg.cmd, msg.addr, msg.value);
 
     ZmqCommandMsg reply;
     return zmqSendRecv(msg, &reply);

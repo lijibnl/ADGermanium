@@ -46,6 +46,8 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumGAIN)
     {
+        printf("[%s] - GAIN: value=0x%08X\n",
+               __func__, value);
         status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_GAIN, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
@@ -108,7 +110,10 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumMODE)
     {
-        status = zmqRegisterWrite(COUNT_MODE, value);
+        int modeReg = value ? 1 : 0;
+        status = zmqRegisterWrite(COUNT_MODE, modeReg);
+        if (status == asynSuccess)
+            setIntegerParam(GermaniumMODE, modeReg);
     }
     else if (function == GermaniumTDS)
     {
@@ -549,6 +554,16 @@ asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
         {
             *value = static_cast<epicsInt32>(regVal);
             setIntegerParam(GermaniumRODEL_RBV, *value);
+        }
+    }
+    else if (function == GermaniumMODE)
+    {
+        status = zmqRegisterRead(COUNT_MODE, &regVal);
+        if (status == asynSuccess)
+        {
+            int modeReg = regVal ? 1 : 0;
+            *value = modeReg;
+            setIntegerParam(GermaniumMODE, modeReg);
         }
     }
     else
