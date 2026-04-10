@@ -166,7 +166,9 @@
 #define GermaniumP2String           "GERMANIUM_P2"
 #define GermaniumP1CurrString       "GERMANIUM_P1_CURR"
 #define GermaniumP2CurrString       "GERMANIUM_P2_CURR"
-#define GermaniumAdcClkSkewString   "GERMANIUM_ADC_CLK_SKEW"
+#define GermaniumAdc0ClkSkewString  "GERMANIUM_ADC0_CLK_SKEW"
+#define GermaniumAdc1ClkSkewString  "GERMANIUM_ADC1_CLK_SKEW"
+#define GermaniumAdc2ClkSkewString  "GERMANIUM_ADC2_CLK_SKEW"
 
 //===========================================================================//
 
@@ -183,6 +185,7 @@ public:
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
     virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);
     virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
+    virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
     virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
                                   size_t *nActual);
     virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
@@ -274,7 +277,7 @@ protected:
     int GermaniumTEMP1, GermaniumTEMP2, GermaniumTEMP3, GermaniumZTEMP;
     int GermaniumHV, GermaniumHV_RBV, GermaniumHV_CURR;
     int GermaniumP1, GermaniumP2, GermaniumP1_CURR, GermaniumP2_CURR;
-    int GermaniumADC_CLK_SKEW;
+    int GermaniumADC0_CLK_SKEW, GermaniumADC1_CLK_SKEW, GermaniumADC2_CLK_SKEW;
 
 private:
     // Data acquisition helpers

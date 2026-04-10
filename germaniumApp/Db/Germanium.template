@@ -238,27 +238,6 @@ record(mbbo, "$(P)$(R)CountMode") {
     field(DESC, "Counting mode")
 }
 
-record(mbbo, "$(P)$(R)ImageMode") {
-    field(DTYP, "asynInt32")
-    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_MODE")
-    field(ZRST, "Timed")
-    field(ONST, "Continuous")
-    field(ZRVL, 0)
-    field(ONVL, 1)
-    field(DESC, "Image acquisition mode")
-}
-
-record(mbbi, "$(P)$(R)ImageMode_RBV") {
-    field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_MODE")
-    field(SCAN, "I/O Intr")
-    field(ZRST, "Timed")
-    field(ONST, "Continuous")
-    field(ZRVL, 0)
-    field(ONVL, 1)
-    field(DESC, "Image mode readback")
-}
-
 # =====================================================================
 # Chip/channel selection and monitor
 # =====================================================================
@@ -437,7 +416,7 @@ record(bo, "$(P)$(R)TsenAll") {
 
 record(waveform, "$(P)$(R)ChannelEnable") {
     field(DTYP, "asynInt8ArrayOut")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN")
     field(FTVL, "CHAR")
     field(NELM, "$(NELM=192)")
     field(DESC, "Channel enable array")
@@ -445,7 +424,7 @@ record(waveform, "$(P)$(R)ChannelEnable") {
 
 record(waveform, "$(P)$(R)Threshold") {
     field(DTYP, "asynInt32ArrayOut")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_THRSH")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_THRSH")
     field(FTVL, "LONG")
     field(NELM, "12")
     field(DESC, "Per-chip threshold")
@@ -639,13 +618,23 @@ record(ai, "$(P)$(R)Peltier2Current") {
 }
 
 # =====================================================================
-# ADC clock skew (AD9252 SPI — per-chip, 8 values)
+# ADC clock skew (AD9252 SPI — one register per ADC)
 # =====================================================================
 
-record(waveform, "$(P)$(R)AdcClkSkew") {
-    field(DTYP, "asynInt32ArrayOut")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_ADC_CLK_SKEW")
-    field(FTVL, "LONG")
-    field(NELM, "12")
-    field(DESC, "ADC clock skew per chip")
+record(ao, "$(P)$(R)Adc0ClkSkew") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_ADC0_CLK_SKEW")
+    field(DESC, "ADC 0 clock skew")
+}
+
+record(ao, "$(P)$(R)Adc1ClkSkew") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_ADC1_CLK_SKEW")
+    field(DESC, "ADC 1 clock skew")
+}
+
+record(ao, "$(P)$(R)Adc2ClkSkew") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_ADC2_CLK_SKEW")
+    field(DESC, "ADC 2 clock skew")
 }

@@ -120,6 +120,18 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_TDS, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
+    else if (function == GermaniumADC0_CLK_SKEW)
+    {
+        status = zmqRegisterWrite(ADC_SPI, static_cast<uint32_t>(value));
+    }
+    else if (function == GermaniumADC1_CLK_SKEW)
+    {
+        status = zmqRegisterWrite(ADC_SPI, static_cast<uint32_t>(value));
+    }
+    else if (function == GermaniumADC2_CLK_SKEW)
+    {
+        status = zmqRegisterWrite(ADC_SPI, static_cast<uint32_t>(value));
+    }
 
     //------------------------------------------------------------------
     // Chip/Channel selection
@@ -328,6 +340,11 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
         uint32_t delayReg = static_cast<uint32_t>(value * 1000);
         status = zmqRegisterWrite(TD_CAL, delayReg);
     }
+    else if (function == GermaniumHV)
+    {
+        uint32_t hvReg = static_cast<uint32_t>(8.19 * value);
+        status = zmqRegisterWrite(HV, hvReg);
+    }
     else
     {
         // Locally stored parameters (FREQ, RATE, RAT1, etc.)
@@ -373,6 +390,103 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
         callParamCallbacks();
 
     *nActual = strlen(value);
+    return status;
+}
+
+//===========================================================================//
+
+asynStatus germaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *value)
+{
+    int function = pasynUser->reason;
+    asynStatus status = asynSuccess;
+    uint32_t regVal = 0;
+
+    if (function == GermaniumTP)
+    {
+        uint32_t low = 0;
+        uint32_t high = 0;
+        status = zmqRegisterRead(COUNT_TIME_LO, &low);
+        if (status == asynSuccess)
+            status = zmqRegisterRead(COUNT_TIME_HI, &high);
+        if (status == asynSuccess)
+        {
+            uint64_t ticks = (static_cast<uint64_t>(high) << 32) | low;
+            *value = static_cast<epicsFloat64>(ticks) / 25.0e6;
+            setDoubleParam(GermaniumTP, *value);
+        }
+    }
+    else if (function == GermaniumT)
+    {
+        status = zmqRegisterRead(EVENT_TIME_CNTR, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsFloat64>(regVal) / 25.0e6;
+            setDoubleParam(GermaniumT, *value);
+        }
+    }
+    else if (function == GermaniumTEMP1)
+    {
+        status = zmqRegisterRead(TEMP1, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsFloat64>(regVal >> 4) * 0.0625;
+            setDoubleParam(GermaniumTEMP1, *value);
+        }
+    }
+    else if (function == GermaniumTEMP2)
+    {
+        status = zmqRegisterRead(TEMP2, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsFloat64>(regVal >> 4) * 0.0625;
+            setDoubleParam(GermaniumTEMP2, *value);
+        }
+    }
+    else if (function == GermaniumTEMP3)
+    {
+        status = zmqRegisterRead(TEMP3, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsFloat64>(regVal >> 4) * 0.0625;
+            setDoubleParam(GermaniumTEMP3, *value);
+        }
+    }
+    else if (function == GermaniumZTEMP)
+    {
+        status = zmqRegisterRead(ZTEMP, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = 503.975 * static_cast<epicsFloat64>(regVal) / 4096.0 - 273.15;
+            setDoubleParam(GermaniumZTEMP, *value);
+        }
+    }
+    else if (function == GermaniumHV_RBV)
+    {
+        status = zmqRegisterRead(HV_RBV, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsFloat64>(regVal) * 0.122100122;
+            setDoubleParam(GermaniumHV_RBV, *value);
+        }
+    }
+    else if (function == GermaniumHV_CURR)
+    {
+        status = zmqRegisterRead(HV_CURR, &regVal);
+        if (status == asynSuccess)
+        {
+            *value = static_cast<epicsFloat64>(regVal) * 0.001220703;
+            setDoubleParam(GermaniumHV_CURR, *value);
+        }
+    }
+    else
+    {
+        return ADDriver::readFloat64(pasynUser, value);
+    }
+
+    if (status != asynSuccess)
+        return ADDriver::readFloat64(pasynUser, value);
+
+    callParamCallbacks();
     return status;
 }
 
