@@ -114,11 +114,23 @@ match_event() {
 
     if (( hit == 1 )); then
       local exts="${WATCH_EXTS[$d]}"
-      if [[ "$file" =~ \.($exts)$ ]]; then
-        MATCH_DIR="$d"
-        MATCH_REASON="$(basename "$d") change: $file ($event)"
-        return 0
-      fi
+      IFS='|' read -ra extarr <<< "$exts"
+      for ext in "${extarr[@]}"; do
+        if [[ "$ext" == "Makefile" || "$ext" == "Makefile" ]]; then
+          # Match files named exactly 'Makefile' (or any extensionless name in the list)
+          if [[ "$file" == "$ext" ]]; then
+            MATCH_DIR="$d"
+            MATCH_REASON="$(basename "$d") change: $file ($event)"
+            return 0
+          fi
+        fi
+        # Match files with extension
+        if [[ "$file" =~ \.${ext}$ ]]; then
+          MATCH_DIR="$d"
+          MATCH_REASON="$(basename "$d") change: $file ($event)"
+          return 0
+        fi
+      done
     fi
   done
 
