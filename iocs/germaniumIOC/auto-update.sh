@@ -54,6 +54,12 @@ git_poll_loop() {
 
     if [[ "$local_sha" != "$remote_sha" ]]; then
       echo "[GitPoll] $(date '+%Y-%m-%d %H:%M:%S')  New commits: ${local_sha:0:7} -> ${remote_sha:0:7}"
+      # Stash any local/untracked changes that would block the merge
+      if ! git -C "$MOD_DIR" diff --quiet 2>/dev/null || \
+         [[ -n "$(git -C "$MOD_DIR" ls-files --others --exclude-standard 2>/dev/null)" ]]; then
+        git -C "$MOD_DIR" stash push --include-untracked --quiet -m "auto-update stash" 2>/dev/null
+        echo "[GitPoll]   Stashed local changes"
+      fi
       git -C "$MOD_DIR" pull --ff-only origin "$GIT_BRANCH" --quiet 2>&1 | \
         while IFS= read -r line; do echo "[GitPoll]   $line"; done
       echo "[GitPoll] Pull complete — inotify will trigger rebuild"

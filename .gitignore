@@ -9,3 +9,6 @@ O.*/
 *.so
 *_registerRecordDeviceDriver.cpp
 envPaths
+.vscode/
+pv.list
+.iocsh_history
