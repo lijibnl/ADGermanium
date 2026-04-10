@@ -55,3 +55,5 @@ iocInit
 
 # Save/restore
 create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
+
+dbl > pv.list

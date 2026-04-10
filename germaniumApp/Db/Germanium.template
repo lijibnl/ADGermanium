@@ -327,11 +327,15 @@ record(ai, "$(P)$(R)FirmwareVersion") {
     field(DESC, "FPGA firmware version")
 }
 
-record(ai, "$(P)$(R)DetectorType") {
+record(mbbi, "$(P)$(R)DetectorType") {
     field(DTYP, "asynInt32")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_DETTYPE")
     field(SCAN, "I/O Intr")
-    field(DESC, "Detector type code")
+    field(DESC, "Detector type")
+    field(ZRST, "Germanium-192")
+    field(ZRVL, "0")
+    field(ONST, "Germanium-384")
+    field(ONVL, "1")
 }
 
 # =====================================================================
@@ -416,7 +420,7 @@ record(bo, "$(P)$(R)TsenAll") {
 
 record(waveform, "$(P)$(R)ChannelEnable") {
     field(DTYP, "asynInt8ArrayOut")
-    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_CHEN")
     field(FTVL, "CHAR")
     field(NELM, "$(NELM=192)")
     field(DESC, "Channel enable array")
@@ -424,7 +428,7 @@ record(waveform, "$(P)$(R)ChannelEnable") {
 
 record(waveform, "$(P)$(R)Threshold") {
     field(DTYP, "asynInt32ArrayOut")
-    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_THRSH")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_THRSH")
     field(FTVL, "LONG")
     field(NELM, "12")
     field(DESC, "Per-chip threshold")
@@ -637,4 +641,22 @@ record(ao, "$(P)$(R)Adc2ClkSkew") {
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_ADC2_CLK_SKEW")
     field(DESC, "ADC 2 clock skew")
+}
+
+# =====================================================================
+# Zynq server log level (bitmask: 1=error, 2=warn, 4=debug; 7=all)
+# =====================================================================
+
+record(mbbo, "$(P)$(R)LogLevel") {
+    field(DTYP, "asynInt32")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_LOG_LEVEL")
+    field(DESC, "Zynq server log level")
+    field(ZRST, "Errors only")
+    field(ZRVL, "1")
+    field(ONST, "Errors+Warnings")
+    field(ONVL, "3")
+    field(TWST, "All")
+    field(TWVL, "7")
+    field(VAL,  "2")
+    field(PINI, "YES")
 }

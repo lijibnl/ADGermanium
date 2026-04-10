@@ -315,6 +315,7 @@ void germaniumDetector::createGermaniumParameters()
     createParam(GermaniumAdc0ClkSkewString, asynParamInt32, &GermaniumADC0_CLK_SKEW);
     createParam(GermaniumAdc1ClkSkewString, asynParamInt32, &GermaniumADC1_CLK_SKEW);
     createParam(GermaniumAdc2ClkSkewString, asynParamInt32, &GermaniumADC2_CLK_SKEW);
+    createParam(GermaniumLogLevelString,     asynParamInt32, &GermaniumLOG_LEVEL);
 }
 
 //===========================================================================//

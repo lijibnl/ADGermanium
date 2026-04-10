@@ -169,6 +169,7 @@
 #define GermaniumAdc0ClkSkewString  "GERMANIUM_ADC0_CLK_SKEW"
 #define GermaniumAdc1ClkSkewString  "GERMANIUM_ADC1_CLK_SKEW"
 #define GermaniumAdc2ClkSkewString  "GERMANIUM_ADC2_CLK_SKEW"
+#define GermaniumLogLevelString     "GERMANIUM_LOG_LEVEL"
 
 //===========================================================================//
 
@@ -283,6 +284,7 @@ protected:
     int GermaniumHV, GermaniumHV_RBV, GermaniumHV_CURR;
     int GermaniumP1, GermaniumP2, GermaniumP1_CURR, GermaniumP2_CURR;
     int GermaniumADC0_CLK_SKEW, GermaniumADC1_CLK_SKEW, GermaniumADC2_CLK_SKEW;
+    int GermaniumLOG_LEVEL;
 
 private:
     // Data acquisition helpers

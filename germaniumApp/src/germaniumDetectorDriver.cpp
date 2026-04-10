@@ -130,6 +130,10 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     {
         status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 3, static_cast<uint32_t>(value));
     }
+    else if (function == GermaniumLOG_LEVEL)
+    {
+        status = zmqTx(ZMQ_CMD_SET_LOG_LEVEL, 0, static_cast<uint32_t>(value));
+    }
 
     //------------------------------------------------------------------
     // Chip/Channel selection
