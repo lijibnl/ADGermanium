@@ -1,10 +1,9 @@
 /**
  * @file germaniumDetectorDriver.cpp
- * @brief asynPortDriver interface implementations for germaniumDetector (ZMQ version).
+ * @brief asynPortDriver interface implementations for germaniumDetector (async ZMQ version).
  *
- * All register operations use zmqRegisterWrite/Read instead of UDP.
- * MARS configuration operations that require non-register access (I2C, SPI)
- * are not supported by the current C ZMQ server and are noted as such.
+ * All operations use zmqTx() for fire-and-forget writes.
+ * Reads return cached values; the Control Rx thread updates the cache.
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
@@ -46,8 +45,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumGAIN)
     {
-        printf("[%s] - GAIN: value=0x%08X\n",
-               __func__, value);
+        asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s: GAIN: value=0x%08X\n", portName, value);
         status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_GAIN, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
@@ -82,36 +80,36 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     //------------------------------------------------------------------
     else if (function == GermaniumTPAMP)
     {
-        status = zmqRegisterWrite(MARS_CALPULSE, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_CALPULSE, value);
     }
     else if (function == GermaniumTPFRQ)
     {
-        status = zmqRegisterWrite(CALPULSE_RATE, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_RATE, value);
     }
     else if (function == GermaniumTPCNT)
     {
-        status = zmqRegisterWrite(CALPULSE_CNT, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_CNT, value);
     }
     else if (function == GermaniumTPENB)
     {
-        status = zmqRegisterWrite(CALPULSE_MODE, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_MODE, value);
     }
     else if (function == GermaniumPLDEL)
     {
-        status = zmqRegisterWrite(MARS_PIPE_DELAY, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_PIPE_DELAY, value);
     }
     else if (function == GermaniumRODEL)
     {
-        status = zmqRegisterWrite(MARS_RDOUT_ENB, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_RDOUT_ENB, value);
     }
     else if (function == GermaniumLOAO)
     {
-        status = zmqRegisterWrite(SIM_EVT_SEL, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, SIM_EVT_SEL, value);
     }
     else if (function == GermaniumMODE)
     {
         int modeReg = value ? 1 : 0;
-        status = zmqRegisterWrite(COUNT_MODE, modeReg);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, COUNT_MODE, modeReg);
         if (status == asynSuccess)
             setIntegerParam(GermaniumMODE, modeReg);
     }
@@ -122,15 +120,15 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumADC0_CLK_SKEW)
     {
-        status = zmqRegisterWrite(ADC_SPI, static_cast<uint32_t>(value));
+        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 1, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumADC1_CLK_SKEW)
     {
-        status = zmqRegisterWrite(ADC_SPI, static_cast<uint32_t>(value));
+        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 2, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumADC2_CLK_SKEW)
     {
-        status = zmqRegisterWrite(ADC_SPI, static_cast<uint32_t>(value));
+        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 3, static_cast<uint32_t>(value));
     }
 
     //------------------------------------------------------------------
@@ -331,19 +329,31 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
     {
         // Time preset in seconds → FPGA COUNT_TIME registers (25 MHz clock)
         uint64_t ticks = static_cast<uint64_t>(value * 25.0e6);
-        status = zmqRegisterWrite(COUNT_TIME_LO, static_cast<uint32_t>(ticks & 0xFFFFFFFF));
-        if (status == asynSuccess)
-            status = zmqRegisterWrite(COUNT_TIME_HI, static_cast<uint32_t>(ticks >> 32));
+        zmqTx(ZMQ_CMD_REG_WRITE, COUNT_TIME_LO, static_cast<uint32_t>(ticks & 0xFFFFFFFF));
+        status = zmqTx(ZMQ_CMD_REG_WRITE, COUNT_TIME_HI, static_cast<uint32_t>(ticks >> 32));
     }
     else if (function == GermaniumDLY)
     {
         uint32_t delayReg = static_cast<uint32_t>(value * 1000);
-        status = zmqRegisterWrite(TD_CAL, delayReg);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, TD_CAL, delayReg);
     }
     else if (function == GermaniumHV)
     {
-        uint32_t hvReg = static_cast<uint32_t>(8.19 * value);
-        status = zmqRegisterWrite(HV, hvReg);
+        // DAC7678 channel 5 for HV, scale: 8.19 counts/V
+        uint32_t dacCode = static_cast<uint32_t>(8.19 * value);
+        status = zmqTx(ZMQ_CMD_I2C_DAC_WRITE, DAC_CH_HV, dacCode);
+    }
+    else if (function == GermaniumP1)
+    {
+        // DAC7678 channel 6 for Peltier 1, scale: 819 counts/V
+        uint32_t dacCode = static_cast<uint32_t>(819.0 * value);
+        status = zmqTx(ZMQ_CMD_I2C_DAC_WRITE, DAC_CH_P1, dacCode);
+    }
+    else if (function == GermaniumP2)
+    {
+        // DAC7678 channel 2 for Peltier 2, scale: 819 counts/V
+        uint32_t dacCode = static_cast<uint32_t>(819.0 * value);
+        status = zmqTx(ZMQ_CMD_I2C_DAC_WRITE, DAC_CH_P2, dacCode);
     }
     else
     {
@@ -378,12 +388,12 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
         struct in_addr addr;
         if (inet_pton(AF_INET, value, &addr) != 1)
         {
-            printf("Germanium: Invalid IP address '%s'\n", value);
+            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: invalid IP address '%s'\n", portName, value);
             return asynError;
         }
         // Write to FPGA register for PL UDP destination
         // inet_pton produces network byte order; FPGA expects host byte order
-        status = zmqRegisterWrite(UDP_IP_ADDR, ntohl(addr.s_addr));
+        status = zmqTx(ZMQ_CMD_REG_WRITE, UDP_IP_ADDR, ntohl(addr.s_addr));
     }
 
     if (status == asynSuccess)
@@ -399,94 +409,70 @@ asynStatus germaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *val
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
-    uint32_t regVal = 0;
+
+    //------------------------------------------------------------------
+    // Async model: return cached value, queue a read request.
+    // The Control Rx thread updates the cache when the reply arrives.
+    // EPICS SCAN drives the polling rate.
+    //------------------------------------------------------------------
 
     if (function == GermaniumTP)
     {
-        uint32_t low = 0;
-        uint32_t high = 0;
-        status = zmqRegisterRead(COUNT_TIME_LO, &low);
-        if (status == asynSuccess)
-            status = zmqRegisterRead(COUNT_TIME_HI, &high);
-        if (status == asynSuccess)
-        {
-            uint64_t ticks = (static_cast<uint64_t>(high) << 32) | low;
-            *value = static_cast<epicsFloat64>(ticks) / 25.0e6;
-            setDoubleParam(GermaniumTP, *value);
-        }
+        // Request both COUNT_TIME registers; cache updated by processReply
+        zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_LO, 0);
+        zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_HI, 0);
+        getDoubleParam(GermaniumTP, value);
     }
     else if (function == GermaniumT)
     {
-        status = zmqRegisterRead(EVENT_TIME_CNTR, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsFloat64>(regVal) / 25.0e6;
-            setDoubleParam(GermaniumT, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, EVENT_TIME_CNTR, 0);
+        getDoubleParam(GermaniumT, value);
     }
     else if (function == GermaniumTEMP1)
     {
-        status = zmqRegisterRead(TEMP1, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsFloat64>(regVal >> 4) * 0.0625;
-            setDoubleParam(GermaniumTEMP1, *value);
-        }
+        zmqTx(ZMQ_CMD_I2C_TEMP_READ, 0, 0);
+        getDoubleParam(GermaniumTEMP1, value);
     }
     else if (function == GermaniumTEMP2)
     {
-        status = zmqRegisterRead(TEMP2, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsFloat64>(regVal >> 4) * 0.0625;
-            setDoubleParam(GermaniumTEMP2, *value);
-        }
+        zmqTx(ZMQ_CMD_I2C_TEMP_READ, 1, 0);
+        getDoubleParam(GermaniumTEMP2, value);
     }
     else if (function == GermaniumTEMP3)
     {
-        status = zmqRegisterRead(TEMP3, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsFloat64>(regVal >> 4) * 0.0625;
-            setDoubleParam(GermaniumTEMP3, *value);
-        }
+        zmqTx(ZMQ_CMD_I2C_TEMP_READ, 2, 0);
+        getDoubleParam(GermaniumTEMP3, value);
     }
     else if (function == GermaniumZTEMP)
     {
-        status = zmqRegisterRead(ZTEMP, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = 503.975 * static_cast<epicsFloat64>(regVal) / 4096.0 - 273.15;
-            setDoubleParam(GermaniumZTEMP, *value);
-        }
+        zmqTx(ZMQ_CMD_XADC_READ, 0, 0);
+        getDoubleParam(GermaniumZTEMP, value);
     }
     else if (function == GermaniumHV_RBV)
     {
-        status = zmqRegisterRead(HV_RBV, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsFloat64>(regVal) * 0.122100122;
-            setDoubleParam(GermaniumHV_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_RBV, 0);
+        getDoubleParam(GermaniumHV_RBV, value);
     }
     else if (function == GermaniumHV_CURR)
     {
-        status = zmqRegisterRead(HV_CURR, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsFloat64>(regVal) * 0.001220703;
-            setDoubleParam(GermaniumHV_CURR, *value);
-        }
+        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_CUR, 0);
+        getDoubleParam(GermaniumHV_CURR, value);
+    }
+    else if (function == GermaniumP1_CURR)
+    {
+        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P1_CUR, 0);
+        getDoubleParam(GermaniumP1_CURR, value);
+    }
+    else if (function == GermaniumP2_CURR)
+    {
+        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P2_CUR, 0);
+        getDoubleParam(GermaniumP2_CURR, value);
     }
     else
     {
         return ADDriver::readFloat64(pasynUser, value);
     }
 
-    if (status != asynSuccess)
-        return ADDriver::readFloat64(pasynUser, value);
-
-    callParamCallbacks();
     return status;
 }
 
@@ -574,8 +560,8 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 void germaniumDetector::report(FILE *fp, int details)
 {
     fprintf(fp, "Germanium ZMQ detector: %d elements, %d chips\n", numElements, nchips);
-    fprintf(fp, "ZMQ target: %s (control port %d, data port %d)\n",
-            ipAddress, ZMQ_CONTROL_PORT, ZMQ_DATA_PORT);
+    fprintf(fp, "ZMQ target: %s (cmd port %d, reply port %d, data port %d)\n",
+            ipAddress, ZMQ_CMD_PORT, ZMQ_REPLY_PORT, ZMQ_DATA_PORT);
     fprintf(fp, "ZMQ initialized: %s\n", zmqInitialized ? "Yes" : "No");
     fprintf(fp, "Acquisition: %s\n", acquisitionRunning ? "Running" : "Idle");
 
@@ -596,99 +582,60 @@ asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
-    uint32_t regVal = 0;
+
+    //------------------------------------------------------------------
+    // Async model: return cached value, queue a read request.
+    //------------------------------------------------------------------
 
     if (function == GermaniumVER)
     {
-        status = zmqRegisterRead(VERSIONREG, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumVER, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
+        getIntegerParam(GermaniumVER, value);
     }
     else if (function == GermaniumDETTYPE)
     {
-        status = zmqRegisterRead(DETECTOR_TYPE, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumDETTYPE, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, DETECTOR_TYPE, 0);
+        getIntegerParam(GermaniumDETTYPE, value);
     }
     else if (function == GermaniumTPAMP_RBV)
     {
-        status = zmqRegisterRead(MARS_CALPULSE, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumTPAMP_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, MARS_CALPULSE, 0);
+        getIntegerParam(GermaniumTPAMP_RBV, value);
     }
     else if (function == GermaniumTPFRQ_RBV)
     {
-        status = zmqRegisterRead(CALPULSE_RATE, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumTPFRQ_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, CALPULSE_RATE, 0);
+        getIntegerParam(GermaniumTPFRQ_RBV, value);
     }
     else if (function == GermaniumTPCNT_RBV)
     {
-        status = zmqRegisterRead(CALPULSE_CNT, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumTPCNT_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, CALPULSE_CNT, 0);
+        getIntegerParam(GermaniumTPCNT_RBV, value);
     }
     else if (function == GermaniumTPENB_RBV)
     {
-        status = zmqRegisterRead(CALPULSE_MODE, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumTPENB_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, CALPULSE_MODE, 0);
+        getIntegerParam(GermaniumTPENB_RBV, value);
     }
     else if (function == GermaniumPLDEL_RBV)
     {
-        status = zmqRegisterRead(MARS_PIPE_DELAY, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumPLDEL_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, MARS_PIPE_DELAY, 0);
+        getIntegerParam(GermaniumPLDEL_RBV, value);
     }
     else if (function == GermaniumRODEL_RBV)
     {
-        status = zmqRegisterRead(MARS_RDOUT_ENB, &regVal);
-        if (status == asynSuccess)
-        {
-            *value = static_cast<epicsInt32>(regVal);
-            setIntegerParam(GermaniumRODEL_RBV, *value);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, MARS_RDOUT_ENB, 0);
+        getIntegerParam(GermaniumRODEL_RBV, value);
     }
     else if (function == GermaniumMODE)
     {
-        status = zmqRegisterRead(COUNT_MODE, &regVal);
-        if (status == asynSuccess)
-        {
-            int modeReg = regVal ? 1 : 0;
-            *value = modeReg;
-            setIntegerParam(GermaniumMODE, modeReg);
-        }
+        zmqTx(ZMQ_CMD_REG_READ, COUNT_MODE, 0);
+        getIntegerParam(GermaniumMODE, value);
     }
     else
     {
-        // Fall through to base class for standard AD parameters
-        status = ADDriver::readInt32(pasynUser, value);
-        return status;
+        return ADDriver::readInt32(pasynUser, value);
     }
-
-    if (status == asynSuccess)
-        callParamCallbacks();
 
     return status;
 }

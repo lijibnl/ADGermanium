@@ -20,8 +20,9 @@
 
 //===========================================================================//
 
-// ZMQ communication ports (matching germ-zmq-server on Zynq)
-#define ZMQ_CONTROL_PORT    5555    // REQ-REP for register access + delta-config
+// ZMQ communication ports (matching ZynqDetector async-zmq)
+#define ZMQ_CMD_PORT        5555    // PUSH-PULL for commands (IOC→Zynq)
+#define ZMQ_REPLY_PORT      5557    // PUSH-PULL for replies  (Zynq→IOC)
 #define ZMQ_DATA_PORT       5556    // PUB-SUB for event data
 
 // PL UDP data port (raw detector data from FPGA)
@@ -91,6 +92,12 @@ struct DataBlock
 #define ZMQ_CMD_MARS_SET_GLOBAL  0x10
 #define ZMQ_CMD_MARS_SET_CHANNEL 0x11
 #define ZMQ_CMD_MARS_LOAD        0x12
+#define ZMQ_CMD_ADC_CLK_SKEW     0x20
+#define ZMQ_CMD_I2C_TEMP_READ    0x21
+#define ZMQ_CMD_XADC_READ        0x22
+#define ZMQ_CMD_I2C_DAC_WRITE    0x23
+#define ZMQ_CMD_I2C_ADC_READ     0x24
+#define ZMQ_CMD_I2C_DAC_INIT     0x25
 
 // Field IDs for CMD_MARS_SET_GLOBAL
 enum MarsGlobalField

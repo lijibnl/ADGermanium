@@ -1,14 +1,15 @@
 /**
  * @file germaniumDetectorZmq.cpp
- * @brief ZMQ communication with Zynq C ZMQ server (germ_zserver1).
+ * @brief Async ZMQ communication with ZynqDetector (PUSH-PULL).
  *
- * Control plane: ZMQ REQ-REP on port 5555 for register read/write.
- *   Message format: 3 x uint32_t [cmd, addr, value]
- *   cmd=0: read register at addr, returns value in response
- *   cmd=1: write value to register at addr
+ * Command channel: IOC PUSH → Zynq PULL on port 5555
+ * Reply channel:   Zynq PUSH → IOC PULL on port 5557
+ * Data channel:    Zynq PUB  → IOC SUB  on port 5556 (unchanged)
  *
- * Data plane: ZMQ SUB on port 5556 for event data.
- *   Topics: "data" (raw event words), "meta" (frame number)
+ * Threads:
+ *   Tx thread:         drains txQueue_, sends via tx socket
+ *   Control Rx thread: receives from PULL socket, updates PV cache
+ *   Data Rx thread:    receives from SUB socket (event data)
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
@@ -26,70 +27,86 @@
 
 //===========================================================================//
 
-/*
- * Initialize ZMQ context and sockets for communication with Zynq.
- */
 bool germaniumDetector::initializeZmq()
 {
-    printf("Germanium: Initializing ZMQ connection to %s...\n", ipAddress);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initializing async ZMQ to %s\n", portName, ipAddress);
 
-    // Create ZMQ context
     zmqContext = zmq_ctx_new();
     if (!zmqContext)
     {
-        printf("Germanium: Failed to create ZMQ context\n");
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create ZMQ context\n", portName);
         return false;
     }
 
-    // --- Control socket (REQ-REP) ---
-    zmqControlSocket = zmq_socket(zmqContext, ZMQ_REQ);
-    if (!zmqControlSocket)
-    {
-        printf("Germanium: Failed to create ZMQ REQ socket\n");
-        zmq_ctx_destroy(zmqContext);
-        zmqContext = nullptr;
-        return false;
-    }
-
-    // Set timeouts to avoid blocking forever
-    int timeout_ms = 2000;  // 2 second timeout
-    zmq_setsockopt(zmqControlSocket, ZMQ_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
-    zmq_setsockopt(zmqControlSocket, ZMQ_SNDTIMEO, &timeout_ms, sizeof(timeout_ms));
-
-    // Set linger to 0 so zmq_close doesn't block
     int linger = 0;
-    zmq_setsockopt(zmqControlSocket, ZMQ_LINGER, &linger, sizeof(linger));
 
-    char controlEndpoint[128];
-    snprintf(controlEndpoint, sizeof(controlEndpoint),
-             "tcp://%s:%d", ipAddress, ZMQ_CONTROL_PORT);
-
-    if (zmq_connect(zmqControlSocket, controlEndpoint) != 0)
+    //--------------------------------------------------------------
+    // Tx socket — sends commands to Zynq
+    //--------------------------------------------------------------
+    zmqTxSocket = zmq_socket(zmqContext, ZMQ_PUSH);
+    if (!zmqTxSocket)
     {
-        printf("Germanium: Failed to connect ZMQ REQ to %s: %s\n",
-               controlEndpoint, zmq_strerror(errno));
-        zmq_close(zmqControlSocket);
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create tx socket\n", portName);
         zmq_ctx_destroy(zmqContext);
-        zmqControlSocket = nullptr;
         zmqContext = nullptr;
         return false;
     }
 
-    // --- Data socket (SUB) ---
+    zmq_setsockopt(zmqTxSocket, ZMQ_LINGER, &linger, sizeof(linger));
+
+    char txEndpoint[128];
+    snprintf(txEndpoint, sizeof(txEndpoint),
+             "tcp://%s:%d", ipAddress, ZMQ_CMD_PORT);
+
+    if (zmq_connect(zmqTxSocket, txEndpoint) != 0)
+    {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to connect tx to %s: %s\n", portName, txEndpoint, zmq_strerror(errno));
+        zmq_close(zmqTxSocket); zmqTxSocket = nullptr;
+        zmq_ctx_destroy(zmqContext); zmqContext = nullptr;
+        return false;
+    }
+
+    //--------------------------------------------------------------
+    // Rx socket — receives replies from Zynq
+    //--------------------------------------------------------------
+    zmqRxSocket = zmq_socket(zmqContext, ZMQ_PULL);
+    if (!zmqRxSocket)
+    {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create rx socket\n", portName);
+        zmq_close(zmqTxSocket); zmqTxSocket = nullptr;
+        zmq_ctx_destroy(zmqContext); zmqContext = nullptr;
+        return false;
+    }
+
+    zmq_setsockopt(zmqRxSocket, ZMQ_LINGER, &linger, sizeof(linger));
+
+    char rxEndpoint[128];
+    snprintf(rxEndpoint, sizeof(rxEndpoint),
+             "tcp://%s:%d", ipAddress, ZMQ_REPLY_PORT);
+
+    if (zmq_connect(zmqRxSocket, rxEndpoint) != 0)
+    {
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to connect rx to %s: %s\n", portName, rxEndpoint, zmq_strerror(errno));
+        zmq_close(zmqRxSocket); zmqRxSocket = nullptr;
+        zmq_close(zmqTxSocket); zmqTxSocket = nullptr;
+        zmq_ctx_destroy(zmqContext); zmqContext = nullptr;
+        return false;
+    }
+
+    //--------------------------------------------------------------
+    // SUB socket — event data from Zynq (unchanged)
+    //--------------------------------------------------------------
     zmqDataSocket = zmq_socket(zmqContext, ZMQ_SUB);
     if (!zmqDataSocket)
     {
-        printf("Germanium: Failed to create ZMQ SUB socket\n");
-        zmq_close(zmqControlSocket);
-        zmq_ctx_destroy(zmqContext);
-        zmqControlSocket = nullptr;
-        zmqContext = nullptr;
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create SUB socket\n", portName);
+        zmq_close(zmqRxSocket); zmqRxSocket = nullptr;
+        zmq_close(zmqTxSocket); zmqTxSocket = nullptr;
+        zmq_ctx_destroy(zmqContext); zmqContext = nullptr;
         return false;
     }
 
     zmq_setsockopt(zmqDataSocket, ZMQ_LINGER, &linger, sizeof(linger));
-
-    // Subscribe to "data" and "meta" topics
     zmq_setsockopt(zmqDataSocket, ZMQ_SUBSCRIBE, "data", 4);
     zmq_setsockopt(zmqDataSocket, ZMQ_SUBSCRIBE, "meta", 4);
 
@@ -99,161 +116,291 @@ bool germaniumDetector::initializeZmq()
 
     if (zmq_connect(zmqDataSocket, dataEndpoint) != 0)
     {
-        printf("Germanium: Failed to connect ZMQ SUB to %s: %s\n",
-               dataEndpoint, zmq_strerror(errno));
-        zmq_close(zmqDataSocket);
-        zmq_close(zmqControlSocket);
-        zmq_ctx_destroy(zmqContext);
-        zmqDataSocket = nullptr;
-        zmqControlSocket = nullptr;
-        zmqContext = nullptr;
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to connect SUB to %s: %s\n", portName, dataEndpoint, zmq_strerror(errno));
+        zmq_close(zmqDataSocket); zmqDataSocket = nullptr;
+        zmq_close(zmqRxSocket); zmqRxSocket = nullptr;
+        zmq_close(zmqTxSocket); zmqTxSocket = nullptr;
+        zmq_ctx_destroy(zmqContext); zmqContext = nullptr;
         return false;
     }
 
-    // Create mutex for control socket access
-    zmqMutex = epicsMutexCreate();
+    //--------------------------------------------------------------
+    // Tx queue infrastructure
+    //--------------------------------------------------------------
+    txQueueMutex_ = epicsMutexCreate();
+    txQueueEvent_ = epicsEventCreate(epicsEventEmpty);
 
     zmqInitialized = true;
 
-    // Verify the server supports the MARS delta-config protocol.
-    // Send a no-op CMD_MARS_LOAD (chip_mask=0).
-    {
-        ZmqCommandMsg probe;
-        probe.cmd   = ZMQ_CMD_MARS_LOAD;
-        probe.addr  = 0;           // chip_mask=0 → no-op
-        probe.value = 0;
+    //--------------------------------------------------------------
+    // Start Tx and Control Rx threads
+    //--------------------------------------------------------------
+    zmqTxThreadId = epicsThreadCreate("zmqTx",
+        epicsThreadPriorityMedium,
+        epicsThreadGetStackSize(epicsThreadStackMedium),
+        zmqTxThreadC, this);
 
-        ZmqCommandMsg reply;
-        if (zmqSendRecv(probe, &reply) != asynSuccess
-            || reply.cmd != ZMQ_CMD_MARS_LOAD)
-        {
-            printf("Germanium: ERROR — server does not support delta-config protocol. "
-                   "Upgrade the Zynq ZMQ server.\n");
-        }
-        else
-        {
-            printf("Germanium: delta-config protocol verified\n");
-        }
-    }
+    zmqControlRxThreadId = epicsThreadCreate("zmqControlRx",
+        epicsThreadPriorityMedium,
+        epicsThreadGetStackSize(epicsThreadStackMedium),
+        zmqControlRxThreadC, this);
 
-    printf("Germanium: ZMQ initialized - Control: %s, Data: %s\n",
-           controlEndpoint, dataEndpoint);
+    //--------------------------------------------------------------
+    // Send initialization commands
+    //--------------------------------------------------------------
+    zmqTx(ZMQ_CMD_I2C_DAC_INIT, 0, 0);
+
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ initialized - Tx: %s, Rx: %s, SUB: %s\n", portName, txEndpoint, rxEndpoint, dataEndpoint);
     return true;
 }
 
 //===========================================================================//
 
-/*
- * Close ZMQ sockets and context.
- */
 void germaniumDetector::closeZmq()
 {
     zmqInitialized = false;
 
-    if (zmqDataSocket)
-    {
-        zmq_close(zmqDataSocket);
-        zmqDataSocket = nullptr;
-    }
+    if (zmqDataSocket)  { zmq_close(zmqDataSocket);  zmqDataSocket = nullptr;  }
+    if (zmqRxSocket)  { zmq_close(zmqRxSocket);  zmqRxSocket = nullptr;  }
+    if (zmqTxSocket)  { zmq_close(zmqTxSocket);  zmqTxSocket = nullptr;  }
 
-    if (zmqControlSocket)
-    {
-        zmq_close(zmqControlSocket);
-        zmqControlSocket = nullptr;
-    }
+    if (zmqContext)      { zmq_ctx_destroy(zmqContext); zmqContext = nullptr;    }
 
-    if (zmqContext)
-    {
-        zmq_ctx_destroy(zmqContext);
-        zmqContext = nullptr;
-    }
+    if (txQueueMutex_) { epicsMutexDestroy(txQueueMutex_); txQueueMutex_ = nullptr; }
+    if (txQueueEvent_) { epicsEventDestroy(txQueueEvent_); txQueueEvent_ = nullptr; }
 
-    if (zmqMutex)
-    {
-        epicsMutexDestroy(zmqMutex);
-        zmqMutex = nullptr;
-    }
-
-    printf("Germanium: ZMQ connections closed\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ connections closed\n", portName);
 }
 
 //===========================================================================//
-// ZMQ message Tx/Rx wrappers.
-//
-int germaniumDetector::zmqTx( void* socket, ZmqCommandMsg* msg, size_t len, int flags)
+
+asynStatus germaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 {
-    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n\n",
-           __func__, msg->cmd, msg->addr, msg->value);
-    return zmq_send( socket, msg, len, flags );
-}
+    if (!zmqInitialized) return asynError;
 
-int germaniumDetector::zmqRx( void* socket, ZmqCommandMsg* msg, size_t len, int flags)
-{
-    int rc = zmq_recv(socket, msg, len, flags);
-    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n",
-           __func__, msg->cmd, msg->addr, msg->value);
-    return rc;
-}
+    TxQueueItem item;
+    item.msg.cmd   = cmd;
+    item.msg.addr  = addr;
+    item.msg.value = value;
 
-//===========================================================================//
-/*
- * Write a value to an FPGA register via ZMQ REQ-REP.
- *
- * Sends: [CMD_REG_WRITE, addr, value] (3 x uint32_t = 12 bytes)
- * Receives: [CMD_REG_WRITE, addr, value] echoed back
- */
-asynStatus germaniumDetector::zmqRegisterWrite(uint32_t addr, uint32_t value)
-{
-    if (!zmqInitialized)
-    {
-        printf("Germanium: ZMQ not initialized\n");
-        return asynError;
-    }
+    epicsMutexLock(txQueueMutex_);
+    txQueue_.push_back(item);
+    epicsMutexUnlock(txQueueMutex_);
 
-    ZmqCommandMsg msg;
-    msg.cmd   = ZMQ_CMD_REG_WRITE;
-    msg.addr  = addr;
-    msg.value = value;
-
-    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n",
-           __func__, msg.cmd, msg.addr, msg.value);
-
-    epicsMutexLock(zmqMutex);
-
-    // Send command
-    int rc = zmqTx(zmqControlSocket, &msg, sizeof(msg), 0);
-    if (rc != sizeof(msg))
-    {
-        printf("Germanium: ZMQ send failed for write reg %u: %s\n",
-               addr, zmq_strerror(errno));
-        epicsMutexUnlock(zmqMutex);
-        return asynError;
-    }
-
-    // Wait for reply (REQ-REP pattern requires recv after send)
-    ZmqCommandMsg reply;
-    rc = zmqRx(zmqControlSocket, &reply, sizeof(reply), 0);
-    if (rc != sizeof(reply))
-    {
-        printf("Germanium: ZMQ recv failed for write reg %u: %s\n",
-               addr, zmq_strerror(errno));
-        epicsMutexUnlock(zmqMutex);
-        return asynError;
-    }
-
-    epicsMutexUnlock(zmqMutex);
-
-    // Update readback (RBV) parameters from the echoed reply
-    updateRbvFromReply(addr, reply.value);
-
+    epicsEventSignal(txQueueEvent_);
     return asynSuccess;
 }
 
 //===========================================================================//
 
-/*
- * Update readback PVs based on echoed register write replies.
- */
+asynStatus germaniumDetector::zmqMarsSetGlobal(uint32_t chipMask,
+                                               MarsGlobalField field,
+                                               uint32_t value)
+{
+    return zmqTx(ZMQ_CMD_MARS_SET_GLOBAL,
+                        (chipMask << 16) | static_cast<uint32_t>(field),
+                        value);
+}
+
+//===========================================================================//
+
+asynStatus germaniumDetector::zmqMarsSetChannel(uint32_t channel,
+                                                MarsChannelField field,
+                                                uint32_t value)
+{
+    return zmqTx(ZMQ_CMD_MARS_SET_CHANNEL,
+                        (channel << 16) | static_cast<uint32_t>(field),
+                        value);
+}
+
+//===========================================================================//
+
+asynStatus germaniumDetector::zmqMarsLoad(uint32_t chipMask)
+{
+    return zmqTx(ZMQ_CMD_MARS_LOAD, chipMask, 0);
+}
+
+//===========================================================================//
+//  Tx thread: drains tx queue, sends via tx socket
+//===========================================================================//
+
+void germaniumDetector::zmqTxThreadC(void *pPvt)
+{
+    static_cast<germaniumDetector*>(pPvt)->zmqTxThread();
+}
+
+void germaniumDetector::zmqTxThread()
+{
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Tx thread started\n", portName);
+
+    while (threadsRunning)
+    {
+        epicsEventWaitWithTimeout(txQueueEvent_, 0.1);
+
+        // Drain the queue
+        std::vector<TxQueueItem> batch;
+        epicsMutexLock(txQueueMutex_);
+        batch.swap(txQueue_);
+        epicsMutexUnlock(txQueueMutex_);
+
+        for (auto& item : batch)
+        {
+            zmq_send(zmqTxSocket, &item.msg, sizeof(item.msg), 0);
+        }
+    }
+
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Tx thread stopped\n", portName);
+}
+
+//===========================================================================//
+//  Control Rx thread: receives replies, updates PV cache
+//===========================================================================//
+
+void germaniumDetector::zmqControlRxThreadC(void *pPvt)
+{
+    static_cast<germaniumDetector*>(pPvt)->zmqControlRxThread();
+}
+
+void germaniumDetector::zmqControlRxThread()
+{
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Control Rx thread started\n", portName);
+
+    while (threadsRunning)
+    {
+        ZmqCommandMsg reply;
+        int rc = zmq_recv(zmqRxSocket, &reply, sizeof(reply), ZMQ_DONTWAIT);
+        if (rc < 0)
+        {
+            if (errno == EAGAIN)
+            {
+                epicsThreadSleep(0.001);
+                continue;
+            }
+            if (errno == ETERM)
+                break;
+            continue;
+        }
+
+        if (rc != sizeof(ZmqCommandMsg))
+            continue;
+
+        processReply(reply);
+    }
+
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Control Rx thread stopped\n", portName);
+}
+
+//===========================================================================//
+
+void germaniumDetector::processReply(const ZmqCommandMsg& reply)
+{
+    switch (reply.cmd)
+    {
+        case ZMQ_CMD_REG_READ:
+        {
+            uint32_t addr  = reply.addr;
+            uint32_t value = reply.value;
+
+            // Update the appropriate readback parameter
+            if (addr == VERSIONREG)
+                setIntegerParam(GermaniumVER, static_cast<int>(value));
+            else if (addr == DETECTOR_TYPE)
+                setIntegerParam(GermaniumDETTYPE, static_cast<int>(value));
+            else if (addr == MARS_CALPULSE)
+                setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
+            else if (addr == CALPULSE_RATE)
+                setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
+            else if (addr == CALPULSE_CNT)
+                setIntegerParam(GermaniumTPCNT_RBV, static_cast<int>(value));
+            else if (addr == CALPULSE_MODE)
+                setIntegerParam(GermaniumTPENB_RBV, static_cast<int>(value));
+            else if (addr == MARS_PIPE_DELAY)
+                setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
+            else if (addr == MARS_RDOUT_ENB)
+                setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
+            else if (addr == COUNT_MODE)
+                setIntegerParam(GermaniumMODE, value ? 1 : 0);
+            else if (addr == EVENT_TIME_CNTR)
+                setDoubleParam(GermaniumT, static_cast<double>(value) / 25.0e6);
+            else if (addr == COUNT_TIME_LO || addr == COUNT_TIME_HI)
+            {
+                // Time preset readback handled below
+            }
+            else if (addr == UDP_IP_ADDR)
+            {
+                uint32_t host = ntohl(value);
+                struct in_addr a;
+                a.s_addr = htonl(host);
+                char buf[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &a, buf, sizeof(buf));
+                setStringParam(GermaniumIPADDR_RBV, buf);
+            }
+            break;
+        }
+
+        case ZMQ_CMD_REG_WRITE:
+            updateRbvFromReply(reply.addr, reply.value);
+            break;
+
+        case ZMQ_CMD_I2C_TEMP_READ:
+        {
+            double tempC = static_cast<double>(reply.value >> 4) * 0.0625;
+            switch (reply.addr)
+            {
+                case 0: setDoubleParam(GermaniumTEMP1, tempC); break;
+                case 1: setDoubleParam(GermaniumTEMP2, tempC); break;
+                case 2: setDoubleParam(GermaniumTEMP3, tempC); break;
+            }
+            break;
+        }
+
+        case ZMQ_CMD_XADC_READ:
+        {
+            double tempC = 503.975 * static_cast<double>(reply.value) / 4096.0 - 273.15;
+            setDoubleParam(GermaniumZTEMP, tempC);
+            break;
+        }
+
+        case ZMQ_CMD_I2C_ADC_READ:
+        {
+            // LTC2309 12-bit ADC → engineering units
+            double raw = static_cast<double>(reply.value);
+            switch (reply.addr)
+            {
+                case ADC_CH_HV_RBV:
+                    setDoubleParam(GermaniumHV_RBV, raw * 500.0 / 4096.0);
+                    break;
+                case ADC_CH_HV_CUR:
+                    setDoubleParam(GermaniumHV_CURR, raw * 5.0 / 4096.0);
+                    break;
+                case ADC_CH_P1_CUR:
+                    setDoubleParam(GermaniumP1_CURR, raw * 500.0 / 4096.0);
+                    break;
+                case ADC_CH_P2_CUR:
+                    setDoubleParam(GermaniumP2_CURR, raw * 5.0 / 4096.0);
+                    break;
+            }
+            break;
+        }
+
+        case ZMQ_CMD_MARS_SET_GLOBAL:
+        case ZMQ_CMD_MARS_SET_CHANNEL:
+        case ZMQ_CMD_MARS_LOAD:
+        case ZMQ_CMD_ADC_CLK_SKEW:
+        case ZMQ_CMD_I2C_DAC_WRITE:
+        case ZMQ_CMD_I2C_DAC_INIT:
+            // Confirmation only — no PV update needed
+            break;
+
+        default:
+            break;
+    }
+
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
 void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
 {
     switch (addr)
@@ -282,16 +429,6 @@ void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
         case VERSIONREG:
             setIntegerParam(GermaniumVER, static_cast<int>(value));
             break;
-        case UDP_IP_ADDR:
-        {
-            uint32_t host = ntohl(value);
-            struct in_addr a;
-            a.s_addr = htonl(host);
-            char buf[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &a, buf, sizeof(buf));
-            setStringParam(GermaniumIPADDR_RBV, buf);
-            break;
-        }
         default:
             break;
     }
@@ -299,157 +436,6 @@ void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
 }
 
 //===========================================================================//
-
-/*
- * Sends: [CMD_REG_READ, addr, 0] (3 x uint32_t = 12 bytes)
- * Receives: [CMD_REG_READ, addr, value] with value filled in
- */
-asynStatus germaniumDetector::zmqRegisterRead(uint32_t addr, uint32_t *value)
-{
-    if (!zmqInitialized)
-    {
-        printf("Germanium: ZMQ not initialized\n");
-        return asynError;
-    }
-
-    ZmqCommandMsg msg;
-    msg.cmd   = ZMQ_CMD_REG_READ;
-    msg.addr  = addr;
-    msg.value = 0;
-
-    epicsMutexLock(zmqMutex);
-
-    // Send command
-    int rc = zmqTx(zmqControlSocket, &msg, sizeof(msg), 0);
-    if (rc != sizeof(msg))
-    {
-        printf("Germanium: ZMQ send failed for read reg %u: %s\n",
-               addr, zmq_strerror(errno));
-        epicsMutexUnlock(zmqMutex);
-        return asynError;
-    }
-
-    // Wait for reply
-    ZmqCommandMsg reply;
-    rc = zmqRx(zmqControlSocket, &reply, sizeof(reply), 0);
-    if (rc != sizeof(reply))
-    {
-        printf("Germanium: ZMQ recv failed for read reg %u: %s\n",
-               addr, zmq_strerror(errno));
-        epicsMutexUnlock(zmqMutex);
-        return asynError;
-    }
-
-    epicsMutexUnlock(zmqMutex);
-
-    *value = reply.value;
-    return asynSuccess;
-}
-
-//===========================================================================//
-
-/*
- * Common helper: send a ZmqCommandMsg and receive the reply.
- * Caller must NOT hold zmqMutex — this function locks it internally.
- */
-asynStatus germaniumDetector::zmqSendRecv(ZmqCommandMsg &msg, ZmqCommandMsg *reply)
-{
-    if (!zmqInitialized) return asynError;
-
-    epicsMutexLock(zmqMutex);
-
-    int rc = zmqTx(zmqControlSocket, &msg, sizeof(msg), 0);
-    if (rc != sizeof(msg))
-    {
-        epicsMutexUnlock(zmqMutex);
-        return asynError;
-    }
-
-    rc = zmqRx(zmqControlSocket, reply, sizeof(*reply), 0);
-    if (rc != sizeof(*reply))
-    {
-        epicsMutexUnlock(zmqMutex);
-        return asynError;
-    }
-
-    epicsMutexUnlock(zmqMutex);
-    return asynSuccess;
-}
-
-//===========================================================================//
-
-/*
- * Set a single global config field on selected chips.
- * One ZMQ round-trip regardless of chip count.
- *
- * Message: [CMD_MARS_SET_GLOBAL, chip_mask<<16 | field_id, value]
- */
-asynStatus germaniumDetector::zmqMarsSetGlobal(uint32_t chipMask, MarsGlobalField field,
-                                               uint32_t value)
-{
-    ZmqCommandMsg msg;
-    msg.cmd   = ZMQ_CMD_MARS_SET_GLOBAL;
-    msg.addr  = (chipMask << 16) | static_cast<uint32_t>(field);
-    msg.value = value;
-
-    printf("[%s]: cmd=0x%02X addr=0x%04X value=0x%08X\n\n",
-           __func__, msg.cmd, msg.addr, msg.value);
-
-    ZmqCommandMsg reply;
-    return zmqSendRecv(msg, &reply);
-}
-
-//===========================================================================//
-
-/*
- * Set a single per-channel config field.
- * channel = 0..383 for a specific channel, or 0xFFF for all.
- *
- * Message: [CMD_MARS_SET_CHANNEL, channel<<16 | field_id, value]
- */
-asynStatus germaniumDetector::zmqMarsSetChannel(uint32_t channel, MarsChannelField field,
-                                                uint32_t value)
-{
-    ZmqCommandMsg msg;
-    msg.cmd   = ZMQ_CMD_MARS_SET_CHANNEL;
-    msg.addr  = (channel << 16) | static_cast<uint32_t>(field);
-    msg.value = value;
-
-    ZmqCommandMsg reply;
-    return zmqSendRecv(msg, &reply);
-}
-
-//===========================================================================//
-
-/*
- * Trigger MARS config pack + register-write on Zynq for selected chips.
- * One ZMQ round-trip triggers the full stuff_mars sequence locally on Zynq.
- *
- * Message: [CMD_MARS_LOAD, chip_mask, 0]
- */
-asynStatus germaniumDetector::zmqMarsLoad(uint32_t chipMask)
-{
-    ZmqCommandMsg msg;
-    msg.cmd   = ZMQ_CMD_MARS_LOAD;
-    msg.addr  = chipMask;
-    msg.value = 0;
-
-    ZmqCommandMsg reply;
-    return zmqSendRecv(msg, &reply);
-}
-
-//===========================================================================//
-
-/*
- * ZMQ data reception thread.
- * Subscribes to "data" and "meta" topics on port 5556.
- *
- * "data" messages: multipart [topic, payload]
- *   payload = raw uint32_t event words (pairs: event_data + timestamp)
- *
- * "meta" messages: multipart [topic, payload]
- *   payload = uint32_t frame_number
- */
 void germaniumDetector::zmqDataThreadC(void *pPvt)
 {
     static_cast<germaniumDetector*>(pPvt)->zmqDataThread();
@@ -457,7 +443,7 @@ void germaniumDetector::zmqDataThreadC(void *pPvt)
 
 void germaniumDetector::zmqDataThread()
 {
-    printf("Germanium: ZMQ data thread started\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ data thread started\n", portName);
 
     while (threadsRunning)
     {
@@ -545,7 +531,7 @@ void germaniumDetector::zmqDataThread()
         zmq_msg_close(&payloadMsg);
     }
 
-    printf("Germanium: ZMQ data thread stopped\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ data thread stopped\n", portName);
 }
 
 //===========================================================================//

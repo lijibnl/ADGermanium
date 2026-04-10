@@ -207,23 +207,29 @@ public:
     // Data array management
     void allocateDataArrays();
 
-    // ZMQ communication (germaniumDetectorZmq.cpp)
+    // ZMQ communication — async PUSH-PULL (germaniumDetectorZmq.cpp)
     bool initializeZmq();
     void closeZmq();
-    inline int zmqTx( void* socket, ZmqCommandMsg* msg, size_t len, int flags);
-    inline int zmqRx( void* socket, ZmqCommandMsg* msg, size_t len, int flags);
-    asynStatus zmqRegisterWrite(uint32_t addr, uint32_t value);
-    asynStatus zmqRegisterRead(uint32_t addr, uint32_t *value);
-    asynStatus zmqSendRecv(ZmqCommandMsg &msg, ZmqCommandMsg *reply);
-    void updateRbvFromReply(uint32_t addr, uint32_t value);
 
-    // ZMQ MARS delta-config protocol (germaniumDetectorZmq.cpp)
-    // Sends lightweight field updates; Zynq assembles + loads locally.
+    // Fire-and-forget: push to tx queue, return immediately
+    asynStatus zmqTx(uint32_t cmd, uint32_t addr, uint32_t value);
+
+    // MARS delta-config helpers (each calls zmqTx)
     asynStatus zmqMarsSetGlobal(uint32_t chipMask, MarsGlobalField field, uint32_t value);
     asynStatus zmqMarsSetChannel(uint32_t channel, MarsChannelField field, uint32_t value);
     asynStatus zmqMarsLoad(uint32_t chipMask);
 
+    // Reply processing (called by Control Rx thread)
+    void processReply(const ZmqCommandMsg& reply);
+    void updateRbvFromReply(uint32_t addr, uint32_t value);
+
+    // Thread entry points
+    void zmqTxThread();
+    void zmqControlRxThread();
     void zmqDataThread();
+
+    static void zmqTxThreadC(void *pPvt);
+    static void zmqControlRxThreadC(void *pPvt);
 
     // PL UDP data reception (germaniumDetectorDataAcq.cpp)
     bool initializePlUdpSocket();
@@ -232,7 +238,6 @@ public:
     void dataProcessingThread();
     void dataWriteThread();
 
-    // Static thread entry points
     static void zmqDataThreadC(void *pPvt);
     static void plUdpDataThreadC(void *pPvt);
     static void dataProcessingThreadC(void *pPvt);
@@ -289,12 +294,20 @@ private:
     void addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
     void flushWriteBuffer();
 
-    // ZMQ context and sockets
+    // ZMQ context and sockets — async PUSH-PULL
     void *zmqContext;           // zmq_ctx_new()
-    void *zmqControlSocket;     // REQ socket to port 5555
-    void *zmqDataSocket;        // SUB socket to port 5556
-    epicsMutexId zmqMutex;      // Protects zmqControlSocket (REQ is not thread-safe)
+    void *zmqTxSocket;        // Tx socket to port 5555 (commands)
+    void *zmqRxSocket;        // Rx socket from port 5557 (replies)
+    void *zmqDataSocket;        // SUB socket from port 5556 (events)
     bool zmqInitialized;
+
+    // Async tx queue (EPICS threads → Tx thread → PUSH socket)
+    struct TxQueueItem {
+        ZmqCommandMsg msg;
+    };
+    std::vector<TxQueueItem> txQueue_;
+    epicsMutexId txQueueMutex_;
+    epicsEventId txQueueEvent_;
 
     // PL UDP data socket (raw events from FPGA)
     int plUdpSocket;
@@ -306,6 +319,8 @@ private:
     int nchips;
 
     // Thread management
+    epicsThreadId zmqTxThreadId;
+    epicsThreadId zmqControlRxThreadId;
     epicsThreadId zmqDataThreadId;
     epicsThreadId plUdpDataThreadId;
     epicsThreadId dataProcessingThreadId;

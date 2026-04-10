@@ -46,14 +46,18 @@ germaniumDetector::germaniumDetector( const char *portName
                                               , stackSize
                                               )
                                     , zmqContext(nullptr)
-                                    , zmqControlSocket(nullptr)
+                                    , zmqTxSocket(nullptr)
+                                    , zmqRxSocket(nullptr)
                                     , zmqDataSocket(nullptr)
-                                    , zmqMutex(nullptr)
                                     , zmqInitialized(false)
+                                    , txQueueMutex_(nullptr)
+                                    , txQueueEvent_(nullptr)
                                     , plUdpSocket(-1)
                                     , plUdpInitialized(false)
                                     , numElements(numElements)
                                     , nchips(6)
+                                    , zmqTxThreadId(nullptr)
+                                    , zmqControlRxThreadId(nullptr)
                                     , zmqDataThreadId(nullptr)
                                     , plUdpDataThreadId(nullptr)
                                     , dataProcessingThreadId(nullptr)
@@ -87,14 +91,13 @@ germaniumDetector::germaniumDetector( const char *portName
         case 192: nchips = 6;  break;
         case 384: nchips = 12; break;
         default:
-            printf("Germanium: Invalid numElements %d, defaulting to 192\n", numElements);
+            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: invalid numElements %d, defaulting to 192\n", portName, numElements);
             this->numElements = 192;
             nchips = 6;
             break;
     }
 
-    printf("Germanium ZMQ detector: %d elements, %d chips, IP: %s\n",
-           this->numElements, nchips, this->ipAddress);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: %d elements, %d chips, IP: %s\n", portName, this->numElements, nchips, this->ipAddress);
 
     allocateDataArrays();
     createGermaniumParameters();
@@ -129,11 +132,11 @@ germaniumDetector::germaniumDetector( const char *portName
                                              , this
                                              );
 
-        printf("Germanium: ZMQ and processing threads started\n");
+        asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ and processing threads started\n", portName);
     }
     else
     {
-        printf("Germanium: Failed to initialize ZMQ communication\n");
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to initialize ZMQ communication\n", portName);
     }
 
     // Optionally initialize PL UDP socket for raw data reception
@@ -145,10 +148,10 @@ germaniumDetector::germaniumDetector( const char *portName
                                              , plUdpDataThreadC
                                              , this
                                              );
-        printf("Germanium: PL UDP data thread started\n");
+        asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
     }
 
-    printf("Germanium ZMQ detector driver initialized\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
 }
 
 //===========================================================================//
@@ -185,7 +188,7 @@ germaniumDetector::~germaniumDetector()
         dataAvailable = nullptr;
     }
 
-    printf("Germanium ZMQ detector driver destroyed\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: destroyed\n", portName);
 }
 
 //===========================================================================//
@@ -401,7 +404,7 @@ void germaniumDetector::allocateDataArrays()
     for (int i = 0; i < DATA_QUEUE_CAPACITY; i++)
         dataQueue[i].state.store(DATA_BLOCK_FREE, std::memory_order_relaxed);
 
-    printf("Germanium: Allocated data arrays for %d elements\n", numElements);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: allocated data arrays for %d elements\n", portName, numElements);
 }
 
 //===========================================================================//

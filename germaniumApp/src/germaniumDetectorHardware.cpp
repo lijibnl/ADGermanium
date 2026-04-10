@@ -53,8 +53,7 @@ void germaniumDetector::initializeMarsConfig()
         channelstr[ch].putr = 0;
     }
 
-    printf("Germanium: MARS config shadow initialized for %d chips, %d elements\n",
-           nchips, numElements);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: MARS config shadow initialized for %d chips, %d elements\n", portName, nchips, numElements);
 }
 
 //===========================================================================//

@@ -40,14 +40,13 @@
 #define FRAME_NO            55
 #define COUNT_MODE          56
 
-// These register addresses are used by ZynqDetector (I2C/sensor operations).
-// The C ZMQ server on Zynq does NOT support these — they require direct
-// hardware access. Kept here for future C++ ZMQ server compatibility.
-#define LOADS               80
-#define TEMP1               90
-#define TEMP2               91
-#define TEMP3               92
-#define ZTEMP               93
-#define HV                  94
-#define HV_RBV              95
-#define HV_CURR             96
+// I2C DAC7678 channel indices (used as addr in I2C_DAC_WRITE)
+#define DAC_CH_HV           5       // High voltage
+#define DAC_CH_P1           6       // Peltier 1
+#define DAC_CH_P2           2       // Peltier 2
+
+// I2C LTC2309 channel indices (used as addr in I2C_ADC_READ)
+#define ADC_CH_HV_RBV       4       // HV voltage readback
+#define ADC_CH_HV_CUR       5       // HV current
+#define ADC_CH_P1_CUR       6       // Peltier 1 current
+#define ADC_CH_P2_CUR       7       // Peltier 2 current

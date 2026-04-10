@@ -39,7 +39,7 @@ bool germaniumDetector::initializePlUdpSocket()
     plUdpSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (plUdpSocket < 0)
     {
-        printf("Germanium: Failed to create PL UDP socket: %s\n", strerror(errno));
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create PL UDP socket: %s\n", portName, strerror(errno));
         return false;
     }
 
@@ -58,15 +58,14 @@ bool germaniumDetector::initializePlUdpSocket()
 
     if (bind(plUdpSocket, (struct sockaddr*)&bindAddr, sizeof(bindAddr)) < 0)
     {
-        printf("Germanium: Failed to bind PL UDP socket to port %d: %s\n",
-               PL_UDP_DATA_PORT, strerror(errno));
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to bind PL UDP socket to port %d: %s\n", portName, PL_UDP_DATA_PORT, strerror(errno));
         close(plUdpSocket);
         plUdpSocket = -1;
         return false;
     }
 
     plUdpInitialized = true;
-    printf("Germanium: PL UDP socket bound to port %d\n", PL_UDP_DATA_PORT);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP socket bound to port %d\n", portName, PL_UDP_DATA_PORT);
     return true;
 }
 
@@ -99,7 +98,7 @@ void germaniumDetector::plUdpDataThreadC(void *pPvt)
 
 void germaniumDetector::plUdpDataThread()
 {
-    printf("Germanium: PL UDP data thread started\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
 
     uint8_t recvBuf[UDP_BUFFER_SIZE];
     struct sockaddr_in senderAddr;
@@ -155,7 +154,7 @@ void germaniumDetector::plUdpDataThread()
         epicsEventSignal(dataAvailable);
     }
 
-    printf("Germanium: PL UDP data thread stopped\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread stopped\n", portName);
 }
 
 //===========================================================================//
@@ -167,7 +166,7 @@ void germaniumDetector::dataProcessingThreadC(void *pPvt)
 
 void germaniumDetector::dataProcessingThread()
 {
-    printf("Germanium: Data processing thread started\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data processing thread started\n", portName);
 
     int arrayCounter = 0;
     int colorMode = NDColorModeMono;
@@ -244,7 +243,7 @@ void germaniumDetector::dataProcessingThread()
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    printf("Germanium: Data processing thread stopped\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data processing thread stopped\n", portName);
 }
 
 //===========================================================================//
@@ -256,7 +255,7 @@ void germaniumDetector::dataWriteThreadC(void *pPvt)
 
 void germaniumDetector::dataWriteThread()
 {
-    printf("Germanium: Data write thread started\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data write thread started\n", portName);
 
     while (threadsRunning)
     {
@@ -264,7 +263,7 @@ void germaniumDetector::dataWriteThread()
         flushWriteBuffer();
     }
 
-    printf("Germanium: Data write thread stopped\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data write thread stopped\n", portName);
 }
 
 //===========================================================================//
@@ -283,11 +282,11 @@ void germaniumDetector::startDataAcquisition()
     acquisitionRunning = true;
 
     // Start hardware acquisition via ZMQ register write
-    zmqRegisterWrite(TRIG, 1);
+    zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 1);
 
     setIntegerParam(GermaniumCNT, 1);
     callParamCallbacks();
-    printf("Germanium: Acquisition started\n");
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: acquisition started\n", portName);
 }
 
 //===========================================================================//
@@ -296,7 +295,7 @@ void germaniumDetector::stopDataAcquisition()
 {
     if (!acquisitionRunning) return;
 
-    zmqRegisterWrite(TRIG, 0);
+    zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 0);
     acquisitionRunning = false;
     fileWritingEnabled = false;
 
@@ -305,8 +304,7 @@ void germaniumDetector::stopDataAcquisition()
 
     setIntegerParam(GermaniumCNT, 0);
     callParamCallbacks();
-    printf("Germanium: Acquisition stopped. %zu bytes in %d files\n",
-           totalBytesWritten, totalFilesWritten);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: acquisition stopped. %zu bytes in %d files\n", portName, totalBytesWritten, totalFilesWritten);
 }
 
 //===========================================================================//
@@ -320,9 +318,9 @@ void germaniumDetector::createDataDirectory()
     if (stat(dirPath, &st) == -1)
     {
         if (mkdir(dirPath, 0755) == 0)
-            printf("Germanium: Created directory %s\n", dirPath);
+            asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: created directory %s\n", portName, dirPath);
         else
-            printf("Germanium: Failed to create %s: %s\n", dirPath, strerror(errno));
+            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create directory %s: %s\n", portName, dirPath, strerror(errno));
     }
 }
 
@@ -355,7 +353,7 @@ bool germaniumDetector::openNewDataFile()
     currentFileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (currentFileHandle < 0)
     {
-        printf("Germanium: Failed to open %s: %s\n", filename.c_str(), strerror(errno));
+        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to open %s: %s\n", portName, filename.c_str(), strerror(errno));
         return false;
     }
     currentFileSize = 0;
