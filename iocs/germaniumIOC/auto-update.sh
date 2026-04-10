@@ -67,10 +67,16 @@ git_poll_loop() {
   done
 }
 
-# Start GitHub poller in background; kill it when this script exits
+# Clean shutdown: kill all child processes on exit/signal
+cleanup() {
+  echo "[auto-update] Shutting down..."
+  kill 0 2>/dev/null   # kill entire process group
+  wait 2>/dev/null
+}
+trap cleanup EXIT INT TERM
+
+# Start GitHub poller in background
 git_poll_loop &
-GIT_POLL_PID=$!
-trap 'kill "$GIT_POLL_PID" 2>/dev/null; wait "$GIT_POLL_PID" 2>/dev/null' EXIT
 
 ### ── Inotify Watcher ────────────────────────────────────────────────────────
 
