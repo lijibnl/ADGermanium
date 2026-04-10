@@ -69,11 +69,11 @@ git_poll_loop() {
 
 # Clean shutdown: kill all child processes on exit/signal
 cleanup() {
+  trap - EXIT INT TERM   # prevent re-entry
   echo "[auto-update] Shutting down..."
-  kill 0 2>/dev/null   # kill entire process group
-  wait 2>/dev/null
+  kill -- -$$ 2>/dev/null   # kill process group by PGID
 }
-trap cleanup EXIT INT TERM
+trap cleanup INT TERM
 
 # Start GitHub poller in background
 git_poll_loop &
