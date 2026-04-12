@@ -35,7 +35,6 @@
 /* Parameter string definitions - areaDetector compatible names where possible */
 
 /* Basic info */
-#define GermaniumVersString         "GERMANIUM_VER"
 #define GermaniumDetTypeString      "GERMANIUM_DETTYPE"
 
 /* Data arrays */
@@ -215,6 +214,9 @@ public:
     // Fire-and-forget: push to tx queue, return immediately
     asynStatus zmqTx(uint32_t cmd, uint32_t addr, uint32_t value);
 
+    // Low-level send with logging (called by Tx thread)
+    void zmqSend(const ZmqCommandMsg& msg);
+
     // MARS delta-config helpers (each calls zmqTx)
     asynStatus zmqMarsSetGlobal(uint32_t chipMask, MarsGlobalField field, uint32_t value);
     asynStatus zmqMarsSetChannel(uint32_t channel, MarsChannelField field, uint32_t value);
@@ -254,7 +256,7 @@ public:
 
 protected:
     // Parameter indices
-    int GermaniumVER, GermaniumDETTYPE;
+    int GermaniumDETTYPE;
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
     int GermaniumIPADDR, GermaniumIPADDR_RBV;

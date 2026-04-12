@@ -13,6 +13,7 @@ LIB_SRCS += germaniumDetector.cpp
 LIB_SRCS += germaniumDetectorDriver.cpp
 LIB_SRCS += germaniumDetectorZmq.cpp
 LIB_SRCS += germaniumDetectorDataAcq.cpp
+LIB_SRCS += germaniumDetectorParamFormat.cpp
 LIB_SRCS += germaniumDetectorApp.cpp
 
 LIBS += asyn

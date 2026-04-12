@@ -591,10 +591,10 @@ asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
     // Async model: return cached value, queue a read request.
     //------------------------------------------------------------------
 
-    if (function == GermaniumVER)
+    if (function == GermaniumFVER)
     {
         zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
-        getIntegerParam(GermaniumVER, value);
+        getIntegerParam(GermaniumFVER, value);
     }
     else if (function == GermaniumDETTYPE)
     {

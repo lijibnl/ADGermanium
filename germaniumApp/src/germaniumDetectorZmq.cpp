@@ -21,6 +21,7 @@
 //===========================================================================//
 
 #include "germaniumDetector.hpp"
+#include "germaniumDetectorParamFormat.hpp"
 #include <cstring>
 #include <cstdio>
 #include <arpa/inet.h>
@@ -150,6 +151,19 @@ bool germaniumDetector::initializeZmq()
     //--------------------------------------------------------------
     zmqTx(ZMQ_CMD_I2C_DAC_INIT, 0, 0);
 
+    //--------------------------------------------------------------
+    // Read startup PVs so readback values are populated immediately
+    //--------------------------------------------------------------
+    zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
+    zmqTx(ZMQ_CMD_REG_READ, DETECTOR_TYPE, 0);
+    zmqTx(ZMQ_CMD_REG_READ, MARS_PIPE_DELAY, 0);
+    zmqTx(ZMQ_CMD_REG_READ, MARS_RDOUT_ENB, 0);
+    zmqTx(ZMQ_CMD_REG_READ, MARS_CALPULSE, 0);
+    zmqTx(ZMQ_CMD_REG_READ, CALPULSE_RATE, 0);
+    zmqTx(ZMQ_CMD_REG_READ, CALPULSE_CNT, 0);
+    zmqTx(ZMQ_CMD_REG_READ, CALPULSE_MODE, 0);
+    zmqTx(ZMQ_CMD_REG_READ, COUNT_MODE, 0);
+
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ initialized - Tx: %s, Rx: %s, SUB: %s\n", portName, txEndpoint, rxEndpoint, dataEndpoint);
     return true;
 }
@@ -189,6 +203,19 @@ asynStatus germaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 
     epicsEventSignal(txQueueEvent_);
     return asynSuccess;
+}
+
+//===========================================================================//
+
+void germaniumDetector::zmqSend(const ZmqCommandMsg& msg)
+{
+    asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
+        "%s: ZMQ TX: cmd=0x%02X addr=0x%04X value=0x%08X\n",
+        portName, msg.cmd, msg.addr, msg.value);
+    asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
+        "%s: ZMQ TX (decoded): %s\n",
+        portName, format_zmq_msg(msg).c_str());
+    zmq_send(zmqTxSocket, &msg, sizeof(msg), 0);
 }
 
 //===========================================================================//
@@ -245,7 +272,7 @@ void germaniumDetector::zmqTxThread()
 
         for (auto& item : batch)
         {
-            zmq_send(zmqTxSocket, &item.msg, sizeof(item.msg), 0);
+            zmqSend(item.msg);
         }
     }
 
@@ -284,6 +311,13 @@ void germaniumDetector::zmqControlRxThread()
         if (rc != sizeof(ZmqCommandMsg))
             continue;
 
+        asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
+            "%s: ZMQ RX: cmd=0x%02X addr=0x%04X value=0x%08X\n",
+            portName, reply.cmd, reply.addr, reply.value);
+        asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
+            "%s: ZMQ RX (decoded): %s\n",
+            portName, format_zmq_msg(reply).c_str());
+
         processReply(reply);
     }
 
@@ -303,7 +337,7 @@ void germaniumDetector::processReply(const ZmqCommandMsg& reply)
 
             // Update the appropriate readback parameter
             if (addr == VERSIONREG)
-                setIntegerParam(GermaniumVER, static_cast<int>(value));
+                setIntegerParam(GermaniumFVER, static_cast<int>(value));
             else if (addr == DETECTOR_TYPE)
                 setIntegerParam(GermaniumDETTYPE, static_cast<int>(value));
             else if (addr == MARS_CALPULSE)
@@ -427,7 +461,7 @@ void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
             setIntegerParam(GermaniumDETTYPE, static_cast<int>(value));
             break;
         case VERSIONREG:
-            setIntegerParam(GermaniumVER, static_cast<int>(value));
+            setIntegerParam(GermaniumFVER, static_cast<int>(value));
             break;
         default:
             break;

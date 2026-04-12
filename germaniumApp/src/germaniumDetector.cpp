@@ -195,7 +195,6 @@ germaniumDetector::~germaniumDetector()
 
 void germaniumDetector::createGermaniumParameters()
 {
-    createParam(GermaniumVersString,    asynParamInt32, &GermaniumVER);
     createParam(GermaniumDetTypeString, asynParamInt32, &GermaniumDETTYPE);
 
     createParam(GermaniumMcaString,    asynParamInt32Array,   &GermaniumMCA);

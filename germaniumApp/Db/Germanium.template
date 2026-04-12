@@ -434,6 +434,26 @@ record(waveform, "$(P)$(R)Threshold") {
     field(DESC, "Per-chip threshold")
 }
 
+# ThresholdTrim — per-channel threshold trim (Mars_DDM: THTR field in zDDMRecord,
+# written via channelstr[].da in devzDDM.c, 3-bit DAC trim per channel)
+record(waveform, "$(P)$(R)ThresholdTrim") {
+    field(DTYP, "asynInt8ArrayOut")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_THTR")
+    field(FTVL, "CHAR")
+    field(NELM, "$(NELM=192)")
+    field(DESC, "Threshold trim per channel")
+}
+
+# PileupTrim — per-channel pileup rejection trim (Mars_DDM: PUTR field in
+# zDDMRecord, written via channelstr[].dp in devzDDM.c, 4-bit trim per channel)
+record(waveform, "$(P)$(R)PileupTrim") {
+    field(DTYP, "asynInt8ArrayOut")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_PUTR")
+    field(FTVL, "CHAR")
+    field(NELM, "$(NELM=192)")
+    field(DESC, "Pileup trim per channel")
+}
+
 # =====================================================================
 # Test pulse settings
 # =====================================================================
