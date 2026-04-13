@@ -189,6 +189,8 @@ while read -r path file event; do
         if "${BUILD_CMD[@]}"; then
           echo
           echo "[Watcher] ✅ IOC build succeeded."
+          echo "[Watcher] Restarting IOC..."
+          pkill -f germaniumDetector
         else
           rc=$?
           echo
