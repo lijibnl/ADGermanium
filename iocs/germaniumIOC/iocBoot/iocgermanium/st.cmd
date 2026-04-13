@@ -31,12 +31,12 @@ dbLoadRecords("$(ASYN)/db/asynRecord.db", "P=$(PREFIX),R=asyn1,PORT=$(PORT),ADDR
 ##=====================================================##
 
 # Load areaDetector plugins and records
-< ad_plugins.cmd
+#< ad_plugins.cmd
 
 ##=====================================================##
 
 # Set path for auto-saving/restoring settings
-set_requestfile_path("$(ADGERMANIUM)/germaniumApp/Db")
+#set_requestfile_path("$(ADGERMANIUM)/germaniumApp/Db")
 
 ##=====================================================##
 
@@ -47,7 +47,7 @@ iocInit
 ##=====================================================##
 
 # Save/restore
-create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
+#create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
 
 ##=====================================================##
 
