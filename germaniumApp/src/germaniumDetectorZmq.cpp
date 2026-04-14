@@ -155,7 +155,7 @@ bool germaniumDetector::initializeZmq()
     // Read startup PVs so readback values are populated immediately
     //--------------------------------------------------------------
     zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
-    zmqTx(ZMQ_CMD_REG_READ, DETECTOR_TYPE, 0);
+    zmqTx(ZMQ_CMD_REG_READ, DETECTOR_MODEL, 0);
     zmqTx(ZMQ_CMD_REG_READ, MARS_PIPE_DELAY, 0);
     zmqTx(ZMQ_CMD_REG_READ, MARS_RDOUT_ENB, 0);
     zmqTx(ZMQ_CMD_REG_READ, MARS_CALPULSE, 0);
@@ -338,8 +338,8 @@ void germaniumDetector::processReply(const ZmqCommandMsg& reply)
             // Update the appropriate readback parameter
             if (addr == VERSIONREG)
                 setIntegerParam(GermaniumFVER, static_cast<int>(value));
-            else if (addr == DETECTOR_TYPE)
-                setIntegerParam(GermaniumDETTYPE, static_cast<int>(value));
+            else if (addr == DETECTOR_MODEL)
+                setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             else if (addr == MARS_CALPULSE)
                 setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
             else if (addr == CALPULSE_RATE)
@@ -352,6 +352,8 @@ void germaniumDetector::processReply(const ZmqCommandMsg& reply)
                 setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
             else if (addr == MARS_RDOUT_ENB)
                 setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
+            else if (addr == TRIG)
+                setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
             else if (addr == COUNT_MODE)
                 setIntegerParam(GermaniumMODE, value ? 1 : 0);
             else if (addr == EVENT_TIME_CNTR)
@@ -457,8 +459,8 @@ void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
         case MARS_RDOUT_ENB:
             setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
             break;
-        case DETECTOR_TYPE:
-            setIntegerParam(GermaniumDETTYPE, static_cast<int>(value));
+        case DETECTOR_MODEL:
+            setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             break;
         case VERSIONREG:
             setIntegerParam(GermaniumFVER, static_cast<int>(value));

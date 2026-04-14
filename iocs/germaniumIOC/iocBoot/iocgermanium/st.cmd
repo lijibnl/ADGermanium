@@ -54,3 +54,8 @@ iocInit
 dbl > pv.list
 
 ##=====================================================##
+
+dbpf Lab{GeRM}asyn1.TMSK 0x3f
+dbpf Lab{GeRM}asyn1.TIOM 0x7
+dbpf Lab{GeRM}asyn1.TINM 0xf
+

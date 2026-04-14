@@ -35,7 +35,7 @@
 /* Parameter string definitions - areaDetector compatible names where possible */
 
 /* Basic info */
-#define GermaniumDetTypeString      "GERMANIUM_DETTYPE"
+#define GermaniumDetModelString      "GERMANIUM_DETMODEL"
 
 /* Data arrays */
 #define GermaniumMcaString          "GERMANIUM_MCA"
@@ -63,6 +63,7 @@
 /* Timing and control */
 #define GermaniumFreqString         "GERMANIUM_FREQ"
 #define GermaniumCntString          "GERMANIUM_CNT"
+#define GermaniumCntRbvString       "GERMANIUM_CNT_RBV"
 #define GermaniumPcntString         "GERMANIUM_PCNT"
 #define GermaniumContString         "GERMANIUM_CONT"
 #define GermaniumModeString         "GERMANIUM_MODE"
@@ -128,6 +129,11 @@
 #define GermaniumTpcntString        "GERMANIUM_TPCNT"
 #define GermaniumTpenbString        "GERMANIUM_TPENB"
 
+#define GermaniumTpampRbvString     "GERMANIUM_TPAMP_RBV"
+#define GermaniumTpfrqRbvString     "GERMANIUM_TPFRQ_RBV"
+#define GermaniumTpcntRbvString     "GERMANIUM_TPCNT_RBV"
+#define GermaniumTpenbRbvString     "GERMANIUM_TPENB_RBV"
+
 /* Per-channel arrays */
 #define GermaniumChenString         "GERMANIUM_CHEN"
 #define GermaniumTsenString         "GERMANIUM_TSEN"
@@ -144,6 +150,13 @@
 
 /* Per-chip arrays */
 #define GermaniumThrshString        "GERMANIUM_THRSH"
+
+/* */
+#define GermaniumClreString         "GERMANIUM_CLRE"
+#define GermaniumClrmString         "GERMANIUM_CLRM"
+#define GermaniumClrtString         "GERMANIUM_CLRT"
+#define GermaniumStrtString         "GERMANIUM_STRT"
+#define GermaniumStopString         "GERMANIUM_STOP"
 
 /* Display/formatting */
 #define GermaniumEguString          "GERMANIUM_EGU"
@@ -196,6 +209,7 @@ public:
                                      size_t nElements, size_t *nIn);
     virtual asynStatus writeInt8Array(asynUser *pasynUser, epicsInt8 *value,
                                       size_t nElements);
+    virtual asynStatus readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn);                                      
     virtual void report(FILE *fp, int details);
     virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo,
                                      const char **pptypeName, size_t *psize);
@@ -256,12 +270,12 @@ public:
 
 protected:
     // Parameter indices
-    int GermaniumDETTYPE;
+    int GermaniumDETMODEL;
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
     int GermaniumIPADDR, GermaniumIPADDR_RBV;
     int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
-    int GermaniumFREQ, GermaniumCNT, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
+    int GermaniumFREQ, GermaniumCNT, GermaniumCNT_RBV, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
     int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
     int GermaniumTP, GermaniumTP1, GermaniumPR1;
     int GermaniumSS, GermaniumUS, GermaniumT;

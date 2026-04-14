@@ -50,7 +50,7 @@ const char* decode_reg(uint32_t addr)
         case VERSIONREG:        return "VERSIONREG";
         case MARS_CALPULSE:     return "MARS_CALPULSE";
         case MARS_PIPE_DELAY:   return "MARS_PIPE_DELAY";
-        case DETECTOR_TYPE:     return "DETECTOR_TYPE";
+        case DETECTOR_MODEL:    return "DETECTOR_MODEL";
         case MARS_RDOUT_ENB:    return "MARS_RDOUT_ENB";
         case EVENT_TIME_CNTR:   return "EVENT_TIME_CNTR";
         case SIM_EVT_SEL:       return "SIM_EVT_SEL";

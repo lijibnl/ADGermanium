@@ -19,7 +19,7 @@
 #define VERSIONREG          3
 #define MARS_CALPULSE       4
 #define MARS_PIPE_DELAY     5
-#define DETECTOR_TYPE       6
+#define DETECTOR_MODEL      6
 #define MARS_RDOUT_ENB      8
 #define EVENT_TIME_CNTR     9
 #define SIM_EVT_SEL         10
