@@ -43,6 +43,7 @@ Author:
     Ji Li <liji@bnl.gov>
 """
 import sys
+import time
 import subprocess
 import json
 import os
@@ -415,13 +416,18 @@ class App(QWidget):
             self.log_line(f"▶ caput {pv} {write_val}")
             ok, out = run_ca(['caput', pv, write_val])
             self.log_line(("✔" if ok else "✘") + " " + out)
-        else:
-            self.log_line("(read-only, skipping caput)")
 
-        for val in ['0', '1', '0']:
-            self.log_line(f"▶ caput {pv}.PROC {val}")
-            ok, out = run_ca(['caput', f"{pv}.PROC", val])
-            self.log_line(("✔" if ok else "✘") + " " + out)
+#        for val in ['0', '1', '0']:
+#            self.log_line(f"▶ caput {pv}.PROC {val}")
+#            ok, out = run_ca(['caput', f"{pv}.PROC", val])
+#            self.log_line(("✔" if ok else "✘") + " " + out)
+
+        self.log_line(f"▶ caget {pv}")
+        ok, out = run_ca(['caget', pv])
+        self.log_line(("✔" if ok else "✘") + " " + out)
+        self.update_read(row, pv, parse_caget(out))
+
+        time.sleep(0.1)
 
         self.log_line(f"▶ caget {pv}")
         ok, out = run_ca(['caget', pv])

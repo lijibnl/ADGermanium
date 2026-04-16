@@ -513,7 +513,7 @@ asynStatus germaniumDetector::readOctet(asynUser *pasynUser, char *value,
 {
     if (pasynUser->reason == GermaniumIPADDR_RBV)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Reading IP address from FPGA register\n", portName);
+        asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s: Reading IP address from FPGA register\n", portName);
         zmqTx(ZMQ_CMD_REG_READ, UDP_IP_ADDR, 0);
         getStringParam(GermaniumIPADDR_RBV, 15, value);
         *nActual = strlen(value);
