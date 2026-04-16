@@ -473,6 +473,7 @@ asynStatus germaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *va
 asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                                  size_t maxChars, size_t *nActual)
 {
+    printf("writeOctet: function=%d, value='%s'\n", pasynUser->reason, value);
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
@@ -487,9 +488,10 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
     {
         // Validate IP address format
         struct in_addr addr;
+        asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s: Setting IP address to '%s'\n", portName, value);
         if (inet_pton(AF_INET, value, &addr) != 1)
         {
-            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: invalid IP address '%s'\n", portName, value);
+            asynPrint(pasynUser, ASYN_TRACE_ERROR, "%s: invalid IP address '%s'\n", portName, value);
             return asynError;
         }
         // Write to FPGA register for PL UDP destination
@@ -502,6 +504,23 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
     *nActual = strlen(value);
     return status;
+}
+
+//===========================================================================//
+
+asynStatus germaniumDetector::readOctet(asynUser *pasynUser, char *value,
+                                        size_t maxChars, size_t *nActual, int *eomReason)
+{
+    if (pasynUser->reason == GermaniumIPADDR_RBV)
+    {
+        asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Reading IP address from FPGA register\n", portName);
+        zmqTx(ZMQ_CMD_REG_READ, UDP_IP_ADDR, 0);
+        getStringParam(GermaniumIPADDR_RBV, 15, value);
+        *nActual = strlen(value);
+        *eomReason = ASYN_EOM_END;
+    }
+
+    return asynPortDriver::readOctet(pasynUser, value, maxChars, nActual, eomReason);
 }
 
 //===========================================================================//

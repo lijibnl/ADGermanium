@@ -366,11 +366,13 @@ void germaniumDetector::processReply(const ZmqCommandMsg& reply)
             {
                 uint32_t host = ntohl(value);
                 struct in_addr a;
-                a.s_addr = htonl(host);
+                a.s_addr = host;
                 char buf[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &a, buf, sizeof(buf));
                 setStringParam(GermaniumIPADDR_RBV, buf);
+                asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s: Received IP address readback: %s\n", portName, buf);
             }
+            callParamCallbacks();
             break;
         }
 

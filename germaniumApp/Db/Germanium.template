@@ -204,9 +204,23 @@ record(bo, "$(P)$(R)MultiFire") {
     field(DESC, "Multi-fire suppression")
 }
 
-record(ao, "$(P)$(R)TDCSlope") {
+record(mbbo, "$(P)$(R)TDCSlope") {
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_TDS")
+    field(ZRST, "1us")
+    field(ONST, "2us")
+    field(TWST, "3us")
+    field(THST, "4us")
+    field(FRST, "6us")
+    field(FVST, "9us")
+    field(SXST, "12us")
+    field(ZRVL, "0")
+    field(ONVL, "1")
+    field(TWVL, "2")
+    field(THVL, "3")
+    field(FRVL, "4")
+    field(FVVL, "5")
+    field(SXVL, "6")
     field(DESC, "TDC slope (timing ramp)")
 }
 
@@ -375,7 +389,7 @@ record(waveform, "$(P)$(R)SpectrumX") {
     field(FTVL, "DOUBLE")
     field(NELM, "4096")
     field(SCAN, "I/O Intr")
-    field(DESC, "Single channel spectrum context/calibration")
+    field(DESC, "Single chan. spect. context/calibration")
 }
 
 record(waveform, "$(P)$(R)Intensity") {

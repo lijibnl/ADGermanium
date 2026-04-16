@@ -201,6 +201,8 @@ public:
     virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
     virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
                                   size_t *nActual);
+    virtual asynStatus readOctet(asynUser *pasynUser, char *value,
+                                 size_t maxChars, size_t *nActual, int *eomReason);
     virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                       size_t nElements, size_t *nIn);
     virtual asynStatus writeInt32Array(asynUser *pasynUser, epicsInt32 *value,

@@ -176,13 +176,13 @@ while read -r path file event; do
 
         echo
 
-        echo "Entering IOC directory @ $IOC_DIR..."
-        echo
-        cd -
-        echo "[Watcher] Starting IOC build at $(date '+%Y-%m-%d %H:%M:%S')"
-        echo
-
         if [[ $MODULE_OK -eq 1 ]]; then
+          echo "Entering IOC directory @ $IOC_DIR..."
+          echo
+          cd -
+          echo "[Watcher] Starting IOC build at $(date '+%Y-%m-%d %H:%M:%S')"
+          echo
+
           if "${BUILD_CMD[@]}"; then
             echo
             echo "[Watcher] ✅ IOC build succeeded."

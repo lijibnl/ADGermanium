@@ -290,11 +290,11 @@ void germaniumDetector::createGermaniumParameters()
     createParam(GermaniumOffsString,    asynParamFloat64Array, &GermaniumOFFS);
     createParam(GermaniumThrshString,   asynParamInt32Array,   &GermaniumTHRSH);
 
-    createParam("GERMANIUM_CLRE", asynParamInt32, &GermaniumCLRE);
-    createParam("GERMANIUM_CLRM", asynParamInt32, &GermaniumCLRM);
-    createParam("GERMANIUM_CLRT", asynParamInt32, &GermaniumCLRT);
-    createParam("GERMANIUM_STRT", asynParamInt32, &GermaniumSTRT);
-    createParam("GERMANIUM_STOP", asynParamInt32, &GermaniumSTOP);
+    createParam(GermaniumClreString, asynParamInt32, &GermaniumCLRE);
+    createParam(GermaniumClrmString, asynParamInt32, &GermaniumCLRM);
+    createParam(GermaniumClrtString, asynParamInt32, &GermaniumCLRT);
+    createParam(GermaniumStrtString, asynParamInt32, &GermaniumSTRT);
+    createParam(GermaniumStopString, asynParamInt32, &GermaniumSTOP);
 
     createParam(GermaniumEguString,  asynParamOctet, &GermaniumEGU);
     createParam(GermaniumPrecString, asynParamInt32, &GermaniumPREC);
@@ -360,7 +360,67 @@ void germaniumDetector::setGermaniumInitialValues()
     setStringParam(GermaniumEGU, "counts");
     setIntegerParam(GermaniumPREC, 0);
 
-    // Placeholders — I2C sensors not available via ZMQ yet
+    //=================================================
+    // Placeholders for RBVs that require ZMQ readback
+    //=================================================
+
+    // String / octet
+    setStringParam(GermaniumIPADDR_RBV, "");
+
+    // Int32 scalars
+    setIntegerParam(GermaniumDETMODEL, 0);
+
+    setIntegerParam(GermaniumPCNT, 0);
+    setIntegerParam(GermaniumCNT_RBV, 0);
+
+    setIntegerParam(GermaniumPR1, 0);
+    setIntegerParam(GermaniumUS, 0);
+    setIntegerParam(GermaniumRUNNO, 0);
+
+    setIntegerParam(GermaniumPLDEL_RBV, 0);
+    setIntegerParam(GermaniumRODEL_RBV, 0);
+
+    setIntegerParam(GermaniumFVER, 0);
+    setIntegerParam(GermaniumCARD, 0);
+
+    setIntegerParam(GermaniumNCH, 0);
+
+    setIntegerParam(GermaniumCHAN, 0);
+    setIntegerParam(GermaniumCHIP, 0);
+    setIntegerParam(GermaniumMONCH, 0);
+
+    setIntegerParam(GermaniumTPAMP, 0);
+    setIntegerParam(GermaniumTPFRQ, 0);
+    setIntegerParam(GermaniumTPCNT, 0);
+
+    setIntegerParam(GermaniumTPAMP_RBV, 0);
+    setIntegerParam(GermaniumTPFRQ_RBV, 0);
+    setIntegerParam(GermaniumTPCNT_RBV, 0);
+    setIntegerParam(GermaniumTPENB_RBV, 0);
+
+    setIntegerParam(GermaniumCHEN_SEL, 0);
+    setIntegerParam(GermaniumCHEN_ALL, 0);
+    setIntegerParam(GermaniumTSEN_SEL, 0);
+    setIntegerParam(GermaniumTSEN_ALL, 0);
+
+    setIntegerParam(GermaniumCLRE, 0);
+    setIntegerParam(GermaniumCLRM, 0);
+    setIntegerParam(GermaniumCLRT, 0);
+    setIntegerParam(GermaniumSTRT, 0);
+    setIntegerParam(GermaniumSTOP, 0);
+
+    setIntegerParam(GermaniumADC0_CLK_SKEW, 0);
+    setIntegerParam(GermaniumADC1_CLK_SKEW, 0);
+    setIntegerParam(GermaniumADC2_CLK_SKEW, 0);
+
+    // Float64 scalars
+    setDoubleParam(GermaniumRAT1, 0.0);
+    setDoubleParam(GermaniumDLY, 0.0);
+    setDoubleParam(GermaniumDLY1, 0.0);
+    setDoubleParam(GermaniumTP, 0.0);
+    setDoubleParam(GermaniumT, 0.0);
+
+    // Sensors
     setDoubleParam(GermaniumTEMP1, 0.0);
     setDoubleParam(GermaniumTEMP2, 0.0);
     setDoubleParam(GermaniumTEMP3, 0.0);
@@ -372,6 +432,21 @@ void germaniumDetector::setGermaniumInitialValues()
     setDoubleParam(GermaniumP2, 0.0);
     setDoubleParam(GermaniumP1_CURR, 0.0);
     setDoubleParam(GermaniumP2_CURR, 0.0);
+
+    // =========================
+    // Array params
+    // 这些需要你按实际数组长度，用全 0 缓冲初始化
+    // =========================
+    // GermaniumMCA
+    // GermaniumTDC
+    // GermaniumSPCT
+    // GermaniumSPCTX
+    // GermaniumINTENS
+    // GermaniumTHTR
+    // GermaniumPUTR
+    // GermaniumSLP
+    // GermaniumOFFS
+    // GermaniumTHRSH
 
     callParamCallbacks();
 }
