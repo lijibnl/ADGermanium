@@ -332,53 +332,52 @@ asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
 
     if (function == GermaniumFVER)
     {
-        zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
         getIntegerParam(GermaniumFVER, value);
     }
     else if (function == GermaniumDETMODEL)
     {
-        zmqTx(ZMQ_CMD_REG_READ, DETECTOR_MODEL, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, DETECTOR_MODEL, 0);
         getIntegerParam(GermaniumDETMODEL, value);
     }
     else if (function == GermaniumTPAMP_RBV)
     {
-        zmqTx(ZMQ_CMD_REG_READ, MARS_CALPULSE, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, MARS_CALPULSE, 0);
         getIntegerParam(GermaniumTPAMP_RBV, value);
     }
     else if (function == GermaniumTPFRQ_RBV)
     {
-        zmqTx(ZMQ_CMD_REG_READ, CALPULSE_RATE, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, CALPULSE_RATE, 0);
         getIntegerParam(GermaniumTPFRQ_RBV, value);
     }
     else if (function == GermaniumTPCNT_RBV)
     {
-        zmqTx(ZMQ_CMD_REG_READ, CALPULSE_CNT, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, CALPULSE_CNT, 0);
         getIntegerParam(GermaniumTPCNT_RBV, value);
     }
     else if (function == GermaniumTPENB_RBV)
     {
-        zmqTx(ZMQ_CMD_REG_READ, CALPULSE_MODE, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, CALPULSE_MODE, 0);
         getIntegerParam(GermaniumTPENB_RBV, value);
     }
     else if (function == GermaniumPLDEL_RBV)
     {
-        zmqTx(ZMQ_CMD_REG_READ, MARS_PIPE_DELAY, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, MARS_PIPE_DELAY, 0);
         getIntegerParam(GermaniumPLDEL_RBV, value);
     }
     else if (function == GermaniumRODEL_RBV)
     {
-        zmqTx(ZMQ_CMD_REG_READ, MARS_RDOUT_ENB, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, MARS_RDOUT_ENB, 0);
         getIntegerParam(GermaniumRODEL_RBV, value);
     }
     else if (function == GermaniumMODE)
     {
-        zmqTx(ZMQ_CMD_REG_READ, COUNT_MODE, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, COUNT_MODE, 0);
         getIntegerParam(GermaniumMODE, value);
     }
     else if (function == GermaniumCNT_RBV)
     {
-        printf("Reading CNT_RBV\n");
-        zmqTx(ZMQ_CMD_REG_READ, TRIG, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, TRIG, 0);
         getIntegerParam(GermaniumCNT_RBV, value);
     }
     else
@@ -514,7 +513,7 @@ asynStatus germaniumDetector::readOctet(asynUser *pasynUser, char *value,
     if (pasynUser->reason == GermaniumIPADDR_RBV)
     {
         asynPrint(pasynUser, ASYN_TRACE_FLOW, "%s: Reading IP address from FPGA register\n", portName);
-        zmqTx(ZMQ_CMD_REG_READ, UDP_IP_ADDR, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, UDP_IP_ADDR, 0);
         getStringParam(GermaniumIPADDR_RBV, 15, value);
         *nActual = strlen(value);
         *eomReason = ASYN_EOM_END;
@@ -644,54 +643,54 @@ asynStatus germaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *val
     if (function == GermaniumTP)
     {
         // Request both COUNT_TIME registers; cache updated by processReply
-        zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_LO, 0);
-        zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_HI, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_LO, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_HI, 0);
         getDoubleParam(GermaniumTP, value);
     }
     else if (function == GermaniumT)
     {
-        zmqTx(ZMQ_CMD_REG_READ, EVENT_TIME_CNTR, 0);
+        //zmqTx(ZMQ_CMD_REG_READ, EVENT_TIME_CNTR, 0);
         getDoubleParam(GermaniumT, value);
     }
     else if (function == GermaniumTEMP1)
     {
-        zmqTx(ZMQ_CMD_I2C_TEMP_READ, 0, 0);
+        //zmqTx(ZMQ_CMD_I2C_TEMP_READ, 0, 0);
         getDoubleParam(GermaniumTEMP1, value);
     }
     else if (function == GermaniumTEMP2)
     {
-        zmqTx(ZMQ_CMD_I2C_TEMP_READ, 1, 0);
+        //zmqTx(ZMQ_CMD_I2C_TEMP_READ, 1, 0);
         getDoubleParam(GermaniumTEMP2, value);
     }
     else if (function == GermaniumTEMP3)
     {
-        zmqTx(ZMQ_CMD_I2C_TEMP_READ, 2, 0);
+        //zmqTx(ZMQ_CMD_I2C_TEMP_READ, 2, 0);
         getDoubleParam(GermaniumTEMP3, value);
     }
     else if (function == GermaniumZTEMP)
     {
         printf("Read ZTEMP\n");
-        zmqTx(ZMQ_CMD_XADC_READ, 0, 0);
+        //zmqTx(ZMQ_CMD_XADC_READ, 0, 0);
         getDoubleParam(GermaniumZTEMP, value);
     }
     else if (function == GermaniumHV_RBV)
     {
-        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_RBV, 0);
+        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_RBV, 0);
         getDoubleParam(GermaniumHV_RBV, value);
     }
     else if (function == GermaniumHV_CURR)
     {
-        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_CUR, 0);
+        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_CUR, 0);
         getDoubleParam(GermaniumHV_CURR, value);
     }
     else if (function == GermaniumP1_CURR)
     {
-        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P1_CUR, 0);
+        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P1_CUR, 0);
         getDoubleParam(GermaniumP1_CURR, value);
     }
     else if (function == GermaniumP2_CURR)
     {
-        zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P2_CUR, 0);
+        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P2_CUR, 0);
         getDoubleParam(GermaniumP2_CURR, value);
     }
     else

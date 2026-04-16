@@ -13,6 +13,7 @@
 //===========================================================================//
 
 #include "germaniumDetector.hpp"
+#include "germaniumDetectorPoller.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
@@ -150,6 +151,8 @@ germaniumDetector::germaniumDetector( const char *portName
                                              );
         asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
     }
+
+    poller = std::make_unique<germaniumDetectorPoller>(*this, 1.0); // 1 second base period
 
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
 }

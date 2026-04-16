@@ -17,6 +17,8 @@
 
 #include "ADDriver.h"
 #include "germaniumDetectorTypes.hpp"
+#include "germaniumDetectorRegister.hpp"
+#include "germaniumDetectorPoller.hpp"
 #include "epicsThread.h"
 #include "epicsMutex.h"
 #include "epicsEvent.h"
@@ -28,7 +30,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include "germaniumDetectorRegister.hpp"
 
 //===========================================================================//
 
@@ -351,6 +352,8 @@ private:
     // Acquisition state
     std::atomic<int> evttot;
     bool acquisitionRunning;
+
+    std::unique_ptr<germaniumDetectorPoller> poller;
 
     // File handling
     bool fileWritingEnabled;
