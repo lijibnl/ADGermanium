@@ -105,40 +105,57 @@ GermaniumDetector::GermaniumDetector( const char *portName
     setGermaniumInitialValues();
 
     // Initialize ZMQ communication
-    if (initializeZmq())
+    if ( !initializeZmq() )
     {
-        dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
-        dataAvailable      = epicsEventCreate(epicsEventEmpty);
-
-        threadsRunning = true;
-
-        zmqDataThreadId = epicsThreadCreate( "GermaniumZmqData"
-                           , epicsThreadPriorityHigh
-                           , epicsThreadGetStackSize(epicsThreadStackMedium)
-                           , zmqDataThreadC
-                           , this
-                           );
-
-        dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
-                              , epicsThreadPriorityMedium
-                              , epicsThreadGetStackSize(epicsThreadStackMedium)
-                              , dataProcessingThreadC
-                              , this
-                              );
-
-        dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
-                             , epicsThreadPriorityMedium
-                             , epicsThreadGetStackSize(epicsThreadStackMedium)
-                             , dataWriteThreadC
-                             , this
-                             );
-
-        asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ and processing threads started\n", portName);
+        printf("%s: failed to initialize ZMQ communication\n", __func__);
+        return;
     }
-    else
+    printf("%s: ZMQ communication initialized\n", __func__);
+
+    dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
+    dataAvailable      = epicsEventCreate(epicsEventEmpty);
+
+    threadsRunning = true;
+
+    zmqDataThreadId = epicsThreadCreate( "GermaniumZmqData"
+                       , epicsThreadPriorityHigh
+                       , epicsThreadGetStackSize(epicsThreadStackMedium)
+                       , zmqDataThreadC
+                       , this
+                       );
+    if (!zmqDataThreadId)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to initialize ZMQ communication\n", portName);
+        printf("%s: failed to create ZMQ data thread\n", __func__);
+        return;
     }
+    printf("%s: ZMQ data thread started\n", __func__);
+
+    dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
+                          , epicsThreadPriorityMedium
+                          , epicsThreadGetStackSize(epicsThreadStackMedium)
+                          , dataProcessingThreadC
+                          , this
+                          );
+    if (!dataProcessingThreadId)
+    {
+        printf("%s: failed to create data processing thread\n", __func__);
+        return;
+    }
+    printf("%s: ZMQ data processing threads started\n", __func__);
+
+    dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
+                         , epicsThreadPriorityMedium
+                         , epicsThreadGetStackSize(epicsThreadStackMedium)
+                         , dataWriteThreadC
+                         , this
+                         );
+    if (!dataWriteThreadId)
+    {
+        printf("%s: failed to create UDP data write thread\n", __func__);
+        return;
+    }
+    printf("%s: UDP data write thread started\n", __func__);
+
 
     // Optionally initialize PL UDP socket for raw data reception
     if (initializePlUdpSocket())
@@ -152,8 +169,12 @@ GermaniumDetector::GermaniumDetector( const char *portName
         asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
     }
 
-
-    createPoller();
+    if (!createPoller())
+    {
+        printf("%s: failed to create poller thread\n", __func__);
+        return;
+    }
+    printf("%s: Poller thread created\n", __func__);
 
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
 }
@@ -510,7 +531,7 @@ void GermaniumDetector::clearSpectra()
 
 //===========================================================================//
 
-void GermaniumDetector::createPoller()
+bool GermaniumDetector::createPoller()
 {
     poller = std::make_unique<EpicsPoller>(1.0); // 1 second base period
     poller->setFast(false);
@@ -525,9 +546,7 @@ void GermaniumDetector::createPoller()
     }
     poller->setFunning(true);
 
-    printf("%s: created EPICS poller.\n"
-          , __func__
-          );
+    return true;
 }
 
 //=============================================================================//

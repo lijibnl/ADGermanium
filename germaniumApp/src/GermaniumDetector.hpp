@@ -416,7 +416,7 @@ private:
                                            , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,   10, 10 }
                                            , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,   10, 10 }
                                            };
-    void createPoller();
+    bool createPoller();
 };
 
 //===========================================================================//

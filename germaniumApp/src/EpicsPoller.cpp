@@ -16,7 +16,10 @@ EpicsPollItem::EpicsPollItem( int slowDivider, int fastDivider, PollFunc pollFun
 
 void EpicsPollItem::execute()
 {
-    if (pollFunc) pollFunc();
+    if (pollFunc)
+        pollFunc();
+    else
+        printf("%s: warning: no poll function defined for this item\n", __func__);
 }
 
 //===========================================================================//
