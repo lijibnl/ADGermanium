@@ -4,17 +4,17 @@ TOP=../..
 include $(TOP)/configure/CONFIG
 
 # Build the driver library
-LIBRARY_IOC = germaniumDetector
+LIBRARY_IOC = GermaniumDetector
 
-DBD += germaniumDetectorSupport.dbd
+DBD += GermaniumDetectorSupport.dbd
 
 # Source files
-LIB_SRCS += germaniumDetector.cpp
-LIB_SRCS += germaniumDetectorDriver.cpp
-LIB_SRCS += germaniumDetectorZmq.cpp
-LIB_SRCS += germaniumDetectorDataAcq.cpp
-LIB_SRCS += germaniumDetectorParamFormat.cpp
-LIB_SRCS += germaniumDetectorApp.cpp
+LIB_SRCS += GermaniumDetector.cpp
+LIB_SRCS += GermaniumDetectorDriver.cpp
+LIB_SRCS += GermaniumDetectorZmq.cpp
+LIB_SRCS += GermaniumDetectorDataAcq.cpp
+LIB_SRCS += GermaniumDetectorParamFormat.cpp
+LIB_SRCS += GermaniumDetectorApp.cpp
 LIB_SRCS += EpicsPoller.cpp
 
 LIBS += asyn

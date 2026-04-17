@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorParamFormat.cpp
+ * @file GermaniumDetectorParamFormat.cpp
  * @brief ZMQ message decode helpers for logging.
  *
  * Adapted from ZynqDetector's GermaniumParamFormat.cpp to use
@@ -14,7 +14,7 @@
 
 //===========================================================================//
 
-#include "germaniumDetectorParamFormat.hpp"
+#include "GermaniumDetectorParamFormat.hpp"
 #include <sstream>
 #include <iomanip>
 

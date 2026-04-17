@@ -1,6 +1,6 @@
 /**
- * @file germaniumDetectorDriver.cpp
- * @brief asynPortDriver interface implementations for germaniumDetector (async ZMQ version).
+ * @file GermaniumDetectorDriver.cpp
+ * @brief asynPortDriver interface implementations for GermaniumDetector (async ZMQ version).
  *
  * All operations use zmqTx() for fire-and-forget writes.
  * Reads return cached values; the Control Rx thread updates the cache.
@@ -14,7 +14,7 @@
 
 //===========================================================================//
 
-#include "germaniumDetector.hpp"
+#include "GermaniumDetector.hpp"
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
@@ -22,7 +22,7 @@
 
 //===========================================================================//
 
-asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
+asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -321,7 +321,7 @@ asynStatus germaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
+asynStatus GermaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -390,7 +390,7 @@ asynStatus germaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
 
 //===========================================================================//
 
-asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
+asynStatus GermaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                       size_t nElements)
 {
     int function = pasynUser->reason;
@@ -415,7 +415,7 @@ asynStatus germaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
+asynStatus GermaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *value,
                                      size_t nElements, size_t *nIn)
 {
     int function = pasynUser->reason;
@@ -469,7 +469,7 @@ asynStatus germaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *va
 
 //===========================================================================//
 
-asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
+asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                                  size_t maxChars, size_t *nActual)
 {
     printf("writeOctet: function=%d, value='%s'\n", pasynUser->reason, value);
@@ -507,7 +507,7 @@ asynStatus germaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readOctet(asynUser *pasynUser, char *value,
+asynStatus GermaniumDetector::readOctet(asynUser *pasynUser, char *value,
                                         size_t maxChars, size_t *nActual, int *eomReason)
 {
     if (pasynUser->reason == GermaniumIPADDR_RBV)
@@ -524,7 +524,7 @@ asynStatus germaniumDetector::readOctet(asynUser *pasynUser, char *value,
 
 //===========================================================================//
 
-asynStatus germaniumDetector::writeInt8Array(asynUser *pasynUser, epicsInt8 *value,
+asynStatus GermaniumDetector::writeInt8Array(asynUser *pasynUser, epicsInt8 *value,
                                      size_t nElements)
 {
     int function = pasynUser->reason;
@@ -564,7 +564,7 @@ asynStatus germaniumDetector::writeInt8Array(asynUser *pasynUser, epicsInt8 *val
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readInt8Array(asynUser *pasynUser, epicsInt8 *value,
+asynStatus GermaniumDetector::readInt8Array(asynUser *pasynUser, epicsInt8 *value,
                                     size_t nElements, size_t *nIn)
 {
     // Zynq is authoritative for MARS config — IOC does not cache.
@@ -577,7 +577,7 @@ asynStatus germaniumDetector::readInt8Array(asynUser *pasynUser, epicsInt8 *valu
 
 //===========================================================================//
 
-asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
+asynStatus GermaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -629,7 +629,7 @@ asynStatus germaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *value)
+asynStatus GermaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *value)
 {
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
@@ -703,7 +703,7 @@ asynStatus germaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *val
 
 //===========================================================================//
 
-asynStatus germaniumDetector::readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn)
+asynStatus GermaniumDetector::readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn)
 {
     int function = pasynUser->reason;
     if (function == GermaniumSPCTX) {
@@ -722,7 +722,7 @@ asynStatus germaniumDetector::readFloat64Array(asynUser *pasynUser, epicsFloat64
 
 //===========================================================================//
 
-void germaniumDetector::report(FILE *fp, int details)
+void GermaniumDetector::report(FILE *fp, int details)
 {
     fprintf(fp, "Germanium ZMQ detector: %d elements, %d chips\n", numElements, nchips);
     fprintf(fp, "ZMQ target: %s (cmd port %d, reply port %d, data port %d)\n",
@@ -735,7 +735,7 @@ void germaniumDetector::report(FILE *fp, int details)
 
 //===========================================================================//
 
-asynStatus germaniumDetector::drvUserCreate(asynUser *pasynUser, const char *drvInfo,
+asynStatus GermaniumDetector::drvUserCreate(asynUser *pasynUser, const char *drvInfo,
                                     const char **pptypeName, size_t *psize)
 {
     return ADDriver::drvUserCreate(pasynUser, drvInfo, pptypeName, psize);

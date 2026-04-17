@@ -1,6 +1,6 @@
 /**
- * @file germaniumDetectorApp.cpp
- * @brief EPICS IOC shell registration for germaniumDetector (ZMQ version).
+ * @file GermaniumDetectorApp.cpp
+ * @brief EPICS IOC shell registration for GermaniumDetector (ZMQ version).
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
@@ -11,7 +11,7 @@
 
 //===========================================================================//
 
-#include "germaniumDetector.hpp"
+#include "GermaniumDetector.hpp"
 #include <iocsh.h>
 #include <epicsExport.h>
 
@@ -41,7 +41,7 @@ static const iocshFuncDef germaniumConfigFuncDef = {
 
 static void germaniumConfigCallFunc(const iocshArgBuf *args)
 {
-    new germaniumDetector( args[0].sval         // portName
+    new GermaniumDetector( args[0].sval         // portName
                          , args[1].ival         // numElements
                          , args[2].sval         // ipAddress
                          , args[3].ival         // maxAddr

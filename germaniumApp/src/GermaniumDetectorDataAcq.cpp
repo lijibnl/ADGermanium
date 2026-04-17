@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorDataAcq.cpp
+ * @file GermaniumDetectorDataAcq.cpp
  * @brief PL UDP data reception, file writing, and data processing threads.
  *
  * Receives raw detector events from the PL UDP interface (port 32003),
@@ -15,7 +15,7 @@
 
 //===========================================================================//
 
-#include "germaniumDetector.hpp"
+#include "GermaniumDetector.hpp"
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -34,7 +34,7 @@
  * Initialize PL UDP socket for raw data from FPGA.
  * This is the dedicated PL interface (port 32003), independent of ZMQ.
  */
-bool germaniumDetector::initializePlUdpSocket()
+bool GermaniumDetector::initializePlUdpSocket()
 {
     plUdpSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (plUdpSocket < 0)
@@ -71,7 +71,7 @@ bool germaniumDetector::initializePlUdpSocket()
 
 //===========================================================================//
 
-void germaniumDetector::closePlUdpSocket()
+void GermaniumDetector::closePlUdpSocket()
 {
     plUdpInitialized = false;
     if (plUdpSocket >= 0)
@@ -91,12 +91,12 @@ void germaniumDetector::closePlUdpSocket()
  *   [event_data][timestamp] ... (repeated)
  *   [num_lost_events][EOF_MARKER]
  */
-void germaniumDetector::plUdpDataThreadC(void *pPvt)
+void GermaniumDetector::plUdpDataThreadC(void *pPvt)
 {
-    static_cast<germaniumDetector*>(pPvt)->plUdpDataThread();
+    static_cast<GermaniumDetector*>(pPvt)->plUdpDataThread();
 }
 
-void germaniumDetector::plUdpDataThread()
+void GermaniumDetector::plUdpDataThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
 
@@ -159,12 +159,12 @@ void germaniumDetector::plUdpDataThread()
 
 //===========================================================================//
 
-void germaniumDetector::dataProcessingThreadC(void *pPvt)
+void GermaniumDetector::dataProcessingThreadC(void *pPvt)
 {
-    static_cast<germaniumDetector*>(pPvt)->dataProcessingThread();
+    static_cast<GermaniumDetector*>(pPvt)->dataProcessingThread();
 }
 
-void germaniumDetector::dataProcessingThread()
+void GermaniumDetector::dataProcessingThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data processing thread started\n", portName);
 
@@ -248,12 +248,12 @@ void germaniumDetector::dataProcessingThread()
 
 //===========================================================================//
 
-void germaniumDetector::dataWriteThreadC(void *pPvt)
+void GermaniumDetector::dataWriteThreadC(void *pPvt)
 {
-    static_cast<germaniumDetector*>(pPvt)->dataWriteThread();
+    static_cast<GermaniumDetector*>(pPvt)->dataWriteThread();
 }
 
-void germaniumDetector::dataWriteThread()
+void GermaniumDetector::dataWriteThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data write thread started\n", portName);
 
@@ -268,7 +268,7 @@ void germaniumDetector::dataWriteThread()
 
 //===========================================================================//
 
-void germaniumDetector::startDataAcquisition()
+void GermaniumDetector::startDataAcquisition()
 {
     if (acquisitionRunning) return;
 
@@ -291,7 +291,7 @@ void germaniumDetector::startDataAcquisition()
 
 //===========================================================================//
 
-void germaniumDetector::stopDataAcquisition()
+void GermaniumDetector::stopDataAcquisition()
 {
     if (!acquisitionRunning) return;
 
@@ -309,7 +309,7 @@ void germaniumDetector::stopDataAcquisition()
 
 //===========================================================================//
 
-void germaniumDetector::createDataDirectory()
+void GermaniumDetector::createDataDirectory()
 {
     char dirPath[256];
     getStringParam(GermaniumDIR, sizeof(dirPath), dirPath);
@@ -326,7 +326,7 @@ void germaniumDetector::createDataDirectory()
 
 //===========================================================================//
 
-std::string germaniumDetector::generateFilename(int segmentNumber)
+std::string GermaniumDetector::generateFilename(int segmentNumber)
 {
     char dir[256], fname[256];
     int runno;
@@ -345,7 +345,7 @@ std::string germaniumDetector::generateFilename(int segmentNumber)
 
 //===========================================================================//
 
-bool germaniumDetector::openNewDataFile()
+bool GermaniumDetector::openNewDataFile()
 {
     closeCurrentDataFile();
     std::string filename = generateFilename(currentSegmentNumber);
@@ -363,7 +363,7 @@ bool germaniumDetector::openNewDataFile()
 
 //===========================================================================//
 
-void germaniumDetector::closeCurrentDataFile()
+void GermaniumDetector::closeCurrentDataFile()
 {
     if (currentFileHandle >= 0)
     {
@@ -377,7 +377,7 @@ void germaniumDetector::closeCurrentDataFile()
 
 //===========================================================================//
 
-bool germaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
+bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
 {
     if (!fileWritingEnabled || !data || dataSize == 0) return false;
 
@@ -411,7 +411,7 @@ bool germaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
  * dataQueueHead, memcpy the payload, then publish with release-store on
  * the per-block state flag.  No mutex is touched on the hot path.
  */
-void germaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
+void GermaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
 {
     if (!data || dataSize == 0 || dataSize > DATA_BLOCK_SIZE) return;
 
@@ -447,7 +447,7 @@ void germaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSiz
  * A block stuck in CLAIMED means a producer hasn't finished its memcpy
  * yet — we stop and retry on the next wakeup to preserve ordering.
  */
-void germaniumDetector::flushWriteBuffer()
+void GermaniumDetector::flushWriteBuffer()
 {
     uint64_t tail = dataQueueTail.load(std::memory_order_relaxed);
     uint64_t head = dataQueueHead.load(std::memory_order_acquire);

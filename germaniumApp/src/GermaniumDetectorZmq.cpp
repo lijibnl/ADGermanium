@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorZmq.cpp
+ * @file GermaniumDetectorZmq.cpp
  * @brief Async ZMQ communication with ZynqDetector (PUSH-PULL).
  *
  * Command channel: IOC PUSH → Zynq PULL on port 5555
@@ -20,15 +20,15 @@
 
 //===========================================================================//
 
-#include "germaniumDetector.hpp"
-#include "germaniumDetectorParamFormat.hpp"
+#include "GermaniumDetector.hpp"
+#include "GermaniumDetectorParamFormat.hpp"
 #include <cstring>
 #include <cstdio>
 #include <arpa/inet.h>
 
 //===========================================================================//
 
-bool germaniumDetector::initializeZmq()
+bool GermaniumDetector::initializeZmq()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initializing async ZMQ to %s\n", portName, ipAddress);
 
@@ -170,7 +170,7 @@ bool germaniumDetector::initializeZmq()
 
 //===========================================================================//
 
-void germaniumDetector::closeZmq()
+void GermaniumDetector::closeZmq()
 {
     zmqInitialized = false;
 
@@ -188,7 +188,7 @@ void germaniumDetector::closeZmq()
 
 //===========================================================================//
 
-asynStatus germaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
+asynStatus GermaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 {
     if (!zmqInitialized) return asynError;
 
@@ -207,7 +207,7 @@ asynStatus germaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 
 //===========================================================================//
 
-void germaniumDetector::zmqSend(const ZmqCommandMsg& msg)
+void GermaniumDetector::zmqSend(const ZmqCommandMsg& msg)
 {
     asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER,
         "%s: ZMQ TX: cmd=0x%02X addr=0x%04X value=0x%08X\n",
@@ -220,7 +220,7 @@ void germaniumDetector::zmqSend(const ZmqCommandMsg& msg)
 
 //===========================================================================//
 
-asynStatus germaniumDetector::zmqMarsSetGlobal(uint32_t chipMask,
+asynStatus GermaniumDetector::zmqMarsSetGlobal(uint32_t chipMask,
                                                MarsGlobalField field,
                                                uint32_t value)
 {
@@ -231,7 +231,7 @@ asynStatus germaniumDetector::zmqMarsSetGlobal(uint32_t chipMask,
 
 //===========================================================================//
 
-asynStatus germaniumDetector::zmqMarsSetChannel(uint32_t channel,
+asynStatus GermaniumDetector::zmqMarsSetChannel(uint32_t channel,
                                                 MarsChannelField field,
                                                 uint32_t value)
 {
@@ -242,7 +242,7 @@ asynStatus germaniumDetector::zmqMarsSetChannel(uint32_t channel,
 
 //===========================================================================//
 
-asynStatus germaniumDetector::zmqMarsLoad(uint32_t chipMask)
+asynStatus GermaniumDetector::zmqMarsLoad(uint32_t chipMask)
 {
     return zmqTx(ZMQ_CMD_MARS_LOAD, chipMask, 0);
 }
@@ -251,12 +251,12 @@ asynStatus germaniumDetector::zmqMarsLoad(uint32_t chipMask)
 //  Tx thread: drains tx queue, sends via tx socket
 //===========================================================================//
 
-void germaniumDetector::zmqTxThreadC(void *pPvt)
+void GermaniumDetector::zmqTxThreadC(void *pPvt)
 {
-    static_cast<germaniumDetector*>(pPvt)->zmqTxThread();
+    static_cast<GermaniumDetector*>(pPvt)->zmqTxThread();
 }
 
-void germaniumDetector::zmqTxThread()
+void GermaniumDetector::zmqTxThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Tx thread started\n", portName);
 
@@ -283,12 +283,12 @@ void germaniumDetector::zmqTxThread()
 //  Control Rx thread: receives replies, updates PV cache
 //===========================================================================//
 
-void germaniumDetector::zmqControlRxThreadC(void *pPvt)
+void GermaniumDetector::zmqControlRxThreadC(void *pPvt)
 {
-    static_cast<germaniumDetector*>(pPvt)->zmqControlRxThread();
+    static_cast<GermaniumDetector*>(pPvt)->zmqControlRxThread();
 }
 
-void germaniumDetector::zmqControlRxThread()
+void GermaniumDetector::zmqControlRxThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Control Rx thread started\n", portName);
 
@@ -326,7 +326,7 @@ void germaniumDetector::zmqControlRxThread()
 
 //===========================================================================//
 
-void germaniumDetector::processReply(const ZmqCommandMsg& reply)
+void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
 {
     switch (reply.cmd)
     {
@@ -439,7 +439,7 @@ void germaniumDetector::processReply(const ZmqCommandMsg& reply)
 
 //===========================================================================//
 
-void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
+void GermaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
 {
     switch (addr)
     {
@@ -474,12 +474,12 @@ void germaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
 }
 
 //===========================================================================//
-void germaniumDetector::zmqDataThreadC(void *pPvt)
+void GermaniumDetector::zmqDataThreadC(void *pPvt)
 {
-    static_cast<germaniumDetector*>(pPvt)->zmqDataThread();
+    static_cast<GermaniumDetector*>(pPvt)->zmqDataThread();
 }
 
-void germaniumDetector::zmqDataThread()
+void GermaniumDetector::zmqDataThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ data thread started\n", portName);
 

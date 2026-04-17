@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorTypes.hpp
+ * @file GermaniumDetectorTypes.hpp
  * @brief Type definitions, structures, and constants for ADGermaniumZMQ.
  *
  * @author Ji Li <liji@bnl.gov>
@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <atomic>
-#include "germaniumDetectorRegister.hpp"
+// #include "GermaniumDetectorRegister.hpp"
 
 //===========================================================================//
 
@@ -60,7 +60,7 @@ struct DataBlock
 };
 
 // ZMQ command codes — register ops (matching germ-zmq-server)
-// Register addr is a word offset (see germaniumDetectorRegister.hpp).
+// Register addr is a word offset (see GermaniumDetectorRegister.hpp).
 #define ZMQ_CMD_REG_READ    0x0
 #define ZMQ_CMD_REG_WRITE   0x1
 

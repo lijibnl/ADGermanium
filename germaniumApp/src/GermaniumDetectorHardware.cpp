@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorHardware.cpp
+ * @file GermaniumDetectorHardware.cpp
  * @brief MARS ASIC configuration initialization.
  *
  * With the delta-config ZMQ protocol, the Zynq server maintains its own
@@ -16,7 +16,7 @@
 
 //===========================================================================//
 
-#include "germaniumDetector.hpp"
+#include "GermaniumDetector.hpp"
 #include <cstdio>
 
 //===========================================================================//
@@ -26,7 +26,7 @@
  * These are used for PV readback and to track what the IOC has sent
  * to the Zynq. The Zynq maintains its own authoritative copy.
  */
-void germaniumDetector::initializeMarsConfig()
+void GermaniumDetector::initializeMarsConfig()
 {
     for (int chip = 0; chip < nchips; chip++)
     {

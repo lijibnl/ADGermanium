@@ -1,6 +1,6 @@
 /**
- * @file germaniumDetector.cpp
- * @brief Constructor, parameter creation and initialization for germaniumDetector
+ * @file GermaniumDetector.cpp
+ * @brief Constructor, parameter creation and initialization for GermaniumDetector
  *        areaDetector driver (ZMQ version).
  *
  * @author Ji Li <liji@bnl.gov>
@@ -15,13 +15,12 @@
 #include <cstring>
 #include <algorithm>
 
-#include "germaniumDetector.hpp"
-//#include "germaniumDetectorPoller.hpp"
+#include "GermaniumDetector.hpp"
 #include "EpicsPoller.hpp"
 
 //===========================================================================//
 
-germaniumDetector::germaniumDetector( const char *portName
+GermaniumDetector::GermaniumDetector( const char *portName
                                     , int numElements
                                     , const char *ipAddress
                                     , int maxAddr
@@ -114,25 +113,25 @@ germaniumDetector::germaniumDetector( const char *portName
         threadsRunning = true;
 
         zmqDataThreadId = epicsThreadCreate( "GermaniumZmqData"
-                                           , epicsThreadPriorityHigh
-                                           , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                           , zmqDataThreadC
-                                           , this
-                                           );
+                           , epicsThreadPriorityHigh
+                           , epicsThreadGetStackSize(epicsThreadStackMedium)
+                           , zmqDataThreadC
+                           , this
+                           );
 
         dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
-                                                  , epicsThreadPriorityMedium
-                                                  , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                                  , dataProcessingThreadC
-                                                  , this
-                                                  );
+                              , epicsThreadPriorityMedium
+                              , epicsThreadGetStackSize(epicsThreadStackMedium)
+                              , dataProcessingThreadC
+                              , this
+                              );
 
         dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
-                                             , epicsThreadPriorityMedium
-                                             , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                             , dataWriteThreadC
-                                             , this
-                                             );
+                             , epicsThreadPriorityMedium
+                             , epicsThreadGetStackSize(epicsThreadStackMedium)
+                             , dataWriteThreadC
+                             , this
+                             );
 
         asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ and processing threads started\n", portName);
     }
@@ -145,11 +144,11 @@ germaniumDetector::germaniumDetector( const char *portName
     if (initializePlUdpSocket())
     {
         plUdpDataThreadId = epicsThreadCreate( "GermaniumPlUdp"
-                                             , epicsThreadPriorityHigh
-                                             , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                             , plUdpDataThreadC
-                                             , this
-                                             );
+                             , epicsThreadPriorityHigh
+                             , epicsThreadGetStackSize(epicsThreadStackMedium)
+                             , plUdpDataThreadC
+                             , this
+                             );
         asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
     }
 
@@ -162,7 +161,7 @@ germaniumDetector::germaniumDetector( const char *portName
 
 //===========================================================================//
 
-germaniumDetector::~germaniumDetector()
+GermaniumDetector::~GermaniumDetector()
 {
     threadsRunning = false;
     acquisitionRunning = false;
@@ -199,7 +198,7 @@ germaniumDetector::~germaniumDetector()
 
 //===========================================================================//
 
-void germaniumDetector::createGermaniumParameters()
+void GermaniumDetector::createGermaniumParameters()
 {
     createParam(GermaniumDetModelString, asynParamInt32, &GermaniumDETMODEL);
 
@@ -327,7 +326,7 @@ void germaniumDetector::createGermaniumParameters()
 
 //===========================================================================//
 
-void germaniumDetector::setGermaniumInitialValues()
+void GermaniumDetector::setGermaniumInitialValues()
 {
     setIntegerParam(GermaniumEXSIZE, SPECTRUM_SIZE);
     setIntegerParam(GermaniumEYSIZE, numElements);
@@ -444,7 +443,7 @@ void germaniumDetector::setGermaniumInitialValues()
 
 //===========================================================================//
 
-void germaniumDetector::allocateDataArrays()
+void GermaniumDetector::allocateDataArrays()
 {
     // Flat atomic arrays — safe for concurrent access from multiple
     // producer threads (zmqData, plUdp) and the EPICS read thread.
@@ -477,7 +476,7 @@ void germaniumDetector::allocateDataArrays()
 
 //===========================================================================//
 
-void germaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
+void GermaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
 {
     if (element < 0 || element >= numElements) return;
     if (energy < 0 || energy >= SPECTRUM_SIZE) return;
@@ -492,7 +491,7 @@ void germaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
 
 //===========================================================================//
 
-void germaniumDetector::clearSpectra()
+void GermaniumDetector::clearSpectra()
 {
     size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
     size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
@@ -511,7 +510,7 @@ void germaniumDetector::clearSpectra()
 
 //===========================================================================//
 
-void germaniumDetector::createPoller()
+void GermaniumDetector::createPoller()
 {
     poller = std::make_unique<EpicsPoller>(1.0); // 1 second base period
     poller->setFast(false);

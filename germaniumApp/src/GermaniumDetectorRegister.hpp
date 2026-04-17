@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorRegister.hpp
+ * @file GermaniumDetectorRegister.hpp
  * @brief FPGA register definitions. Originated from GeRM FPGA design code.
  *
  * @author Ji Li <liji@bnl.gov>

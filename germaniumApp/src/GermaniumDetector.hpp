@@ -1,6 +1,6 @@
 /**
- * @file germaniumDetector.hpp
- * @brief Class declaration for germaniumDetector areaDetector driver (ZMQ version).
+ * @file GermaniumDetector.hpp
+ * @brief Class declaration for GermaniumDetector areaDetector driver (ZMQ version).
  *
  * Communicates with Zynq via ZMQ for register-level control (port 5555/5556)
  * and receives raw detector data from PL UDP interface (port 32003).
@@ -28,8 +28,8 @@
 #include "epicsEvent.h"
 
 #include "ADDriver.h"
-#include "germaniumDetectorTypes.hpp"
-#include "germaniumDetectorRegister.hpp"
+#include "GermaniumDetectorTypes.hpp"
+#include "GermaniumDetectorRegister.hpp"
 #include "EpicsPoller.hpp"
 #include <zmq.h>
 
@@ -188,14 +188,14 @@
 
 //===========================================================================//
 
-class germaniumDetector : public ADDriver {
+class GermaniumDetector : public ADDriver {
 public:
-    germaniumDetector(const char *portName, int numElements, const char *ipAddress,
+    GermaniumDetector(const char *portName, int numElements, const char *ipAddress,
               int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
               int interfaceMask, int interruptMask,
               int asynFlags, int autoConnect, int priority, int stackSize);
 
-    virtual ~germaniumDetector();
+    virtual ~GermaniumDetector();
 
     // asynPortDriver overrides
     virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
@@ -226,7 +226,7 @@ public:
     // Data array management
     void allocateDataArrays();
 
-    // ZMQ communication — async PUSH-PULL (germaniumDetectorZmq.cpp)
+    // ZMQ communication — async PUSH-PULL (GermaniumDetectorZmq.cpp)
     bool initializeZmq();
     void closeZmq();
 
@@ -253,7 +253,7 @@ public:
     static void zmqTxThreadC(void *pPvt);
     static void zmqControlRxThreadC(void *pPvt);
 
-    // PL UDP data reception (germaniumDetectorDataAcq.cpp)
+    // PL UDP data reception (GermaniumDetectorDataAcq.cpp)
     bool initializePlUdpSocket();
     void closePlUdpSocket();
     void plUdpDataThread();

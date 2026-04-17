@@ -1,5 +1,5 @@
 /**
- * @file germaniumDetectorParamFormat.hpp
+ * @file GermaniumDetectorParamFormat.hpp
  * @brief ZMQ message decode helpers for logging (shared with ZynqDetector).
  *
  * Provides human-readable formatting of ZMQ command/reply messages.
@@ -17,8 +17,8 @@
 
 #include <string>
 #include <cstdint>
-#include "germaniumDetectorTypes.hpp"
-#include "germaniumDetectorRegister.hpp"
+#include "GermaniumDetectorTypes.hpp"
+#include "GermaniumDetectorRegister.hpp"
 
 //===========================================================================//
 
