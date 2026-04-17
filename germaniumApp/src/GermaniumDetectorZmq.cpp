@@ -221,8 +221,6 @@ asynStatus GermaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
     item.msg.value = value;
 
     epicsMutexLock(txQueueMutex_);
-    printf("%s: queuing ZMQ command: cmd=0x%02X addr=0x%04X value=0x%08X\n", __func__, cmd, addr, value);
-    printf("%s: queuing ZMQ command (decoded): %s\n", __func__, format_zmq_msg(ZmqCommandMsg{cmd, addr, value}).c_str());
     txQueue_.push_back(item);
     epicsMutexUnlock(txQueueMutex_);
 
@@ -285,7 +283,7 @@ void GermaniumDetector::zmqTxThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Tx thread started\n", portName);
 
-    while (threadsRunning)
+    while ( threadsRunning.load() )
     {
         epicsEventWaitWithTimeout(txQueueEvent_, 0.1);
 
@@ -297,8 +295,6 @@ void GermaniumDetector::zmqTxThread()
 
         for (auto& item : batch)
         {
-            printf("%s: sending ZMQ command from Tx thread: cmd=0x%02X addr=0x%04X value=0x%08X\n", __func__, item.msg.cmd, item.msg.addr, item.msg.value);
-            printf("%s: sending ZMQ command from Tx thread (decoded): %s\n", __func__, format_zmq_msg(item.msg).c_str());
             zmqSend(item.msg);
         }
     }
@@ -320,7 +316,7 @@ void GermaniumDetector::zmqControlRxThread()
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Control Rx thread started\n", portName);
     printf("%s: Control Rx thread started\n", __func__);
 
-    while (threadsRunning)
+    while ( threadsRunning.load() )
     {
         ZmqCommandMsg reply;
         int rc = zmq_recv(zmqRxSocket, &reply, sizeof(reply), ZMQ_DONTWAIT);
@@ -511,7 +507,7 @@ void GermaniumDetector::zmqDataThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: ZMQ data thread started\n", portName);
 
-    while (threadsRunning)
+    while ( threadsRunning.load() )
     {
         // Receive topic frame
         zmq_msg_t topicMsg;

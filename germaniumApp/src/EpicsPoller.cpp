@@ -26,7 +26,7 @@ void EpicsPollItem::execute()
 
 EpicsPoller::EpicsPoller( double period )
                         : basePeriod( period )
-                        , tick      ( 0      )
+                        , tick      ( 1      )
 {
     threadId = epicsThreadCreate( "EpicsPoller"
                                  , epicsThreadPriorityMedium
@@ -74,7 +74,6 @@ void EpicsPoller::threadFuncC(void *p)
 
     while( self->running.load() )
     {
-        printf("%s: tick %d\n", __func__, self->tick);
         if ( self->pollItemFast.load() )
         {
             for ( auto& item : self->pollItems )
@@ -82,7 +81,6 @@ void EpicsPoller::threadFuncC(void *p)
                 if (   (item->dividerFast > 0)
                     && (self->tick % item->dividerFast == 0) )
                 {
-                    printf("%s: executing fast item with divider %d\n", __func__, item->dividerFast);
                     item->execute();
                 }
             }
@@ -95,7 +93,6 @@ void EpicsPoller::threadFuncC(void *p)
                     && (self->tick % item->dividerSlow == 0)
                    )
                 {
-                    printf("%s: executing slow item with divider %d\n", __func__, item->dividerSlow);
                     item->execute();
                 }
             }

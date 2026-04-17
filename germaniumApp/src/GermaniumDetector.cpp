@@ -46,41 +46,41 @@ GermaniumDetector::GermaniumDetector( const char *portName
                                               , priority
                                               , stackSize
                                               )
-                                    , zmqContext(nullptr)
-                                    , zmqTxSocket(nullptr)
-                                    , zmqRxSocket(nullptr)
-                                    , zmqDataSocket(nullptr)
-                                    , zmqInitialized(false)
-                                    , txQueueMutex_(nullptr)
-                                    , txQueueEvent_(nullptr)
-                                    , plUdpSocket(-1)
-                                    , plUdpInitialized(false)
-                                    , numElements(numElements)
-                                    , nchips(6)
-                                    , zmqTxThreadId(nullptr)
-                                    , zmqControlRxThreadId(nullptr)
-                                    , zmqDataThreadId(nullptr)
-                                    , plUdpDataThreadId(nullptr)
-                                    , dataProcessingThreadId(nullptr)
-                                    , dataWriteThreadId(nullptr)
-                                    , threadsRunning(false)
-                                    , dataAvailable(nullptr)
-                                    , evttot(0)
-                                    , acquisitionRunning(false)
-                                    , fileWritingEnabled(false)
-                                    , currentFileHandle(-1)
-                                    , currentFileSize(0)
-                                    , currentSegmentNumber(0)
-                                    , totalBytesWritten(0)
-                                    , totalFilesWritten(0)
-                                    , dataQueue(nullptr)
-                                    , dataQueueHead(0)
-                                    , dataQueueTail(0)
-                                    , dataWriteAvailable(nullptr)
-                                    , mcaData(nullptr)
-                                    , tdcData(nullptr)
-                                    , countRates(nullptr)
-                                    , totalCounts(nullptr)
+                                    , zmqContext            ( nullptr     )
+                                    , zmqTxSocket           ( nullptr     )
+                                    , zmqRxSocket           ( nullptr     )
+                                    , zmqDataSocket         ( nullptr     )
+                                    , zmqInitialized        ( false       )
+                                    , txQueueMutex_         ( nullptr     )
+                                    , txQueueEvent_         ( nullptr     )
+                                    , plUdpSocket           ( -1          )
+                                    , plUdpInitialized      ( false       )
+                                    , numElements           ( numElements )
+                                    , nchips                ( 6           )
+                                    , zmqTxThreadId         ( nullptr     )
+                                    , zmqControlRxThreadId  ( nullptr     )
+                                    , zmqDataThreadId       ( nullptr     )
+                                    , plUdpDataThreadId     ( nullptr     )
+                                    , dataProcessingThreadId( nullptr     )
+                                    , dataWriteThreadId     ( nullptr     )
+                                    , threadsRunning        ( true        )
+                                    , dataAvailable         ( nullptr     )
+                                    , evttot                ( 0           )
+                                    , acquisitionRunning    ( false       )
+                                    , fileWritingEnabled    ( false       )
+                                    , currentFileHandle     ( -1          )
+                                    , totalFilesWritten     ( 0           )
+                                    , currentFileSize       ( 0           )
+                                    , currentSegmentNumber  ( 0           )
+                                    , totalBytesWritten     ( 0           )
+                                    , dataQueue             ( nullptr     )
+                                    , dataQueueHead         ( 0           )
+                                    , dataQueueTail         ( 0           )
+                                    , dataWriteAvailable    ( nullptr     )
+                                    , mcaData               ( nullptr     )
+                                    , tdcData               ( nullptr     )
+                                    , countRates            ( nullptr     )
+                                    , totalCounts           ( nullptr     )
 {
     strncpy(this->ipAddress, ipAddress, sizeof(this->ipAddress) - 1);
     this->ipAddress[sizeof(this->ipAddress) - 1] = '\0';
@@ -115,7 +115,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
     dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
     dataAvailable      = epicsEventCreate(epicsEventEmpty);
 
-    threadsRunning = true;
+    //threadsRunning = true;
 
     zmqDataThreadId = epicsThreadCreate( "GermaniumZmqData"
                        , epicsThreadPriorityHigh
@@ -184,7 +184,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
 
 GermaniumDetector::~GermaniumDetector()
 {
-    threadsRunning = false;
+    threadsRunning.store(false);
     acquisitionRunning = false;
     fileWritingEnabled = false;
 

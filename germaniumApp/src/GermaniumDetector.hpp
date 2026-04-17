@@ -348,7 +348,7 @@ private:
     epicsThreadId plUdpDataThreadId;
     epicsThreadId dataProcessingThreadId;
     epicsThreadId dataWriteThreadId;
-    bool threadsRunning;
+    std::atomic<bool> threadsRunning;
     epicsEventId dataAvailable;
 
     // Acquisition state

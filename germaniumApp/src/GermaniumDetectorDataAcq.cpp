@@ -104,7 +104,7 @@ void GermaniumDetector::plUdpDataThread()
     struct sockaddr_in senderAddr;
     socklen_t addrLen = sizeof(senderAddr);
 
-    while (threadsRunning)
+    while ( threadsRunning.load() )
     {
         fd_set readfds;
         struct timeval timeout;
@@ -171,7 +171,7 @@ void GermaniumDetector::dataProcessingThread()
     int arrayCounter = 0;
     int colorMode = NDColorModeMono;
 
-    while (threadsRunning)
+    while ( threadsRunning.load() )
     {
         epicsEventWaitWithTimeout(dataAvailable, 1.0);
 
@@ -257,7 +257,7 @@ void GermaniumDetector::dataWriteThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data write thread started\n", portName);
 
-    while (threadsRunning)
+    while ( threadsRunning.load() )
     {
         epicsEventWaitWithTimeout(dataWriteAvailable, 1.0);
         flushWriteBuffer();
