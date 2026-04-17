@@ -12,3 +12,4 @@ envPaths
 .vscode/
 pv.list
 .iocsh_history
+pv_values.json

@@ -1,10 +1,22 @@
-#include "EpicsPoller.h"
+#include <atomic>
+#include <stdio.h>
+
+#include "EpicsPoller.hpp"
 
 //===========================================================================//
 
-void PollItem::setFast(bool fast)
+EpicsPollItem::EpicsPollItem( int slowDivider, int fastDivider, PollFunc pollFunc )
+                            : dividerSlow( slowDivider )
+                            , dividerFast( fastDivider )
+                            , divider    ( slowDivider )
+                            , pollFunc   ( pollFunc    )
+{}
+
+//===========================================================================//
+
+void EpicsPollItem::execute()
 {
-    divider = fast ? dividerFast : dividerSlow;
+    if (pollFunc) pollFunc();
 }
 
 //===========================================================================//
@@ -30,9 +42,23 @@ EpicsPoller::~EpicsPoller()
 
 //===========================================================================//
 
-void EpicsPoller::addItem(const PollItem& item)
+void EpicsPoller::setFast(bool fast)
 {
-    pollItems.emplace_back( item );
+    pollItemFast.store( fast );
+}
+
+//===========================================================================//
+
+void EpicsPoller::setFunning(bool running)
+{
+    this->running.store(running);
+}
+
+//===========================================================================//
+
+void EpicsPoller::addItem(std::unique_ptr<EpicsPollItem> item)
+{
+    pollItems.push_back( std::move(item) );
 }
 
 //===========================================================================//
@@ -41,21 +67,44 @@ void EpicsPoller::threadFuncC(void *p)
 {
     const int maxTick = 1000; // max tick 100s
 
-    while(running.load())
+    auto self = static_cast<EpicsPoller*>(p);
+
+    while( self->running.load() )
     {
-        for (const auto& item : pollItems)
+        printf("%s: tick %d\n", __func__, self->tick);
+        if ( self->pollItemFast.load() )
         {
-            if ( (tick % item->divider > 0) && (tick % item->dividerFast == 0) )
+            for ( auto& item : self->pollItems )
             {
-                item->poll();
+                if (   (item->dividerFast > 0)
+                    && (self->tick % item->dividerFast == 0) )
+                {
+                    printf("%s: executing fast item with divider %d\n", __func__, item->dividerFast);
+                    item->execute();
+                }
+            }
+        }
+        else
+        {
+            for ( auto& item : self->pollItems )
+            {
+                if (   (item->dividerSlow > 0)
+                    && (self->tick % item->dividerSlow == 0)
+                   )
+                {
+                    printf("%s: executing slow item with divider %d\n", __func__, item->dividerSlow);
+                    item->execute();
+                }
             }
         }
 
-        tick++;
-        if (tick >= maxTick) tick = 0;
+        self->tick++;
+        if (self->tick >= maxTick) self->tick = 0;
 
-        epicsThreadSleep(basePeriod);
+        epicsThreadSleep( self->basePeriod );
     }
+
+    printf("%s: exiting\n", __func__);
 }
 
 //===========================================================================//

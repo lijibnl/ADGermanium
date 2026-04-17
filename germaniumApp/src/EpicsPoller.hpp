@@ -2,23 +2,29 @@
 
 #include <vector>
 #include <memory>
+#include <functional>
 #include <epicsThread.h>
 
 //===========================================================================//
 
-class PollItem
+class EpicsPollItem
 {
 public:
-    PollItem() = default;
-    virtual ~PollItem() {}
+    using PollFunc = std::function<void()>;
 
+    EpicsPollItem( int slowDivider
+                 , int fastDivider
+                 , PollFunc pollFunc
+                 );
+;
     int divider;
     int dividerSlow;
     int dividerFast;
 
-    virtual void poll() = 0;
+    void execute();
 
-    void setFast( bool fast );
+private:
+    PollFunc pollFunc;
 };
 
 //=============================================================================//
@@ -31,17 +37,21 @@ public:
     EpicsPoller( double basePeriod = 0.1 );
     ~EpicsPoller();
 
-    void addItem(std::unique_ptr<PollItem> item);
+    void addItem(std::unique_ptr<EpicsPollItem> item);
+    void setFast( bool fast );
+    void setFunning( bool running );
 
 private:
-    static void threadFuncC(void *p);
-    void threadFunc();
+    std::vector<std::unique_ptr<EpicsPollItem>> pollItems;
 
-    std::vector<std::unique_ptr<PollItem>> pollItems;
-
+    std::atomic<bool> pollItemFast; // parallel vector to track which items are "fast"
+    
     double basePeriod;
     int    tick;
 
     epicsThreadId threadId;
     std::atomic<bool> running;
+
+    static void threadFuncC(void *p);
+    void threadFunc();
 };

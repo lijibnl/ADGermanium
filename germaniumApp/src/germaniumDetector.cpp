@@ -11,12 +11,13 @@
  */
 
 //===========================================================================//
-
-#include "germaniumDetector.hpp"
-#include "germaniumDetectorPoller.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+
+#include "germaniumDetector.hpp"
+//#include "germaniumDetectorPoller.hpp"
+#include "EpicsPoller.hpp"
 
 //===========================================================================//
 
@@ -152,10 +153,12 @@ germaniumDetector::germaniumDetector( const char *portName
         asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
     }
 
-    poller = std::make_unique<germaniumDetectorPoller>(*this, 1.0); // 1 second base period
+
+    createPoller();
 
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
 }
+
 
 //===========================================================================//
 
@@ -436,21 +439,6 @@ void germaniumDetector::setGermaniumInitialValues()
     setDoubleParam(GermaniumP1_CURR, 0.0);
     setDoubleParam(GermaniumP2_CURR, 0.0);
 
-    // =========================
-    // Array params
-    // 这些需要你按实际数组长度，用全 0 缓冲初始化
-    // =========================
-    // GermaniumMCA
-    // GermaniumTDC
-    // GermaniumSPCT
-    // GermaniumSPCTX
-    // GermaniumINTENS
-    // GermaniumTHTR
-    // GermaniumPUTR
-    // GermaniumSLP
-    // GermaniumOFFS
-    // GermaniumTHRSH
-
     callParamCallbacks();
 }
 
@@ -522,3 +510,25 @@ void germaniumDetector::clearSpectra()
 }
 
 //===========================================================================//
+
+void germaniumDetector::createPoller()
+{
+    poller = std::make_unique<EpicsPoller>(1.0); // 1 second base period
+    poller->setFast(false);
+
+    for( auto info : pollInfo )
+    {
+        poller->addItem( std::make_unique<EpicsPollItem>( 10
+                                                        , 100
+                                                        , [this, info](){ this->zmqTx(info.opCode, info.addr, 0); }
+                                                        )
+                       );
+    }
+    poller->setFunning(true);
+
+    printf("%s: created EPICS poller.\n"
+          , __func__
+          );
+}
+
+//=============================================================================//

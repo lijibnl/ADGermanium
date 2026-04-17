@@ -15,14 +15,6 @@
 
 //===========================================================================//
 
-#include "ADDriver.h"
-#include "germaniumDetectorTypes.hpp"
-#include "germaniumDetectorRegister.hpp"
-#include "germaniumDetectorPoller.hpp"
-#include "epicsThread.h"
-#include "epicsMutex.h"
-#include "epicsEvent.h"
-#include <zmq.h>
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -30,6 +22,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#include "epicsThread.h"
+#include "epicsMutex.h"
+#include "epicsEvent.h"
+
+#include "ADDriver.h"
+#include "germaniumDetectorTypes.hpp"
+#include "germaniumDetectorRegister.hpp"
+#include "EpicsPoller.hpp"
+#include <zmq.h>
 
 //===========================================================================//
 
@@ -353,7 +355,6 @@ private:
     std::atomic<int> evttot;
     bool acquisitionRunning;
 
-    std::unique_ptr<germaniumDetectorPoller> poller;
 
     // File handling
     bool fileWritingEnabled;
@@ -377,6 +378,45 @@ private:
     std::atomic<uint32_t> *tdcData;     // [numElements * TDC_SIZE]
     std::atomic<uint32_t> *countRates;  // [numElements]
     std::atomic<uint64_t> *totalCounts; // [numElements]
+
+    // Poller related
+    std::unique_ptr<EpicsPoller> poller;
+
+    typedef struct
+    {
+        uint32_t opCode;
+        uint32_t addr;
+        int      slowDivider;
+        int      fastDivider;
+    }  PollInfo;
+
+    static constexpr PollInfo pollInfo[] = { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,   10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      CALPULSE_RATE,   10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,    10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,   10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY, 10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,  10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      SIM_EVT_SEL,     10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,  10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      COUNT_MODE,      10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      TRIG,            10, 1  }
+                                           , { ZMQ_CMD_REG_READ,      EVENT_TIME_CNTR, 10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      COUNT_TIME_LO,   10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      COUNT_TIME_HI,   10, 10 }
+                                           , { ZMQ_CMD_REG_READ,      UDP_IP_ADDR,     10, 10 }
+
+                                           , { ZMQ_CMD_I2C_TEMP_READ, 0,               10, 10 }
+                                           , { ZMQ_CMD_I2C_TEMP_READ, 1,               10, 10 }
+                                           , { ZMQ_CMD_I2C_TEMP_READ, 2,               10, 10 }
+
+                                           , { ZMQ_CMD_XADC_READ,     0,               10, 10 }
+
+                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_RBV,   10, 10 }
+                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,   10, 10 }
+                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,   10, 10 }
+                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,   10, 10 }
+                                           };
+    void createPoller();
 };
 
 //===========================================================================//

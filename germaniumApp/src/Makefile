@@ -15,6 +15,7 @@ LIB_SRCS += germaniumDetectorZmq.cpp
 LIB_SRCS += germaniumDetectorDataAcq.cpp
 LIB_SRCS += germaniumDetectorParamFormat.cpp
 LIB_SRCS += germaniumDetectorApp.cpp
+LIB_SRCS += EpicsPoller.cpp
 
 LIBS += asyn
 LIB_SYS_LIBS += zmq
