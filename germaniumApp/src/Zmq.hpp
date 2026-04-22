@@ -18,14 +18,27 @@ public:
              , const std::string& rxEndpoint
              );
 
+    enum class RecvStatus
+    {
+        Ok,
+        Timeout,
+        SizeMismatch
+    };
+
+    enum class ServerStatus
+    {
+        Normal,
+        Down
+    };
+
     template<ZmqMessage T>
-    bool ZmqClient::tx( const T& msg )
+    RecvStatus ZmqClient::tx( const T& msg )
     {
         return send_raw( &msg, sizeof(T) );
     }
 
     template<ZmqMessage T>
-    bool ZmqClient::rx( T& msg )
+    RecvStatus ZmqClient::rx( T& msg )
     {
         return recv_raw( &msg, sizeof(T) );
     }
@@ -42,18 +55,12 @@ private:
     zmq::socket_t txSock_;
     zmq::socket_t rxSock_;
 
-    std::atomic<bool> need_reset_{false};
+    std::atomic<bool> serverDown_{false};
+    std::atomic<bool> needReset_{false};
 
     void initTxSocket();
     void initRxSocket();
 
-    bool send_raw(const void* data, size_t size);
-    bool recv_raw(void* data, size_t size);
-};
-
-enum class RecvStatus
-{
-    Ok,
-    Timeout,
-    SizeMismatch
+    RecvStatus send_raw(const void* data, size_t size);
+    RecvStatus recv_raw(void* data, size_t size);
 };

@@ -319,9 +319,10 @@ private:
 
     // ZMQ context and sockets — async PUSH-PULL
     void *zmqContext;           // zmq_ctx_new()
+    const std::string hostIpAddr, localIpAddr;
     void *zmqTxSocket;        // Tx socket to port 5555 (commands)
     void *zmqRxSocket;        // Rx socket from port 5557 (replies)
-    void *zmqDataSocket;        // SUB socket from port 5556 (events)
+    //void *zmqDataSocket;        // SUB socket from port 5556 (events)
     bool zmqInitialized;
 
     // Async tx queue (EPICS threads → Tx thread → PUSH socket)
@@ -382,6 +383,9 @@ private:
     // Poller related
     std::unique_ptr<EpicsPoller> poller;
 
+    //=======================================================================//
+    // Polling info used to configure the poller with op code,
+    // register addresses and fast/slow polling rates.
     typedef struct
     {
         uint32_t opCode;
@@ -390,32 +394,41 @@ private:
         int      fastDivider;
     }  PollInfo;
 
-    static constexpr PollInfo pollInfo[] = { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,   10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      CALPULSE_RATE,   10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,    10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,   10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY, 10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,  10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      SIM_EVT_SEL,     10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,  10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      COUNT_MODE,      10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      TRIG,            10, 1  }
-                                           , { ZMQ_CMD_REG_READ,      EVENT_TIME_CNTR, 10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      COUNT_TIME_LO,   10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      COUNT_TIME_HI,   10, 10 }
-                                           , { ZMQ_CMD_REG_READ,      UDP_IP_ADDR,     10, 10 }
+    // Any info that needs periodic polling should be added to this array, 
+    static constexpr int TEMPERATURE1_I2C_ADDR = 1;
+    static constexpr int TEMPERATURE2_I2C_ADDR = 2;
+    static constexpr int TEMPERATURE3_I2C_ADDR = 3;
 
-                                           , { ZMQ_CMD_I2C_TEMP_READ, 0,               10, 10 }
-                                           , { ZMQ_CMD_I2C_TEMP_READ, 1,               10, 10 }
-                                           , { ZMQ_CMD_I2C_TEMP_READ, 2,               10, 10 }
+    // Polling periods in units of 100ms (10Hz)
+    static constexpr int POLLING_PERIOD_10HZ   = 10;
+    static constexpr int POLLING_PERIOD_100HZ  = 1;
 
-                                           , { ZMQ_CMD_XADC_READ,     0,               10, 10 }
+    static constexpr PollInfo pollInfo[] =
+        { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      CALPULSE_RATE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,          POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY,       POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,        POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      SIM_EVT_SEL,           POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      COUNT_MODE,            POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      TRIG,                  POLLING_PERIOD_10HZ, POLLING_PERIOD_100HZ }
+        , { ZMQ_CMD_REG_READ,      EVENT_TIME_CNTR,       POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      COUNT_TIME_LO,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      COUNT_TIME_HI,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_REG_READ,      UDP_IP_ADDR,           POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
 
-                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_RBV,   10, 10 }
-                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,   10, 10 }
-                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,   10, 10 }
-                                           , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,   10, 10 }
-                                           };
+        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE1_I2C_ADDR, POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE2_I2C_ADDR, POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE3_I2C_ADDR, POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+
+        , { ZMQ_CMD_XADC_READ,     0,                     POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_RBV,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        };
     bool createPoller();
 };
 

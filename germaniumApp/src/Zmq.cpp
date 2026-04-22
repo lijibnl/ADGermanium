@@ -12,23 +12,8 @@ ZmqClient::ZmqClient( zmq::context_t&    ctx
                     , txEndpoint_( txEndpoint )
                     , rxEndpoint_( rxEndpoint )
 {
-    try
-    {
-        initTxSocket();
-    }
-    catch (...)
-    {
-        return;
-    }
-
-    try
-    {
-        initRxSocket();
-    }
-    catch (...)
-    {
-        return;
-    }
+    initTxSocket();
+    initRxSocket();
 }
 
 //===========================================================================//
@@ -36,7 +21,6 @@ ZmqClient::ZmqClient( zmq::context_t&    ctx
 void ZmqClient::initTxSocket()
 {
     txSock_ = zmq::socket_t( ctx_, zmq::socket_type::push );
-
 
     int linger = 0;
     txSock_.set(zmq::sockopt::linger, linger);
@@ -92,33 +76,33 @@ void ZmqClient::resetTxSocket()
 
 //===========================================================================//
 
-bool ZmqClient::send_raw(const void* data, size_t size)
+ZmqClient::RecvStatus ZmqClient::send_raw(const void* data, size_t size)
 {
     zmq::message_t msg(size);
     std::memcpy(msg.data(), data, size);
 
     auto res = txSock_.send( msg, zmq::send_flags::none );
-    return res.has_value();
+    return res.has_value() ? RecvStatus::Ok : RecvStatus::Timeout;
 }
 
 //===========================================================================//
 
-bool ZmqClient::recv_raw(void* data, size_t size)
+ZmqClient::RecvStatus ZmqClient::recv_raw(void* data, size_t size)
 {
     zmq::message_t msg;
 
     if ( !rxSock_.recv( msg, zmq::recv_flags::none) )
-        return false;
+        return RecvStatus::Timeout;
 
     if ( msg.size() != size )
     {
         std::cerr << "ZMQ Rx socket received message of unexpected size: " << msg.size() << " (expected " << size << ")\n";
-        return false;
+        return RecvStatus::SizeMismatch;
     }
 
     std::memcpy(data, msg.data(), size);
 
-    return true;
+    return RecvStatus::Ok;
 }
 
 //===========================================================================//

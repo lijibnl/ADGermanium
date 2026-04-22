@@ -104,13 +104,6 @@ GermaniumDetector::GermaniumDetector( const char *portName
     createGermaniumParameters();
     setGermaniumInitialValues();
 
-    // Initialize ZMQ communication
-    if ( !initializeZmq() )
-    {
-        printf("%s: failed to initialize ZMQ communication\n", __func__);
-        return;
-    }
-    printf("%s: ZMQ communication initialized\n", __func__);
 
     dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
     dataAvailable      = epicsEventCreate(epicsEventEmpty);
@@ -169,7 +162,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
         asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
     }
 
-    if (!createPoller())
+    if ( !createPoller() )
     {
         printf("%s: failed to create poller thread\n", __func__);
         return;
