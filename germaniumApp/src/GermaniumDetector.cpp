@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <print>
 
 #include "GermaniumDetector.hpp"
 #include "EpicsPoller.hpp"
@@ -107,7 +108,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
     // ZMQ initialiatoin
     if ( !initializeZmq() )
     {
-        printf("%s: failed to initialize ZMQ\n", __func__);
+        std::print("[{}]: failed to initialize ZMQ\n", __func__);
     }
 
     // UDP data proeceesing related initialization
@@ -122,10 +123,10 @@ GermaniumDetector::GermaniumDetector( const char *portName
                                  );
     if (!dataProcessingThreadId)
     {
-        printf("%s: failed to create data processing thread\n", __func__);
+        std::print("[{}]: failed to create data processing thread\n", __func__);
         return;
     }
-    printf("%s: ZMQ data processing threads started\n", __func__);
+    std::print("[{}]: ZMQ data processing threads started\n", __func__);
 
     dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
                             , epicsThreadPriorityMedium
@@ -135,10 +136,10 @@ GermaniumDetector::GermaniumDetector( const char *portName
                             );
     if (!dataWriteThreadId)
     {
-        printf("%s: failed to create UDP data write thread\n", __func__);
+        std::print("[{}]: failed to create UDP data write thread\n", __func__);
         return;
     }
-    printf("%s: UDP data write thread started\n", __func__);
+    std::print("[{}]: UDP data write thread started\n", __func__);
 
     // Initialize PL UDP socket for raw data reception
     if (initializePlUdpSocket())
@@ -159,10 +160,10 @@ GermaniumDetector::GermaniumDetector( const char *portName
     // Poller initialization
     if ( !createPoller() )
     {
-        printf("%s: failed to create poller thread\n", __func__);
+        std::print("[{}]: failed to create poller thread\n", __func__);
         return;
     }
-    printf("%s: Poller thread created\n", __func__);
+    std::print("[{}]: Poller thread created\n", __func__);
 
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
 }

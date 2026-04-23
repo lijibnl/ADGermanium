@@ -11,17 +11,19 @@ DBD += GermaniumDetectorSupport.dbd
 # Source files
 LIB_SRCS += GermaniumDetector.cpp
 LIB_SRCS += GermaniumDetectorDriver.cpp
-#LIB_SRCS += GermaniumDetectorZmq.cpp
-LIB_SRCS += GermaniumZmq.cpp
+LIB_SRCS += GermaniumDetectorZmq.cpp
 LIB_SRCS += GermaniumDetectorDataAcq.cpp
 LIB_SRCS += GermaniumDetectorParamFormat.cpp
 LIB_SRCS += GermaniumDetectorApp.cpp
 LIB_SRCS += EpicsPoller.cpp
+LIB_SRCS += Zmq.cpp
 
 LIBS += asyn
 LIB_SYS_LIBS += zmq
 
-USR_CXXFLAGS += -std=c++20
+CCC = /usr/local/bin/g++
+USR_CXXFLAGS += -std=c++23
+#CXXFLAGS += -std=c++23
 
 include $(ADCORE)/ADApp/commonLibraryMakefile
 

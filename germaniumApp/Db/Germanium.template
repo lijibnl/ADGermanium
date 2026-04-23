@@ -541,7 +541,7 @@ record(bi, "$(P)$(R)TestPulseEnable_RBV") {
 # File handling
 # =====================================================================
 record(bo, "$(P)$(R)FireWriteEnable") {
-    field(DTYP, "asyncInt32")
+    field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT), $(ADDR))GERMANIUM_FILE_WR_EN")
     field(ZNAM, "Disable")
     field(ONAM, "Enable")

@@ -27,6 +27,7 @@
 #include <cstdio>
 #include <chrono>
 #include <thread>
+#include <print>
 
 //===========================================================================//
 

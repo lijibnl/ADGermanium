@@ -1,5 +1,6 @@
 #include <cstring>
 #include <string>
+#include <iostream>
 #include "Zmq.hpp"
 
 //===========================================================================//
