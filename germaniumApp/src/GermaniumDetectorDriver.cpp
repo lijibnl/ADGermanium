@@ -200,6 +200,11 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     //------------------------------------------------------------------
     // File size limit (in MB)
     //------------------------------------------------------------------
+    else if (function == GermaniumFWEN)
+    {
+        fileWriteEnable.store(value);
+        setIntegerParam(GermaniumFWEN, value);
+    }
     else if (function == GermaniumFSIZE)
     {
         if (value < 1) value = 1;
@@ -724,11 +729,21 @@ asynStatus GermaniumDetector::readFloat64Array(asynUser *pasynUser, epicsFloat64
 
 void GermaniumDetector::report(FILE *fp, int details)
 {
-    fprintf(fp, "Germanium ZMQ detector: %d elements, %d chips\n", numElements, nchips);
-    fprintf(fp, "ZMQ target: %s (cmd port %d, reply port %d, data port %d)\n",
-            ipAddress, ZMQ_CMD_PORT, ZMQ_REPLY_PORT, ZMQ_DATA_PORT);
-    fprintf(fp, "ZMQ initialized: %s\n", zmqInitialized ? "Yes" : "No");
-    fprintf(fp, "Acquisition: %s\n", acquisitionRunning ? "Running" : "Idle");
+    fprintf( fp
+           , "Germanium ZMQ detector: %d elements, %d chips\n"
+           , numElements
+           , nchips
+           );
+    fprintf( fp
+           , "ZMQ target: %s (cmd port %s, reply port %s)\n"
+           , ipAddress
+           , ZMQ_CMD_PORT
+           , ZMQ_REPLY_PORT
+           );
+    fprintf( fp
+           , "Acquisition: %s\n"
+           , acquisitionRunning ? "Running" : "Idle"
+           );
 
     ADDriver::report(fp, details);
 }

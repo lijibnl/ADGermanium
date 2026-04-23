@@ -32,7 +32,6 @@ bool GermaniumDetector::initializeZmq()
 {
     printf("%s: initializing async ZMQ to %s\n", __func__, ipAddress);
 
-    zmqContext = zmq_ctx_new();
     if (!zmqContext)
     {
         printf("%s: failed to create ZMQ context\n", __func__);

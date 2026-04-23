@@ -278,7 +278,7 @@ void GermaniumDetector::startDataAcquisition()
     totalFilesWritten = 0;
 
     createDataDirectory();
-    fileWritingEnabled = true;
+    //fileWritingEnabled = true;
     acquisitionRunning = true;
 
     // Start hardware acquisition via ZMQ register write
@@ -297,7 +297,7 @@ void GermaniumDetector::stopDataAcquisition()
 
     zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 0);
     acquisitionRunning = false;
-    fileWritingEnabled = false;
+    //fileWritingEnabled = false;
 
     flushWriteBuffer();
     closeCurrentDataFile();
@@ -379,7 +379,7 @@ void GermaniumDetector::closeCurrentDataFile()
 
 bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
 {
-    if (!fileWritingEnabled || !data || dataSize == 0) return false;
+    if (!fileWriteEnable.load() || !data || dataSize == 0) return false;
 
     int maxSizeMB;
     getIntegerParam(GermaniumFSIZE, &maxSizeMB);
@@ -459,7 +459,10 @@ void GermaniumDetector::flushWriteBuffer()
         if (block.state.load(std::memory_order_acquire) != DATA_BLOCK_READY)
             break;  // producer still writing — preserve ordering
 
-        writeDataToFile(block.data, block.size);
+        if ( fileWriteEnable.load() && block.data && block.size )
+        {
+            writeDataToFile(block.data, block.size);
+        }
         block.state.store(DATA_BLOCK_FREE, std::memory_order_release);
         ++tail;
     }

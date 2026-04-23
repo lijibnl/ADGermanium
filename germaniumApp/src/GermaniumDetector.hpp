@@ -31,7 +31,9 @@
 #include "GermaniumDetectorTypes.hpp"
 #include "GermaniumDetectorRegister.hpp"
 #include "EpicsPoller.hpp"
+#include "Zmq.hpp"
 #include <zmq.h>
+
 
 //===========================================================================//
 
@@ -58,6 +60,7 @@
 #define GermaniumIpaddrRbvString    "GERMANIUM_IPADDR_RBV"
 
 /* File handling */
+#define GermaniumFwEnString         "GERMANIUM_FILE_WR_EN"
 #define GermaniumFnamString         "GERMANIUM_FNAM"
 #define GermaniumCalfString         "GERMANIUM_CALF"
 #define GermaniumDirString          "GERMANIUM_DIR"
@@ -234,7 +237,7 @@ public:
     asynStatus zmqTx(uint32_t cmd, uint32_t addr, uint32_t value);
 
     // Low-level send with logging (called by Tx thread)
-    void zmqSend(const ZmqCommandMsg& msg);
+    //void zmqSend(const ZmqCommandMsg& msg);
 
     // MARS delta-config helpers (each calls zmqTx)
     asynStatus zmqMarsSetGlobal(uint32_t chipMask, MarsGlobalField field, uint32_t value);
@@ -247,11 +250,11 @@ public:
 
     // Thread entry points
     void zmqTxThread();
-    void zmqControlRxThread();
+    void zmqRxThread();
     void zmqDataThread();
 
     static void zmqTxThreadC(void *pPvt);
-    static void zmqControlRxThreadC(void *pPvt);
+    static void zmqRxThreadC(void *pPvt);
 
     // PL UDP data reception (GermaniumDetectorDataAcq.cpp)
     bool initializePlUdpSocket();
@@ -279,7 +282,7 @@ protected:
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
     int GermaniumIPADDR, GermaniumIPADDR_RBV;
-    int GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
+    int GermaniumFWEN, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
     int GermaniumFREQ, GermaniumCNT, GermaniumCNT_RBV, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
     int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
     int GermaniumTP, GermaniumTP1, GermaniumPR1;
@@ -308,25 +311,20 @@ protected:
     int GermaniumLOG_LEVEL;
 
 private:
-    // Data acquisition helpers
-    void createDataDirectory();
-    std::string generateFilename(int segmentNumber);
-    bool openNewDataFile();
-    void closeCurrentDataFile();
-    bool writeDataToFile(const uint8_t* data, size_t dataSize);
-    void addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
-    void flushWriteBuffer();
 
-    // ZMQ context and sockets — async PUSH-PULL
-    void *zmqContext;           // zmq_ctx_new()
-    const std::string hostIpAddr, localIpAddr;
-    void *zmqTxSocket;        // Tx socket to port 5555 (commands)
-    void *zmqRxSocket;        // Rx socket from port 5557 (replies)
-    //void *zmqDataSocket;        // SUB socket from port 5556 (events)
-    bool zmqInitialized;
+    // ZMQ
+    zmq::context_t zmqContext{1};
+    std::unique_ptr<ZmqClient> zmqClient;
+    const std::string zmqTxEndpoint;
+    const std::string zmqRxEndpoint {std::string("tcp://*:") + ZMQ_REPLY_PORT};
+    std::atomic<bool> zmqNeedReset {false};
+    std::atomic<bool> zmqServerDown {false};
+
+    void zmqSend( const ZmqCommandMsg& msg );
 
     // Async tx queue (EPICS threads → Tx thread → PUSH socket)
-    struct TxQueueItem {
+    struct TxQueueItem
+    {
         ZmqCommandMsg msg;
     };
     std::vector<TxQueueItem> txQueue_;
@@ -334,30 +332,32 @@ private:
     epicsEventId txQueueEvent_;
 
     // PL UDP data socket (raw events from FPGA)
-    int plUdpSocket;
+    int  plUdpSocket;
     bool plUdpInitialized;
 
     // Detector configuration
-    int numElements;
+    int  numElements;
     char ipAddress[64];
-    int nchips;
+    int  nchips;
 
     // Thread management
-    epicsThreadId zmqTxThreadId;
-    epicsThreadId zmqControlRxThreadId;
-    epicsThreadId zmqDataThreadId;
-    epicsThreadId plUdpDataThreadId;
-    epicsThreadId dataProcessingThreadId;
-    epicsThreadId dataWriteThreadId;
+    epicsThreadId     zmqTxThreadId;
+    epicsThreadId     zmqRxThreadId;
+    epicsThreadId     plUdpDataThreadId;
+    epicsThreadId     dataProcessingThreadId;
+    epicsThreadId     dataWriteThreadId;
     std::atomic<bool> threadsRunning;
-    epicsEventId dataAvailable;
+    epicsEventId      dataAvailable;
 
     // Acquisition state
     std::atomic<int> evttot;
     bool acquisitionRunning;
 
-
+    //=======================================================================//
+    // UDP data related
+    //=======================================================================//
     // File handling
+    std::atomic<bool> fileWriteEnable {false};
     bool fileWritingEnabled;
     int currentFileHandle;
     size_t currentFileSize;
@@ -365,6 +365,14 @@ private:
     std::string currentFilename;
     size_t totalBytesWritten;
     int totalFilesWritten;
+
+    void createDataDirectory();
+    std::string generateFilename(int segmentNumber);
+    bool openNewDataFile();
+    void closeCurrentDataFile();
+    bool writeDataToFile(const uint8_t* data, size_t dataSize);
+    void addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
+    void flushWriteBuffer();
 
     // Lock-free MPSC data queue (producers: zmqData + plUdp; consumer: dataWrite)
     DataBlock *dataQueue;                   // heap array [DATA_QUEUE_CAPACITY]
@@ -380,10 +388,11 @@ private:
     std::atomic<uint32_t> *countRates;  // [numElements]
     std::atomic<uint64_t> *totalCounts; // [numElements]
 
+    //=======================================================================//
     // Poller related
+    //=======================================================================//
     std::unique_ptr<EpicsPoller> poller;
 
-    //=======================================================================//
     // Polling info used to configure the poller with op code,
     // register addresses and fast/slow polling rates.
     typedef struct

@@ -32,13 +32,13 @@ public:
     };
 
     template<ZmqMessage T>
-    RecvStatus ZmqClient::tx( const T& msg )
+    RecvStatus tx( const T& msg )
     {
         return send_raw( &msg, sizeof(T) );
     }
 
     template<ZmqMessage T>
-    RecvStatus ZmqClient::rx( T& msg )
+    RecvStatus rx( T& msg )
     {
         return recv_raw( &msg, sizeof(T) );
     }

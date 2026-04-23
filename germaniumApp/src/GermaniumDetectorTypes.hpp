@@ -22,9 +22,9 @@
 //===========================================================================//
 
 // ZMQ communication ports (matching ZynqDetector async-zmq)
-#define ZMQ_CMD_PORT        5555    // PUSH-PULL for commands (IOC→Zynq)
-#define ZMQ_REPLY_PORT      5557    // PUSH-PULL for replies  (Zynq→IOC)
-#define ZMQ_DATA_PORT       5556    // PUB-SUB for event data
+#define ZMQ_CMD_PORT        "5555"    // PUSH-PULL for commands (IOC -> Zynq)
+#define ZMQ_REPLY_PORT      "5557"    // PUSH-PULL for replies  (Zynq -> IOC)
+//#define ZMQ_DATA_PORT       5556    // PUB-SUB for event data
 
 // PL UDP data port (raw detector data from FPGA)
 #define PL_UDP_DATA_PORT    0x7D03  // 32003
@@ -58,6 +58,11 @@ struct DataBlock
     uint32_t              size;    // actual payload bytes
     uint8_t               data[DATA_BLOCK_SIZE];
 };
+
+
+//=====================================================================//
+// ZMQ command codes.
+//=====================================================================//
 
 // ZMQ command codes — register ops (matching germ-zmq-server)
 // Register addr is a word offset (see GermaniumDetectorRegister.hpp).
@@ -93,6 +98,7 @@ struct DataBlock
 #define ZMQ_CMD_MARS_SET_GLOBAL  0x10
 #define ZMQ_CMD_MARS_SET_CHANNEL 0x11
 #define ZMQ_CMD_MARS_LOAD        0x12
+
 #define ZMQ_CMD_ADC_CLK_SKEW     0x20
 #define ZMQ_CMD_I2C_TEMP_READ    0x21
 #define ZMQ_CMD_XADC_READ        0x22
@@ -100,6 +106,10 @@ struct DataBlock
 #define ZMQ_CMD_I2C_ADC_READ     0x24
 #define ZMQ_CMD_I2C_DAC_INIT     0x25
 #define ZMQ_CMD_SET_LOG_LEVEL    0x30
+
+#define ZMQ_CMD_HEARTBEAT        0xFF
+
+//=====================================================================//
 
 // Field IDs for CMD_MARS_SET_GLOBAL
 enum MarsGlobalField

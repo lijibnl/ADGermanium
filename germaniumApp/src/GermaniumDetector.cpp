@@ -46,20 +46,17 @@ GermaniumDetector::GermaniumDetector( const char *portName
                                               , priority
                                               , stackSize
                                               )
-                                    , zmqContext            ( nullptr     )
-                                    , zmqTxSocket           ( nullptr     )
-                                    , zmqRxSocket           ( nullptr     )
-                                    , zmqDataSocket         ( nullptr     )
-                                    , zmqInitialized        ( false       )
                                     , txQueueMutex_         ( nullptr     )
                                     , txQueueEvent_         ( nullptr     )
                                     , plUdpSocket           ( -1          )
                                     , plUdpInitialized      ( false       )
                                     , numElements           ( numElements )
-                                    , nchips                ( 6           )
+                                    , zmqTxEndpoint         ( std::string("tcp://")
+                                                            + ipAddress
+                                                            + ":"
+                                                            + ZMQ_CMD_PORT )
                                     , zmqTxThreadId         ( nullptr     )
-                                    , zmqControlRxThreadId  ( nullptr     )
-                                    , zmqDataThreadId       ( nullptr     )
+                                    , zmqRxThreadId         ( nullptr     )
                                     , plUdpDataThreadId     ( nullptr     )
                                     , dataProcessingThreadId( nullptr     )
                                     , dataWriteThreadId     ( nullptr     )
@@ -105,30 +102,24 @@ GermaniumDetector::GermaniumDetector( const char *portName
     setGermaniumInitialValues();
 
 
+    //threadsRunning = true;
+
+    // ZMQ initialiatoin
+    if ( !initializeZmq() )
+    {
+        printf("%s: failed to initialize ZMQ\n", __func__);
+    }
+
+    // UDP data proeceesing related initialization
     dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
     dataAvailable      = epicsEventCreate(epicsEventEmpty);
 
-    //threadsRunning = true;
-
-    zmqDataThreadId = epicsThreadCreate( "GermaniumZmqData"
-                       , epicsThreadPriorityHigh
-                       , epicsThreadGetStackSize(epicsThreadStackMedium)
-                       , zmqDataThreadC
-                       , this
-                       );
-    if (!zmqDataThreadId)
-    {
-        printf("%s: failed to create ZMQ data thread\n", __func__);
-        return;
-    }
-    printf("%s: ZMQ data thread started\n", __func__);
-
     dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
-                          , epicsThreadPriorityMedium
-                          , epicsThreadGetStackSize(epicsThreadStackMedium)
-                          , dataProcessingThreadC
-                          , this
-                          );
+                                 , epicsThreadPriorityMedium
+                                 , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                 , dataProcessingThreadC
+                                 , this
+                                 );
     if (!dataProcessingThreadId)
     {
         printf("%s: failed to create data processing thread\n", __func__);
@@ -137,11 +128,11 @@ GermaniumDetector::GermaniumDetector( const char *portName
     printf("%s: ZMQ data processing threads started\n", __func__);
 
     dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
-                         , epicsThreadPriorityMedium
-                         , epicsThreadGetStackSize(epicsThreadStackMedium)
-                         , dataWriteThreadC
-                         , this
-                         );
+                            , epicsThreadPriorityMedium
+                            , epicsThreadGetStackSize(epicsThreadStackMedium)
+                            , dataWriteThreadC
+                            , this
+                            );
     if (!dataWriteThreadId)
     {
         printf("%s: failed to create UDP data write thread\n", __func__);
@@ -149,8 +140,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
     }
     printf("%s: UDP data write thread started\n", __func__);
 
-
-    // Optionally initialize PL UDP socket for raw data reception
+    // Initialize PL UDP socket for raw data reception
     if (initializePlUdpSocket())
     {
         plUdpDataThreadId = epicsThreadCreate( "GermaniumPlUdp"
@@ -159,9 +149,14 @@ GermaniumDetector::GermaniumDetector( const char *portName
                              , plUdpDataThreadC
                              , this
                              );
-        asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_FLOW
+                 , "%s: PL UDP data thread started\n"
+                 , portName
+                 );
     }
 
+    // Poller initialization
     if ( !createPoller() )
     {
         printf("%s: failed to create poller thread\n", __func__);
@@ -172,7 +167,6 @@ GermaniumDetector::GermaniumDetector( const char *portName
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
 }
 
-
 //===========================================================================//
 
 GermaniumDetector::~GermaniumDetector()
@@ -182,7 +176,6 @@ GermaniumDetector::~GermaniumDetector()
     fileWritingEnabled = false;
 
     closeCurrentDataFile();
-    closeZmq();
     closePlUdpSocket();
 
     delete[] dataQueue;
@@ -230,6 +223,7 @@ void GermaniumDetector::createGermaniumParameters()
     createParam(GermaniumIpaddrString,    asynParamOctet, &GermaniumIPADDR);
     createParam(GermaniumIpaddrRbvString, asynParamOctet, &GermaniumIPADDR_RBV);
 
+    createParam(GermaniumFwEnString,  asynParamInt32, &GermaniumFWEN);
     createParam(GermaniumFnamString,  asynParamOctet, &GermaniumFNAM);
     createParam(GermaniumCalfString,  asynParamOctet, &GermaniumCALF);
     createParam(GermaniumDirString,   asynParamOctet, &GermaniumDIR);
@@ -348,35 +342,36 @@ void GermaniumDetector::setGermaniumInitialValues()
     setIntegerParam(GermaniumTYSIZE, numElements);
 
     setStringParam(GermaniumIPADDR, ipAddress);
-    setStringParam(GermaniumDIR, "/tmp/germanium/");
-    setStringParam(GermaniumFNAM, "germanium_data");
+    setStringParam(GermaniumDIR,    "/tmp/germanium/");
+    setStringParam(GermaniumFNAM,   "germanium_data");
     setIntegerParam(GermaniumFSIZE, 100);  // 100 MB default
 
     setDoubleParam(GermaniumFREQ, 25.0e6); // 25 MHz (FPGA clock)
     setDoubleParam(GermaniumRATE, 2.0);
-    setDoubleParam(GermaniumTP1, 1.0);
+    setDoubleParam(GermaniumTP1,  1.0);
 
-    setIntegerParam(GermaniumNELM, numElements);
+    setIntegerParam(GermaniumNELM,   numElements);
     setIntegerParam(GermaniumNCHIPS, nchips);
-    setIntegerParam(GermaniumPLDEL, 72);
-    setIntegerParam(GermaniumRODEL, 15);
+    setIntegerParam(GermaniumPLDEL,  72);
+    setIntegerParam(GermaniumRODEL,  15);
 
-    setIntegerParam(GermaniumCNT, 0);
-    setIntegerParam(GermaniumCONT, 0);
-    setIntegerParam(GermaniumMODE, 0);
-    setIntegerParam(GermaniumSHPT, 1);
-    setIntegerParam(GermaniumGAIN, 0);
-    setIntegerParam(GermaniumPOL, 1);
-    setIntegerParam(GermaniumEBLK, 1);
-    setIntegerParam(GermaniumGMON, 0);
-    setIntegerParam(GermaniumLOAO, 1);
-    setIntegerParam(GermaniumPUEN, 0);
-    setIntegerParam(GermaniumMFS, 0);
-    setIntegerParam(GermaniumTDS, 0);
-    setIntegerParam(GermaniumTDM, 0);
+    setIntegerParam(GermaniumFWEN, 0);
+    setIntegerParam(GermaniumCNT,   0);
+    setIntegerParam(GermaniumCONT,  0);
+    setIntegerParam(GermaniumMODE,  0);
+    setIntegerParam(GermaniumSHPT,  1);
+    setIntegerParam(GermaniumGAIN,  0);
+    setIntegerParam(GermaniumPOL,   1);
+    setIntegerParam(GermaniumEBLK,  1);
+    setIntegerParam(GermaniumGMON,  0);
+    setIntegerParam(GermaniumLOAO,  1);
+    setIntegerParam(GermaniumPUEN,  0);
+    setIntegerParam(GermaniumMFS,   0);
+    setIntegerParam(GermaniumTDS,   0);
+    setIntegerParam(GermaniumTDM,   0);
     setIntegerParam(GermaniumTPENB, 0);
 
-    setStringParam(GermaniumEGU, "counts");
+    setStringParam(GermaniumEGU,   "counts");
     setIntegerParam(GermaniumPREC, 0);
 
     //=================================================
@@ -440,15 +435,15 @@ void GermaniumDetector::setGermaniumInitialValues()
     setDoubleParam(GermaniumT, 0.0);
 
     // Sensors
-    setDoubleParam(GermaniumTEMP1, 0.0);
-    setDoubleParam(GermaniumTEMP2, 0.0);
-    setDoubleParam(GermaniumTEMP3, 0.0);
-    setDoubleParam(GermaniumZTEMP, 0.0);
-    setDoubleParam(GermaniumHV, 0.0);
-    setDoubleParam(GermaniumHV_RBV, 0.0);
+    setDoubleParam(GermaniumTEMP1,   0.0);
+    setDoubleParam(GermaniumTEMP2,   0.0);
+    setDoubleParam(GermaniumTEMP3,   0.0);
+    setDoubleParam(GermaniumZTEMP,   0.0);
+    setDoubleParam(GermaniumHV,      0.0);
+    setDoubleParam(GermaniumHV_RBV,  0.0);
     setDoubleParam(GermaniumHV_CURR, 0.0);
-    setDoubleParam(GermaniumP1, 0.0);
-    setDoubleParam(GermaniumP2, 0.0);
+    setDoubleParam(GermaniumP1,      0.0);
+    setDoubleParam(GermaniumP2,      0.0);
     setDoubleParam(GermaniumP1_CURR, 0.0);
     setDoubleParam(GermaniumP2_CURR, 0.0);
 
