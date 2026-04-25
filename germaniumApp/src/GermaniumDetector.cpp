@@ -208,81 +208,97 @@ GermaniumDetector::~GermaniumDetector()
 
 void GermaniumDetector::createGermaniumParameters()
 {
+    /* Basic info */
     createParam(GermaniumDetModelString, asynParamInt32, &GermaniumDETMODEL);
 
+    /* Data arrays */
     createParam(GermaniumMcaString,    asynParamInt32Array,   &GermaniumMCA);
     createParam(GermaniumTdcString,    asynParamInt32Array,   &GermaniumTDC);
     createParam(GermaniumSpctString,   asynParamInt32Array,   &GermaniumSPCT);
     createParam(GermaniumSpctxString,  asynParamFloat64Array, &GermaniumSPCTX);
     createParam(GermaniumIntensString, asynParamInt32Array,   &GermaniumINTENS);
 
+    /* Display size */
     createParam(GermaniumExsizeString, asynParamInt32, &GermaniumEXSIZE);
     createParam(GermaniumEysizeString, asynParamInt32, &GermaniumEYSIZE);
     createParam(GermaniumTxsizeString, asynParamInt32, &GermaniumTXSIZE);
     createParam(GermaniumTysizeString, asynParamInt32, &GermaniumTYSIZE);
 
+    /* Network */
     createParam(GermaniumIpaddrString,    asynParamOctet, &GermaniumIPADDR);
     createParam(GermaniumIpaddrRbvString, asynParamOctet, &GermaniumIPADDR_RBV);
 
+    /* File handling */
     createParam(GermaniumFwEnString,  asynParamInt32, &GermaniumFWEN);
     createParam(GermaniumFnamString,  asynParamOctet, &GermaniumFNAM);
     createParam(GermaniumCalfString,  asynParamOctet, &GermaniumCALF);
     createParam(GermaniumDirString,   asynParamOctet, &GermaniumDIR);
     createParam(GermaniumFsizeString, asynParamInt32, &GermaniumFSIZE);
 
-    createParam(GermaniumFreqString, asynParamFloat64, &GermaniumFREQ);
-    createParam(GermaniumCntString,  asynParamInt32,   &GermaniumCNT);
-    createParam(GermaniumPcntString, asynParamInt32,   &GermaniumPCNT);
-    createParam(GermaniumContString, asynParamInt32,   &GermaniumCONT);
-    createParam(GermaniumModeString, asynParamInt32,   &GermaniumMODE);
+    /* Timing and control */
+    createParam(GermaniumFreqString,   asynParamFloat64, &GermaniumFREQ);
+    createParam(GermaniumCntString,    asynParamInt32,   &GermaniumCNT);
+    createParam(GermaniumCntRbvString, asynParamInt32,   &GermaniumCNT_RBV);
+    createParam(GermaniumPcntString,   asynParamInt32,   &GermaniumPCNT);
+    createParam(GermaniumContString,   asynParamInt32,   &GermaniumCONT);
+    createParam(GermaniumModeString,   asynParamInt32,   &GermaniumMODE);
 
-    createParam(GermaniumCntRbvString,  asynParamInt32,   &GermaniumCNT_RBV);
-
+    /* Display rates */
     createParam(GermaniumRateString, asynParamFloat64, &GermaniumRATE);
     createParam(GermaniumRat1String, asynParamFloat64, &GermaniumRAT1);
 
+    /* Delays */
     createParam(GermaniumDlyString,  asynParamFloat64, &GermaniumDLY);
     createParam(GermaniumDly1String, asynParamFloat64, &GermaniumDLY1);
 
+    /* Time presets */
     createParam(GermaniumTpString,  asynParamFloat64, &GermaniumTP);
     createParam(GermaniumTp1String, asynParamFloat64, &GermaniumTP1);
     createParam(GermaniumPr1String, asynParamInt32,   &GermaniumPR1);
 
+    /* State */
     createParam(GermaniumSsString, asynParamInt32,   &GermaniumSS);
     createParam(GermaniumUsString, asynParamInt32,   &GermaniumUS);
     createParam(GermaniumTString,  asynParamFloat64, &GermaniumT);
 
+    /* Run control */
     createParam(GermaniumRunnoString,    asynParamInt32, &GermaniumRUNNO);
     createParam(GermaniumPldelString,    asynParamInt32, &GermaniumPLDEL);
     createParam(GermaniumPldelRbvString, asynParamInt32, &GermaniumPLDEL_RBV);
     createParam(GermaniumRodelString,    asynParamInt32, &GermaniumRODEL);
     createParam(GermaniumRodelRbvString, asynParamInt32, &GermaniumRODEL_RBV);
 
+    /* Hardware info */
     createParam(GermaniumFverString, asynParamInt32, &GermaniumFVER);
     createParam(GermaniumCardString, asynParamInt32, &GermaniumCARD);
 
+    /* Detector config */
     createParam(GermaniumNelmString,   asynParamInt32, &GermaniumNELM);
     createParam(GermaniumNchString,    asynParamInt32, &GermaniumNCH);
     createParam(GermaniumNchipsString, asynParamInt32, &GermaniumNCHIPS);
     createParam(GermaniumChanString,   asynParamInt32, &GermaniumCHAN);
     createParam(GermaniumChipString,   asynParamInt32, &GermaniumCHIP);
 
+    /* Analog settings */
     createParam(GermaniumShptString, asynParamInt32, &GermaniumSHPT);
     createParam(GermaniumGainString, asynParamInt32, &GermaniumGAIN);
     createParam(GermaniumPolString,  asynParamInt32, &GermaniumPOL);
     createParam(GermaniumEblkString, asynParamInt32, &GermaniumEBLK);
 
+    /* Monitor */
     createParam(GermaniumGmonString,  asynParamInt32, &GermaniumGMON);
     createParam(GermaniumMonchString, asynParamInt32, &GermaniumMONCH);
     createParam(GermaniumLoaoString,  asynParamInt32, &GermaniumLOAO);
 
+    /* Processing */
     createParam(GermaniumPuenString, asynParamInt32, &GermaniumPUEN);
     createParam(GermaniumMfsString,  asynParamInt32, &GermaniumMFS);
 
+    /* TDC */
     createParam(GermaniumTdsString, asynParamInt32, &GermaniumTDS);
     createParam(GermaniumTdmString, asynParamInt32, &GermaniumTDM);
 
-    // Parameters for test pulse
+    /* Test pulse */
     createParam(GermaniumTpampString,    asynParamInt32, &GermaniumTPAMP);
     createParam(GermaniumTpfrqString,    asynParamInt32, &GermaniumTPFRQ);
     createParam(GermaniumTpcntString,    asynParamInt32, &GermaniumTPCNT);
@@ -292,6 +308,7 @@ void GermaniumDetector::createGermaniumParameters()
     createParam(GermaniumTpcntRbvString, asynParamInt32, &GermaniumTPCNT_RBV);
     createParam(GermaniumTpenbRbvString, asynParamInt32, &GermaniumTPENB_RBV);
 
+    /* Per-channel settings */
 //    createParam(GermaniumChenString,    asynParamInt8Array,    &GermaniumCHEN);
 //    createParam(GermaniumTsenString,    asynParamInt8Array,    &GermaniumTSEN);
     createParam(GermaniumThtrString,    asynParamInt8Array,    &GermaniumTHTR);
@@ -302,34 +319,48 @@ void GermaniumDetector::createGermaniumParameters()
     createParam(GermaniumTsenAllString, asynParamInt32,        &GermaniumTSEN_ALL);
     createParam(GermaniumSlpString,     asynParamFloat64Array, &GermaniumSLP);
     createParam(GermaniumOffsString,    asynParamFloat64Array, &GermaniumOFFS);
+
+    /* Thresholds */
     createParam(GermaniumThrshString,   asynParamInt32Array,   &GermaniumTHRSH);
 
+    /* */
     createParam(GermaniumClreString, asynParamInt32, &GermaniumCLRE);
     createParam(GermaniumClrmString, asynParamInt32, &GermaniumCLRM);
     createParam(GermaniumClrtString, asynParamInt32, &GermaniumCLRT);
     createParam(GermaniumStrtString, asynParamInt32, &GermaniumSTRT);
     createParam(GermaniumStopString, asynParamInt32, &GermaniumSTOP);
 
+    /* Display/formatting */
     createParam(GermaniumEguString,  asynParamOctet, &GermaniumEGU);
     createParam(GermaniumPrecString, asynParamInt32, &GermaniumPREC);
 
+    /* Output links */
     createParam(GermaniumCoutString,  asynParamOctet, &GermaniumCOUT);
     createParam(GermaniumCoutpString, asynParamOctet, &GermaniumCOUTP);
 
+    /* Temperatures */
     createParam(GermaniumTemp1String,       asynParamFloat64, &GermaniumTEMP1);
     createParam(GermaniumTemp2String,       asynParamFloat64, &GermaniumTEMP2);
     createParam(GermaniumTemp3String,       asynParamFloat64, &GermaniumTEMP3);
     createParam(GermaniumZTempString,       asynParamFloat64, &GermaniumZTEMP);
+
+    /* High voltage */
     createParam(GermaniumHvString,          asynParamFloat64, &GermaniumHV);
     createParam(GermaniumHvRbvString,       asynParamFloat64, &GermaniumHV_RBV);
     createParam(GermaniumHvCurrString,      asynParamFloat64, &GermaniumHV_CURR);
+    
+    /* ADCs */
+    createParam(GermaniumAdc0ClkSkewString, asynParamInt32,   &GermaniumADC0_CLK_SKEW);
+    createParam(GermaniumAdc1ClkSkewString, asynParamInt32,   &GermaniumADC1_CLK_SKEW);
+    createParam(GermaniumAdc2ClkSkewString, asynParamInt32,   &GermaniumADC2_CLK_SKEW);
+    
+    /* MISC status */
     createParam(GermaniumP1String,          asynParamFloat64, &GermaniumP1);
     createParam(GermaniumP2String,          asynParamFloat64, &GermaniumP2);
     createParam(GermaniumP1CurrString,      asynParamFloat64, &GermaniumP1_CURR);
     createParam(GermaniumP2CurrString,      asynParamFloat64, &GermaniumP2_CURR);
-    createParam(GermaniumAdc0ClkSkewString, asynParamInt32,   &GermaniumADC0_CLK_SKEW);
-    createParam(GermaniumAdc1ClkSkewString, asynParamInt32,   &GermaniumADC1_CLK_SKEW);
-    createParam(GermaniumAdc2ClkSkewString, asynParamInt32,   &GermaniumADC2_CLK_SKEW);
+
+    /* MISC controls */
     createParam(GermaniumLogLevelString,    asynParamInt32,   &GermaniumLOG_LEVEL);
 }
 

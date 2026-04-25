@@ -141,8 +141,8 @@
 #define GermaniumTpenbRbvString     "GERMANIUM_TPENB_RBV"
 
 /* Per-channel arrays */
-#define GermaniumChenString         "GERMANIUM_CHEN"
-#define GermaniumTsenString         "GERMANIUM_TSEN"
+//#define GermaniumChenString         "GERMANIUM_CHEN"
+//#define GermaniumTsenString         "GERMANIUM_TSEN"
 #define GermaniumThtrString         "GERMANIUM_THTR"
 #define GermaniumPutrString         "GERMANIUM_PUTR"
 #define GermaniumSlpString          "GERMANIUM_SLP"
@@ -154,7 +154,7 @@
 #define GermaniumTsenSelString      "GERMANIUM_TSEN_SEL"
 #define GermaniumTsenAllString      "GERMANIUM_TSEN_ALL"
 
-/* Per-chip arrays */
+/* Thresholds */
 #define GermaniumThrshString        "GERMANIUM_THRSH"
 
 /* */
@@ -172,21 +172,29 @@
 #define GermaniumCoutString         "GERMANIUM_COUT"
 #define GermaniumCoutpString        "GERMANIUM_COUTP"
 
-/* Device status (I2C sensors — not available via current ZMQ server) */
+/* Temperatures */
 #define GermaniumTemp1String        "GERMANIUM_TEMP1"
 #define GermaniumTemp2String        "GERMANIUM_TEMP2"
 #define GermaniumTemp3String        "GERMANIUM_TEMP3"
 #define GermaniumZTempString        "GERMANIUM_ZTEMP"
+
+/* High voltage */
 #define GermaniumHvString           "GERMANIUM_HV"
 #define GermaniumHvRbvString        "GERMANIUM_HV_RBV"
 #define GermaniumHvCurrString       "GERMANIUM_HV_CURR"
+
+/* ADCs */
+#define GermaniumAdc0ClkSkewString  "GERMANIUM_ADC0_CLK_SKEW"
+#define GermaniumAdc1ClkSkewString  "GERMANIUM_ADC1_CLK_SKEW"
+#define GermaniumAdc2ClkSkewString  "GERMANIUM_ADC2_CLK_SKEW"
+
+/* MISC status */
 #define GermaniumP1String           "GERMANIUM_P1"
 #define GermaniumP2String           "GERMANIUM_P2"
 #define GermaniumP1CurrString       "GERMANIUM_P1_CURR"
 #define GermaniumP2CurrString       "GERMANIUM_P2_CURR"
-#define GermaniumAdc0ClkSkewString  "GERMANIUM_ADC0_CLK_SKEW"
-#define GermaniumAdc1ClkSkewString  "GERMANIUM_ADC1_CLK_SKEW"
-#define GermaniumAdc2ClkSkewString  "GERMANIUM_ADC2_CLK_SKEW"
+
+/* MISC controls */
 #define GermaniumLogLevelString     "GERMANIUM_LOG_LEVEL"
 
 //===========================================================================//
@@ -278,36 +286,92 @@ public:
 
 protected:
     // Parameter indices
+
+    /* Basic info */
     int GermaniumDETMODEL;
+
+    /* Data arrays */
     int GermaniumMCA, GermaniumTDC, GermaniumSPCT, GermaniumSPCTX, GermaniumINTENS;
+
+    /* Display size */
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
+
+    /* Network */
     int GermaniumIPADDR, GermaniumIPADDR_RBV;
+
+    /* File handling */
     int GermaniumFWEN, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
+
+    /* Timing and control */
     int GermaniumFREQ, GermaniumCNT, GermaniumCNT_RBV, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
-    int GermaniumRATE, GermaniumRAT1, GermaniumDLY, GermaniumDLY1;
+
+    /* Display rates */
+    int GermaniumRATE, GermaniumRAT1;
+
+    /* Delays */
+    int GermaniumDLY, GermaniumDLY1;
+
+    /* Time presets */
     int GermaniumTP, GermaniumTP1, GermaniumPR1;
+
+    /* State */
     int GermaniumSS, GermaniumUS, GermaniumT;
+
+    /* Run control */
     int GermaniumRUNNO;
     int GermaniumPLDEL, GermaniumRODEL;
     int GermaniumPLDEL_RBV, GermaniumRODEL_RBV;
+
+    /* Hardware info */
     int GermaniumFVER, GermaniumCARD;
+
+    /* Detector config */
     int GermaniumNELM, GermaniumNCH, GermaniumNCHIPS, GermaniumCHAN, GermaniumCHIP;
+
+    /* Analog settings */
     int GermaniumSHPT, GermaniumGAIN, GermaniumPOL, GermaniumEBLK;
+
+    /* Monitor */
     int GermaniumGMON, GermaniumMONCH, GermaniumLOAO;
+
+    /* Processing */
     int GermaniumPUEN, GermaniumMFS;
+
+    /* TDC */
     int GermaniumTDS, GermaniumTDM;
+
+    /* Test pulse */
     int GermaniumTPAMP, GermaniumTPFRQ, GermaniumTPCNT, GermaniumTPENB;
     int GermaniumTPAMP_RBV, GermaniumTPFRQ_RBV, GermaniumTPCNT_RBV, GermaniumTPENB_RBV;
-    int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
     int GermaniumCHEN_SEL, GermaniumCHEN_ALL, GermaniumTSEN_SEL, GermaniumTSEN_ALL;
-    int GermaniumSLP, GermaniumOFFS, GermaniumTHRSH;
-    int GermaniumEGU, GermaniumPREC;
-    int GermaniumCOUT, GermaniumCOUTP;
+
+    /* Per-channel arrays */
+    //int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
+    int GermaniumSLP, GermaniumOFFS;
+    
+    /* Thresholds */
+    int GermaniumTHRSH;
+
+    /* */
     int GermaniumCLRE, GermaniumCLRM, GermaniumCLRT, GermaniumSTRT, GermaniumSTOP;
+
+    /* Display/formatting */
+    int GermaniumEGU, GermaniumPREC;
+
+    /* Output links */
+    int GermaniumCOUT, GermaniumCOUTP;
+
+    /* Temperatures */
     int GermaniumTEMP1, GermaniumTEMP2, GermaniumTEMP3, GermaniumZTEMP;
+
+    /* High voltage */
     int GermaniumHV, GermaniumHV_RBV, GermaniumHV_CURR;
     int GermaniumP1, GermaniumP2, GermaniumP1_CURR, GermaniumP2_CURR;
+
+    /* ADCs */
     int GermaniumADC0_CLK_SKEW, GermaniumADC1_CLK_SKEW, GermaniumADC2_CLK_SKEW;
+
+    /* MISC controls */
     int GermaniumLOG_LEVEL;
 
 private:
