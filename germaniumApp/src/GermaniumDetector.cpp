@@ -14,7 +14,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
-#include <print>
+//#include <print>
+#include <iostream>
 
 #include "GermaniumDetector.hpp"
 #include "EpicsPoller.hpp"
@@ -22,18 +23,18 @@
 //===========================================================================//
 
 GermaniumDetector::GermaniumDetector( const char *portName
-                                    , int numElements
+                                    , int         numElements
                                     , const char *ipAddress
-                                    , int maxAddr
-                                    , int numParams
-                                    , int maxBuffers
-                                    , size_t maxMemory
-                                    , int interfaceMask
-                                    , int interruptMask
-                                    , int asynFlags
-                                    , int autoConnect
-                                    , int priority
-                                    , int stackSize
+                                    , int         maxAddr
+                                    , int         numParams
+                                    , int         maxBuffers
+                                    , size_t      maxMemory
+                                    , int         interfaceMask
+                                    , int         interruptMask
+                                    , int         asynFlags
+                                    , int         autoConnect
+                                    , int         priority
+                                    , int         stackSize
                                     )
                                     : ADDriver( portName
                                               , maxAddr
@@ -47,38 +48,38 @@ GermaniumDetector::GermaniumDetector( const char *portName
                                               , priority
                                               , stackSize
                                               )
-                                    , txQueueMutex_         ( nullptr     )
-                                    , txQueueEvent_         ( nullptr     )
-                                    , plUdpSocket           ( -1          )
-                                    , plUdpInitialized      ( false       )
+                                    //, txQueueMutex_         ( nullptr     )
+                                    //, txQueueEvent_         ( nullptr     )
+                                    //, plUdpSocket           ( -1          )
+                                    //, plUdpInitialized      ( false       )
                                     , numElements           ( numElements )
                                     , zmqTxEndpoint         ( std::string("tcp://")
                                                             + ipAddress
                                                             + ":"
                                                             + ZMQ_CMD_PORT )
-                                    , zmqTxThreadId         ( nullptr     )
-                                    , zmqRxThreadId         ( nullptr     )
-                                    , plUdpDataThreadId     ( nullptr     )
-                                    , dataProcessingThreadId( nullptr     )
-                                    , dataWriteThreadId     ( nullptr     )
-                                    , threadsRunning        ( true        )
-                                    , dataAvailable         ( nullptr     )
-                                    , evttot                ( 0           )
-                                    , acquisitionRunning    ( false       )
-                                    , fileWritingEnabled    ( false       )
-                                    , currentFileHandle     ( -1          )
-                                    , totalFilesWritten     ( 0           )
-                                    , currentFileSize       ( 0           )
-                                    , currentSegmentNumber  ( 0           )
-                                    , totalBytesWritten     ( 0           )
-                                    , dataQueue             ( nullptr     )
-                                    , dataQueueHead         ( 0           )
-                                    , dataQueueTail         ( 0           )
-                                    , dataWriteAvailable    ( nullptr     )
-                                    , mcaData               ( nullptr     )
-                                    , tdcData               ( nullptr     )
-                                    , countRates            ( nullptr     )
-                                    , totalCounts           ( nullptr     )
+                                    //, zmqTxThreadId         ( nullptr     )
+                                    //, zmqRxThreadId         ( nullptr     )
+                                    //, plUdpDataThreadId     ( nullptr     )
+                                    //, dataProcessingThreadId( nullptr     )
+                                    //, dataWriteThreadId     ( nullptr     )
+                                    //, threadsRunning        ( true        )
+                                    //, dataAvailable         ( nullptr     )
+                                    //, evttot                ( 0           )
+                                    //, acquisitionRunning    ( false       )
+                                    //, fileWritingEnabled    ( false       )
+                                    //, currentFileHandle     ( -1          )
+                                    //, totalFilesWritten     ( 0           )
+                                    //, currentFileSize       ( 0           )
+                                    //, currentSegmentNumber  ( 0           )
+                                    //, totalBytesWritten     ( 0           )
+                                    //, dataQueue             ( nullptr     )
+                                    //, dataQueueHead         ( 0           )
+                                    //, dataQueueTail         ( 0           )
+                                    //, dataWriteAvailable    ( nullptr     )
+                                    //, mcaData               ( nullptr     )
+                                    //, tdcData               ( nullptr     )
+                                    //, countRates            ( nullptr     )
+                                    //, totalCounts           ( nullptr     )
 {
     strncpy(this->ipAddress, ipAddress, sizeof(this->ipAddress) - 1);
     this->ipAddress[sizeof(this->ipAddress) - 1] = '\0';
@@ -90,26 +91,38 @@ GermaniumDetector::GermaniumDetector( const char *portName
         case 192: nchips = 6;  break;
         case 384: nchips = 12; break;
         default:
-            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: invalid numElements %d, defaulting to 192\n", portName, numElements);
+            asynPrint( pasynUserSelf
+                     , ASYN_TRACE_ERROR
+                     , "%s: invalid numElements %d, defaulting to 192\n"
+                     , portName
+                     , numElements);
             this->numElements = 192;
             nchips = 6;
             break;
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: %d elements, %d chips, IP: %s\n", portName, this->numElements, nchips, this->ipAddress);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: %d elements, %d chips, IP: %s\n"
+             , portName
+             , this->numElements
+             , nchips
+             , this->ipAddress
+             );
 
     allocateDataArrays();
     createGermaniumParameters();
     setGermaniumInitialValues();
 
-
-    //threadsRunning = true;
+    //---------------------------------------------------------------------//
 
     // ZMQ initialiatoin
     if ( !initializeZmq() )
     {
-        std::print("[{}]: failed to initialize ZMQ\n", __func__);
+        std::cerr << "[" << __func__ << "]: failed to initialize ZMQ\n";
     }
+
+    //---------------------------------------------------------------------//
 
     // UDP data proeceesing related initialization
     dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
@@ -123,10 +136,10 @@ GermaniumDetector::GermaniumDetector( const char *portName
                                  );
     if (!dataProcessingThreadId)
     {
-        std::print("[{}]: failed to create data processing thread\n", __func__);
+        std::cerr << "[" << __func__ << "]: failed to create data processing thread\n";
         return;
     }
-    std::print("[{}]: ZMQ data processing threads started\n", __func__);
+    std::cerr << "[" << __func__ << "]: ZMQ data processing threads started\n";
 
     dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
                             , epicsThreadPriorityMedium
@@ -136,10 +149,10 @@ GermaniumDetector::GermaniumDetector( const char *portName
                             );
     if (!dataWriteThreadId)
     {
-        std::print("[{}]: failed to create UDP data write thread\n", __func__);
+        std::cerr << "[" << __func__ << "]: failed to create UDP data write thread\n";
         return;
     }
-    std::print("[{}]: UDP data write thread started\n", __func__);
+    std::cout << "[" << __func__ << "]: UDP data write thread started\n";
 
     // Initialize PL UDP socket for raw data reception
     if (initializePlUdpSocket())
@@ -157,15 +170,21 @@ GermaniumDetector::GermaniumDetector( const char *portName
                  );
     }
 
+    //---------------------------------------------------------------------//
+
     // Poller initialization
     if ( !createPoller() )
     {
-        std::print("[{}]: failed to create poller thread\n", __func__);
+        std::cerr << "[" << __func__ << "]: failed to create poller thread\n";
         return;
     }
-    std::print("[{}]: Poller thread created\n", __func__);
+    std::cout << "[" << __func__ << "]: Poller thread created\n";
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: initialized\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: initialized\n"
+             , portName
+             );
 }
 
 //===========================================================================//
@@ -174,21 +193,21 @@ GermaniumDetector::~GermaniumDetector()
 {
     threadsRunning.store(false);
     acquisitionRunning = false;
-    fileWritingEnabled = false;
+    fileWriteEnable.store(false);
 
     closeCurrentDataFile();
     closePlUdpSocket();
 
-    delete[] dataQueue;
-    dataQueue = nullptr;
-    delete[] mcaData;
-    mcaData = nullptr;
-    delete[] tdcData;
-    tdcData = nullptr;
-    delete[] countRates;
-    countRates = nullptr;
-    delete[] totalCounts;
-    totalCounts = nullptr;
+    //delete[] dataQueue;
+    //dataQueue = nullptr;
+    //delete[] mcaData;
+    //mcaData = nullptr;
+    //delete[] tdcData;
+    //tdcData = nullptr;
+    //delete[] countRates;
+    //countRates = nullptr;
+    //delete[] totalCounts;
+    //totalCounts = nullptr;
 
     if (dataWriteAvailable)
     {
@@ -201,7 +220,11 @@ GermaniumDetector::~GermaniumDetector()
         dataAvailable = nullptr;
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: destroyed\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: destroyed\n"
+             , portName
+             );
 }
 
 //===========================================================================//
@@ -416,11 +439,11 @@ void GermaniumDetector::setGermaniumInitialValues()
     // Int32 scalars
     setIntegerParam(GermaniumDETMODEL, 0);
 
-    setIntegerParam(GermaniumPCNT, 0);
+    setIntegerParam(GermaniumPCNT,    0);
     setIntegerParam(GermaniumCNT_RBV, 0);
 
-    setIntegerParam(GermaniumPR1, 0);
-    setIntegerParam(GermaniumUS, 0);
+    setIntegerParam(GermaniumPR1,   0);
+    setIntegerParam(GermaniumUS,    0);
     setIntegerParam(GermaniumRUNNO, 0);
 
     setIntegerParam(GermaniumPLDEL_RBV, 0);
@@ -431,8 +454,8 @@ void GermaniumDetector::setGermaniumInitialValues()
 
     setIntegerParam(GermaniumNCH, 0);
 
-    setIntegerParam(GermaniumCHAN, 0);
-    setIntegerParam(GermaniumCHIP, 0);
+    setIntegerParam(GermaniumCHAN,  0);
+    setIntegerParam(GermaniumCHIP,  0);
     setIntegerParam(GermaniumMONCH, 0);
 
     setIntegerParam(GermaniumTPAMP, 0);
@@ -461,10 +484,10 @@ void GermaniumDetector::setGermaniumInitialValues()
 
     // Float64 scalars
     setDoubleParam(GermaniumRAT1, 0.0);
-    setDoubleParam(GermaniumDLY, 0.0);
+    setDoubleParam(GermaniumDLY,  0.0);
     setDoubleParam(GermaniumDLY1, 0.0);
-    setDoubleParam(GermaniumTP, 0.0);
-    setDoubleParam(GermaniumT, 0.0);
+    setDoubleParam(GermaniumTP,   0.0);
+    setDoubleParam(GermaniumT,    0.0);
 
     // Sensors
     setDoubleParam(GermaniumTEMP1,   0.0);
@@ -491,10 +514,14 @@ void GermaniumDetector::allocateDataArrays()
     size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
     size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
 
-    mcaData    = new std::atomic<uint32_t>[mcaTotal];
-    tdcData    = new std::atomic<uint32_t>[tdcTotal];
-    countRates = new std::atomic<uint32_t>[numElements];
-    totalCounts= new std::atomic<uint64_t>[numElements];
+    //mcaData    = new std::atomic<uint32_t>[mcaTotal];
+    //tdcData    = new std::atomic<uint32_t>[tdcTotal];
+    //countRates = new std::atomic<uint32_t>[numElements];
+    //totalCounts= new std::atomic<uint64_t>[numElements];
+    mcaData    = std::make_unique<std::atomic<uint32_t>[]>(mcaTotal);
+    tdcData    = std::make_unique<std::atomic<uint32_t>[]>(tdcTotal);
+    countRates = std::make_unique<std::atomic<uint32_t>[]>(numElements);
+    totalCounts= std::make_unique<std::atomic<uint64_t>[]>(numElements);
 
     for (size_t i = 0; i < mcaTotal; i++)
         mcaData[i].store(0, std::memory_order_relaxed);
@@ -508,7 +535,8 @@ void GermaniumDetector::allocateDataArrays()
     evttot.store(0, std::memory_order_relaxed);
 
     // Allocate lock-free block queue
-    dataQueue = new DataBlock[DATA_QUEUE_CAPACITY];
+    //dataQueue = new DataBlock[DATA_QUEUE_CAPACITY];
+    dataQueue = std::make_unique<DataBlock[]>(DATA_QUEUE_CAPACITY);
     for (int i = 0; i < DATA_QUEUE_CAPACITY; i++)
         dataQueue[i].state.store(DATA_BLOCK_FREE, std::memory_order_relaxed);
 

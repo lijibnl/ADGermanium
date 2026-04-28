@@ -17,13 +17,10 @@
  */
 
 //===========================================================================//
-#if __cplusplus < 202302L
-#error "Not using C++23 standard!"
-#endif
 
 #include <cstring>
 #include <cstdio>
-#include <print>
+#include <iostream>
 #include <algorithm>
 #include <iostream>
 #include <arpa/inet.h>
@@ -36,7 +33,7 @@
 
 bool GermaniumDetector::initializeZmq()
 {
-    std::print("[{}]: initializing ZMQ messaging to {}\n", __func__, ipAddress);
+    std::cout << "[" << __func__ << "]: initializing ZMQ messaging to " << ipAddress << "\n";
 
     // Initialize ZMQ client
     try
@@ -82,10 +79,10 @@ bool GermaniumDetector::initializeZmq()
 
     if ( !zmqTxThreadId )
     {
-        std::print("[{}]: failed to create Tx thread\n", __func__);
+        std::cerr << "[" << __func__ << "]: failed to create Tx thread\n";
         return false;
     }
-    std::print("[{}]: Tx thread started\n", __func__);
+    std::cout << "[" << __func__ << "]: Tx thread started\n";
 
     zmqRxThreadId = epicsThreadCreate( "zmqRx"
                                      , epicsThreadPriorityMedium
@@ -96,10 +93,10 @@ bool GermaniumDetector::initializeZmq()
 
     if ( !zmqRxThreadId )
     {
-        std::print("[{}]: failed to create ZMQ Rx thread\n", __func__);
+        std::cerr << "[" << __func__ << "]: failed to create ZMQ Rx thread\n";
         return false;
     }
-    std::print("[{}]: ZMQ Rx threads started\n", __func__);
+    std::cout << "[" << __func__ << "]: ZMQ Rx threads started\n";
 
     //--------------------------------------------------------------
     // Read startup PVs which will never need be read again.
@@ -107,9 +104,9 @@ bool GermaniumDetector::initializeZmq()
     zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
     zmqTx(ZMQ_CMD_REG_READ, DETECTOR_MODEL, 0);
 
-    std::print("[{}]: ZMQ initialized\n", __func__);
-    std::print("                 - Tx: {}\n", zmqTxEndpoint);
-    std::print("                 - Rx: {}\n", zmqRxEndpoint);
+    std::cout << "[" << __func__ << "]: ZMQ initialized\n";
+    std::cout << "                 - Tx: " << zmqTxEndpoint << "\n";
+    std::cout << "                 - Rx: " << zmqRxEndpoint << "\n";
 
     return true;
 }
@@ -269,7 +266,7 @@ void GermaniumDetector::zmqRxThreadC(void *pPvt)
 
 void GermaniumDetector::zmqRxThread()
 {
-    std::print("[{}]: ZMQ Rx thread started\n", __func__);
+    std::cout << "[" << __func__ << "]: ZMQ Rx thread started\n";
 
     while ( threadsRunning.load() )
     {
@@ -425,6 +422,10 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
         case ZMQ_CMD_I2C_DAC_WRITE:
         case ZMQ_CMD_I2C_DAC_INIT:
             // Confirmation only — no PV update needed
+            break;
+
+        case ZMQ_CMD_HEARTBEAT:
+            // No action needed for heartbeat replies
             break;
 
         default:

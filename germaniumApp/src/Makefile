@@ -22,8 +22,7 @@ LIBS += asyn
 LIB_SYS_LIBS += zmq
 
 CCC = /usr/local/bin/g++
-USR_CXXFLAGS += -std=c++23
-#CXXFLAGS += -std=c++23
+USR_CXXFLAGS += -std=c++20
 
 include $(ADCORE)/ADApp/commonLibraryMakefile
 

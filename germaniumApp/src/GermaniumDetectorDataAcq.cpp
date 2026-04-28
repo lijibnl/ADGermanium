@@ -274,9 +274,9 @@ void GermaniumDetector::startDataAcquisition()
     if (acquisitionRunning) return;
 
     clearSpectra();
-    currentSegmentNumber = 0;
-    totalBytesWritten = 0;
-    totalFilesWritten = 0;
+    currentSegmentNumber.store(0);;
+    totalBytesWritten.store(0);
+    totalFilesWritten.store(0);
 
     createDataDirectory();
     //fileWritingEnabled = true;
@@ -305,7 +305,13 @@ void GermaniumDetector::stopDataAcquisition()
 
     setIntegerParam(GermaniumCNT, 0);
     callParamCallbacks();
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: acquisition stopped. %zu bytes in %d files\n", portName, totalBytesWritten, totalFilesWritten);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: acquisition stopped. %zu bytes in %d files\n"
+             , portName
+             , totalBytesWritten.load()
+             , totalFilesWritten.load()
+             );
 }
 
 //===========================================================================//
@@ -349,15 +355,16 @@ std::string GermaniumDetector::generateFilename(int segmentNumber)
 bool GermaniumDetector::openNewDataFile()
 {
     closeCurrentDataFile();
-    std::string filename = generateFilename(currentSegmentNumber);
+    std::string filename = generateFilename(currentSegmentNumber.load());
 
-    currentFileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (currentFileHandle < 0)
+    auto fileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fileHandle < 0)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to open %s: %s\n", portName, filename.c_str(), strerror(errno));
         return false;
     }
-    currentFileSize = 0;
+    currentFileHandle.store(fileHandle);
+    currentFileSize.store(0);
     currentFilename = filename;
     return true;
 }
@@ -366,13 +373,13 @@ bool GermaniumDetector::openNewDataFile()
 
 void GermaniumDetector::closeCurrentDataFile()
 {
-    if (currentFileHandle >= 0)
+    if (currentFileHandle.load() >= 0)
     {
-        close(currentFileHandle);
-        currentFileHandle = -1;
-        totalFilesWritten++;
-        totalBytesWritten += currentFileSize;
-        currentFileSize = 0;
+        close(currentFileHandle.load());
+        currentFileHandle.store(-1);
+        totalFilesWritten.fetch_add(1);
+        totalBytesWritten.fetch_add(currentFileSize.load());
+        currentFileSize.store(0);
     }
 }
 
@@ -386,20 +393,21 @@ bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
     getIntegerParam(GermaniumFSIZE, &maxSizeMB);
     size_t maxSize = static_cast<size_t>(maxSizeMB) * 1024 * 1024;
 
-    if (currentFileHandle < 0 || (currentFileSize + dataSize) > maxSize)
+    auto fileHandle = currentFileHandle.load();
+    if (fileHandle < 0 || (currentFileSize.load() + dataSize) > maxSize)
     {
-        if (currentFileHandle >= 0)
+        if (fileHandle >= 0)
         {
             closeCurrentDataFile();
-            currentSegmentNumber++;
+            currentSegmentNumber.fetch_add(1);
         }
         if (!openNewDataFile()) return false;
     }
 
-    ssize_t written = write(currentFileHandle, data, dataSize);
+    ssize_t written = write(fileHandle, data, dataSize);
     if (written != static_cast<ssize_t>(dataSize)) return false;
 
-    currentFileSize += dataSize;
+    currentFileSize.fetch_add(dataSize, std::memory_order_relaxed);
     return true;
 }
 

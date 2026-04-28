@@ -201,6 +201,9 @@
 
 class GermaniumDetector : public ADDriver {
 public:
+
+    //---------------------------------------------------------------------------//
+
     GermaniumDetector(const char *portName, int numElements, const char *ipAddress,
               int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
               int interfaceMask, int interruptMask,
@@ -208,40 +211,77 @@ public:
 
     virtual ~GermaniumDetector();
 
+    //---------------------------------------------------------------------------//
     // asynPortDriver overrides
-    virtual asynStatus writeInt32(asynUser *pasynUser, epicsInt32 value);
-    virtual asynStatus readInt32(asynUser *pasynUser, epicsInt32 *value);
-    virtual asynStatus writeFloat64(asynUser *pasynUser, epicsFloat64 value);
-    virtual asynStatus readFloat64(asynUser *pasynUser, epicsFloat64 *value);
-    virtual asynStatus writeOctet(asynUser *pasynUser, const char *value, size_t maxChars,
-                                  size_t *nActual);
-    virtual asynStatus readOctet(asynUser *pasynUser, char *value,
-                                 size_t maxChars, size_t *nActual, int *eomReason);
-    virtual asynStatus readInt32Array(asynUser *pasynUser, epicsInt32 *value,
-                                      size_t nElements, size_t *nIn);
-    virtual asynStatus writeInt32Array(asynUser *pasynUser, epicsInt32 *value,
-                                       size_t nElements);
-    virtual asynStatus readInt8Array(asynUser *pasynUser, epicsInt8 *value,
-                                     size_t nElements, size_t *nIn);
-    virtual asynStatus writeInt8Array(asynUser *pasynUser, epicsInt8 *value,
-                                      size_t nElements);
-    virtual asynStatus readFloat64Array(asynUser *pasynUser, epicsFloat64 *value, size_t nElements, size_t *nIn);                                      
+    //---------------------------------------------------------------------------//
+    
+    virtual asynStatus writeInt32( asynUser *pasynUser, epicsInt32 value );
+    virtual asynStatus readInt32( asynUser *pasynUser, epicsInt32 *value );
+
+    virtual asynStatus writeFloat64( asynUser *pasynUser, epicsFloat64 value );
+    virtual asynStatus readFloat64( asynUser *pasynUser, epicsFloat64 *value );
+
+    virtual asynStatus writeOctet( asynUser *pasynUser
+                                 , const char *value
+                                 , size_t maxChars
+                                 , size_t *nActual
+                                 );
+    virtual asynStatus readOctet( asynUser *pasynUser
+                                , char *value
+                                , size_t maxChars
+                                , size_t *nActual
+                                , int *eomReason
+                                );
+
+    virtual asynStatus readInt32Array( asynUser *pasynUser
+                                     , epicsInt32 *value
+                                     , size_t nElements
+                                     , size_t *nIn
+                                     );
+    virtual asynStatus writeInt32Array( asynUser *pasynUser
+                                      , epicsInt32 *value
+                                      , size_t nElements
+                                      );
+
+    virtual asynStatus readInt8Array( asynUser *pasynUser
+                                    , epicsInt8 *value
+                                    , size_t nElements
+                                    , size_t *nIn
+                                    );
+    virtual asynStatus writeInt8Array( asynUser *pasynUser
+                                     , epicsInt8 *value
+                                     , size_t nElements
+                                     );
+
+    virtual asynStatus readFloat64Array( asynUser *pasynUser
+                                       , epicsFloat64 *value
+                                       , size_t nElements
+                                       , size_t *nIn
+                                       );                                      
+    
     virtual void report(FILE *fp, int details);
+
     virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo,
                                      const char **pptypeName, size_t *psize);
 
+    //---------------------------------------------------------------------------//
     // Parameter creation and initialization
+    //---------------------------------------------------------------------------//
+
     void createGermaniumParameters();
     void setGermaniumInitialValues();
 
     // Data array management
     void allocateDataArrays();
 
+    //---------------------------------------------------------------------//
     // ZMQ communication — async PUSH-PULL (GermaniumDetectorZmq.cpp)
-    bool initializeZmq();
-    void closeZmq();
+    //---------------------------------------------------------------------//
 
-    // Fire-and-forget: push to tx queue, return immediately
+    bool initializeZmq();
+    //void closeZmq();
+
+    // Non-blocking ZMQ Tx: push to tx queue, return immediately
     asynStatus zmqTx(uint32_t cmd, uint32_t addr, uint32_t value);
 
     // Low-level send with logging (called by Tx thread)
@@ -252,40 +292,50 @@ public:
     asynStatus zmqMarsSetChannel(uint32_t channel, MarsChannelField field, uint32_t value);
     asynStatus zmqMarsLoad(uint32_t chipMask);
 
-    // Reply processing (called by Control Rx thread)
-    void processReply(const ZmqCommandMsg& reply);
-    void updateRbvFromReply(uint32_t addr, uint32_t value);
-
-    // Thread entry points
     void zmqTxThread();
     void zmqRxThread();
-    void zmqDataThread();
+    //void zmqDataThread();
 
     static void zmqTxThreadC(void *pPvt);
     static void zmqRxThreadC(void *pPvt);
 
-    // PL UDP data reception (GermaniumDetectorDataAcq.cpp)
+    // Reply processing (called by Control Rx thread)
+    void processReply(const ZmqCommandMsg& reply);
+    void updateRbvFromReply(uint32_t addr, uint32_t value);
+
+    //---------------------------------------------------------------------//
+    // UDP data reception (GermaniumDetectorDataAcq.cpp)
+    //---------------------------------------------------------------------//
+
     bool initializePlUdpSocket();
     void closePlUdpSocket();
     void plUdpDataThread();
     void dataProcessingThread();
     void dataWriteThread();
 
-    static void zmqDataThreadC(void *pPvt);
+   //static void zmqDataThreadC(void *pPvt);
     static void plUdpDataThreadC(void *pPvt);
     static void dataProcessingThreadC(void *pPvt);
     static void dataWriteThreadC(void *pPvt);
-
-    // Acquisition control
-    void startDataAcquisition();
-    void stopDataAcquisition();
 
     // Event processing
     void processPhotonEvent(int element, int energy, int tdValue);
     void clearSpectra();
 
+    //---------------------------------------------------------------------//
+    // Acquisition control
+    //---------------------------------------------------------------------//
+
+    void startDataAcquisition();
+    void stopDataAcquisition();
+
+    //---------------------------------------------------------------------//
+    
 protected:
+
+    //---------------------------------------------------------------------//
     // Parameter indices
+    //---------------------------------------------------------------------//
 
     /* Basic info */
     int GermaniumDETMODEL;
@@ -346,7 +396,8 @@ protected:
     int GermaniumCHEN_SEL, GermaniumCHEN_ALL, GermaniumTSEN_SEL, GermaniumTSEN_ALL;
 
     /* Per-channel arrays */
-    //int GermaniumCHEN, GermaniumTSEN, GermaniumTHTR, GermaniumPUTR;
+    //int GermaniumCHEN, GermaniumTSEN
+    int GermaniumTHTR, GermaniumPUTR;
     int GermaniumSLP, GermaniumOFFS;
     
     /* Thresholds */
@@ -374,9 +425,32 @@ protected:
     /* MISC controls */
     int GermaniumLOG_LEVEL;
 
+    //---------------------------------------------------------------------//
+
 private:
 
-    // ZMQ
+    //---------------------------------------------------------------------//
+    // Detector configuration
+    //---------------------------------------------------------------------//
+
+    int  numElements;
+    char ipAddress[64];
+    int  nchips;
+
+    //---------------------------------------------------------------------//
+    // Global control and status
+    //---------------------------------------------------------------------//
+
+    std::atomic<bool> threadsRunning {true};
+
+    // Acquisition state
+    std::atomic<int> evttot {0};
+
+    bool acquisitionRunning {false};
+
+    //---------------------------------------------------------------------//
+    // ZMQ communication
+    //---------------------------------------------------------------------//
     zmq::context_t zmqContext{1};
     std::unique_ptr<ZmqClient> zmqClient;
     const std::string zmqTxEndpoint;
@@ -392,69 +466,67 @@ private:
         ZmqCommandMsg msg;
     };
     std::vector<TxQueueItem> txQueue_;
-    epicsMutexId txQueueMutex_;
-    epicsEventId txQueueEvent_;
+    epicsMutexId txQueueMutex_ {nullptr};
+    epicsEventId txQueueEvent_ {nullptr};
 
-    // PL UDP data socket (raw events from FPGA)
-    int  plUdpSocket;
-    bool plUdpInitialized;
+    epicsThreadId     zmqTxThreadId {nullptr};
+    epicsThreadId     zmqRxThreadId {nullptr};
 
-    // Detector configuration
-    int  numElements;
-    char ipAddress[64];
-    int  nchips;
-
-    // Thread management
-    epicsThreadId     zmqTxThreadId;
-    epicsThreadId     zmqRxThreadId;
-    epicsThreadId     plUdpDataThreadId;
-    epicsThreadId     dataProcessingThreadId;
-    epicsThreadId     dataWriteThreadId;
-    std::atomic<bool> threadsRunning;
-    epicsEventId      dataAvailable;
-
-    // Acquisition state
-    std::atomic<int> evttot;
-    bool acquisitionRunning;
-
-    //=======================================================================//
+    //---------------------------------------------------------------------//
     // UDP data related
-    //=======================================================================//
-    // File handling
-    std::atomic<bool> fileWriteEnable {false};
-    bool fileWritingEnabled;
-    int currentFileHandle;
-    size_t currentFileSize;
-    int currentSegmentNumber;
-    std::string currentFilename;
-    size_t totalBytesWritten;
-    int totalFilesWritten;
+    //---------------------------------------------------------------------//
 
-    void createDataDirectory();
-    std::string generateFilename(int segmentNumber);
-    bool openNewDataFile();
-    void closeCurrentDataFile();
-    bool writeDataToFile(const uint8_t* data, size_t dataSize);
-    void addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
-    void flushWriteBuffer();
+    // UDP data socket (raw events from FPGA)
+    int  plUdpSocket {-1 };
+    bool plUdpInitialized {false};
+
+    // File handling
+    std::atomic<bool>   fileWriteEnable      {false};
+    //std::atomic<bool>   fileWritingEnabled   {false};
+    std::atomic<int>    currentFileHandle    {-1};
+    std::atomic<size_t> currentFileSize      {0};
+    std::atomic<int>    currentSegmentNumber {0};
+    std::string         currentFilename;
+    std::atomic<size_t> totalBytesWritten    {0};
+    std::atomic<int>    totalFilesWritten    {0};
+
+    epicsThreadId     plUdpDataThreadId      {nullptr};
+    epicsThreadId     dataProcessingThreadId {nullptr};
+    epicsThreadId     dataWriteThreadId      {nullptr};
 
     // Lock-free MPSC data queue (producers: zmqData + plUdp; consumer: dataWrite)
-    DataBlock *dataQueue;                   // heap array [DATA_QUEUE_CAPACITY]
-    std::atomic<uint64_t> dataQueueHead;    // next slot for producers (CAS)
-    std::atomic<uint64_t> dataQueueTail;    // next slot for consumer
-    epicsEventId dataWriteAvailable;
+    //DataBlock             *dataQueue          {nullptr}; // heap array [DATA_QUEUE_CAPACITY]
+    std::unique_ptr<DataBlock[]> dataQueue; // heap array [DATA_QUEUE_CAPACITY]
+    epicsEventId           dataWriteAvailable {nullptr};
+    std::atomic<uint64_t>  dataQueueHead      {0};       // next slot for producers (CAS)
+    std::atomic<uint64_t>  dataQueueTail      {0};       // next slot for consumer
 
     // Spectra data — atomic for lock-free access from multiple producer
     // threads (zmqData, plUdp) and the EPICS readback thread.
     // Flat-allocated: mcaData[element * SPECTRUM_SIZE + bin]
-    std::atomic<uint32_t> *mcaData;     // [numElements * SPECTRUM_SIZE]
-    std::atomic<uint32_t> *tdcData;     // [numElements * TDC_SIZE]
-    std::atomic<uint32_t> *countRates;  // [numElements]
-    std::atomic<uint64_t> *totalCounts; // [numElements]
+   //std::atomic<uint32_t> *mcaData;     // [numElements * SPECTRUM_SIZE]
+   //std::atomic<uint32_t> *tdcData;     // [numElements * TDC_SIZE]
+   //std::atomic<uint32_t> *countRates;  // [numElements]
+   //std::atomic<uint64_t> *totalCounts; // [numElements]
 
-    //=======================================================================//
+    std::unique_ptr<std::atomic<uint32_t>[]> mcaData;
+    std::unique_ptr<std::atomic<uint32_t>[]> tdcData;
+    std::unique_ptr<std::atomic<uint32_t>[]> countRates;
+    std::unique_ptr<std::atomic<uint64_t>[]> totalCounts;
+
+    epicsEventId      dataAvailable {nullptr};
+
+    void        createDataDirectory();
+    std::string generateFilename(int segmentNumber);
+    bool        openNewDataFile();
+    void        closeCurrentDataFile();
+    bool        writeDataToFile(const uint8_t* data, size_t dataSize);
+    void        addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
+    void        flushWriteBuffer();
+
+    //---------------------------------------------------------------------//
     // Poller related
-    //=======================================================================//
+    //---------------------------------------------------------------------//
     std::unique_ptr<EpicsPoller> poller;
 
     // Polling info used to configure the poller with op code,
@@ -501,8 +573,12 @@ private:
         , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
         , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
         , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+
+        , { ZMQ_CMD_HEARTBEAT,     0,                     POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
         };
     bool createPoller();
+
+    //---------------------------------------------------------------------//
 };
 
 //===========================================================================//

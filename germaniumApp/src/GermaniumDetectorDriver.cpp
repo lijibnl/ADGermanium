@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
-#include <print>
+#include <iostream>
 #include <arpa/inet.h>
 
 //===========================================================================//
@@ -478,7 +478,15 @@ asynStatus GermaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *va
 asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                                  size_t maxChars, size_t *nActual)
 {
-    std::print("writeOctet: function={}, value='{}'\n", pasynUser->reason, value);
+    std::cout << "[" << __func__ << "]: writeOctet: function=" << pasynUser->reason << ", value='" << value << "'\n";
+    asynPrint( pasynUserSelf
+             , ASYN_TRACEIO_DRIVER
+             , "[%s]: writeOctet: function=%d, value='%s'\n"
+             , portName
+             , pasynUser->reason
+             , value
+             );
+
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
@@ -493,10 +501,21 @@ asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
     {
         // Validate IP address format
         struct in_addr addr;
-        std::print("[{}]: Setting IP address to '{}'\n", __func__, value);
+        
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACEIO_DRIVER
+                 , "[%s]: Setting IP address to '%s'\n"
+                 , portName
+                 , value
+                 );
         if (inet_pton(AF_INET, value, &addr) != 1)
         {
-            std::print("[{}]: invalid IP address '{}'\n", __func__, value);
+            asynPrint( pasynUserSelf
+                     , ASYN_TRACEIO_DRIVER
+                     , "[%s]: invalid IP address '%s'\n"
+                     , portName
+                     , value
+                     );
             return asynError;
         }
         // Write to FPGA register for PL UDP destination
@@ -518,7 +537,11 @@ asynStatus GermaniumDetector::readOctet(asynUser *pasynUser, char *value,
 {
     if (pasynUser->reason == GermaniumIPADDR_RBV)
     {
-        std::print("[{}]: Reading IP address from FPGA register\n", __func__);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACEIO_DRIVER
+                 , "[%s]: Reading IP address from FPGA register\n"
+                 , portName
+                 );
         //zmqTx(ZMQ_CMD_REG_READ, UDP_IP_ADDR, 0);
         getStringParam(GermaniumIPADDR_RBV, 15, value);
         *nActual = strlen(value);
@@ -648,55 +671,42 @@ asynStatus GermaniumDetector::readFloat64(asynUser *pasynUser, epicsFloat64 *val
 
     if (function == GermaniumTP)
     {
-        // Request both COUNT_TIME registers; cache updated by processReply
-        //zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_LO, 0);
-        //zmqTx(ZMQ_CMD_REG_READ, COUNT_TIME_HI, 0);
         getDoubleParam(GermaniumTP, value);
     }
     else if (function == GermaniumT)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, EVENT_TIME_CNTR, 0);
         getDoubleParam(GermaniumT, value);
     }
     else if (function == GermaniumTEMP1)
     {
-        //zmqTx(ZMQ_CMD_I2C_TEMP_READ, 0, 0);
         getDoubleParam(GermaniumTEMP1, value);
     }
     else if (function == GermaniumTEMP2)
     {
-        //zmqTx(ZMQ_CMD_I2C_TEMP_READ, 1, 0);
         getDoubleParam(GermaniumTEMP2, value);
     }
     else if (function == GermaniumTEMP3)
     {
-        //zmqTx(ZMQ_CMD_I2C_TEMP_READ, 2, 0);
         getDoubleParam(GermaniumTEMP3, value);
     }
     else if (function == GermaniumZTEMP)
     {
-        std::print("[{}]: Read ZTEMP\n", __func__);
-        //zmqTx(ZMQ_CMD_XADC_READ, 0, 0);
         getDoubleParam(GermaniumZTEMP, value);
     }
     else if (function == GermaniumHV_RBV)
     {
-        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_RBV, 0);
         getDoubleParam(GermaniumHV_RBV, value);
     }
     else if (function == GermaniumHV_CURR)
     {
-        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_HV_CUR, 0);
         getDoubleParam(GermaniumHV_CURR, value);
     }
     else if (function == GermaniumP1_CURR)
     {
-        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P1_CUR, 0);
         getDoubleParam(GermaniumP1_CURR, value);
     }
     else if (function == GermaniumP2_CURR)
     {
-        //zmqTx(ZMQ_CMD_I2C_ADC_READ, ADC_CH_P2_CUR, 0);
         getDoubleParam(GermaniumP2_CURR, value);
     }
     else

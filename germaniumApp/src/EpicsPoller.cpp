@@ -1,6 +1,7 @@
 #include <atomic>
 #include <stdio.h>
-#include <print>
+//#include <print>
+#include <iostream>
 
 #include "EpicsPoller.hpp"
 
@@ -20,7 +21,7 @@ void EpicsPollItem::execute()
     if (pollFunc)
         pollFunc();
     else
-        std::print("[{}]: : warning: no poll function defined for this item\n", __func__);
+        std::cerr << "[" << __func__ << "]: warning: no poll function defined for this item\n";
 }
 
 //===========================================================================//
@@ -105,7 +106,7 @@ void EpicsPoller::threadFuncC(void *p)
         epicsThreadSleep( self->basePeriod );
     }
 
-    std::print("[{}]: : exiting\n", __func__);
+    std::cerr << "[" << __func__ << "]: : exiting\n";
 }
 
 //===========================================================================//
