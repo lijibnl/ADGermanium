@@ -320,18 +320,19 @@ public:
 
     // Reply processing (called by Control Rx thread)
     void processReply( const ZmqCommandMsg& reply );
-    void processReplyRegRead( uint32_t addr, uint32_t value )
+    void processReplyRegRead( uint32_t addr, uint32_t value );
     void processReplyRegWrite( uint32_t addr, uint32_t value );
     void processReplyI2cTempRead( uint32_t addr, uint32_t value );
-    void processReplyXadcRead( uint32_t addr, uint32_t value );
+    void processReplyXadcRead( uint32_t value );
     void processReplyI2cAdcRead( uint32_t addr, uint32_t value );
-    void processReplyMarsGlobalSet( uint32_t addr, uint32_t value );
-    void processReplyMarsGlobalRead( uint32_t addr, uint32_t value );
-    void processReplyMarsChannelSet( uint32_t addr, uint32_t value );
-    void processReplyMarsChannelRead( uint32_t addr, uint32_t value );
-    void processReplyAdcClkSkewSet( uint32_t addr, uint32_t value );
-    void processReplyI2cDacWrite( uint32_t addr, uint32_t value );
-    void processReplyI2cDacInit( uint32_t addr, uint32_t value );
+    void processReplyMarsGlobalSet( const ZmqCommandMsg& reply );
+    void processReplyMarsGlobalRead( const ZmqCommandMsg& reply );
+    void processReplyMarsChannelSet( const ZmqCommandMsg& reply );
+    void processReplyMarsChannelRead( const ZmqCommandMsg& reply );
+    void processReplyAdcClkSkewSet( const ZmqCommandMsg& reply );
+    void processReplyAdcClkSkewRead( const ZmqCommandMsg& reply );
+    void processReplyI2cDacWrite( const ZmqCommandMsg& reply );
+    void processReplyI2cDacInit( const ZmqCommandMsg& reply );
 
     //---------------------------------------------------------------------//
     // Read parameters initialized by detector.
@@ -591,12 +592,16 @@ private:
 
     // Poll the parameters initialized by detector once during startup
     static constexpr InitPollInfo initPollInfo[] =
-        { { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_POL  }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_GAIN }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_ST   }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_TH   }
+        { { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_POL  }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_GAIN }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_ST   }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TH   }
         , { ZMQ_CMD_REG_READ,         VERSIONREG      }
         , { ZMQ_CMD_REG_READ,         DETECTOR_MODEL  }
+        , { ZMQ_CMD_REG_READ,         MARS_RDOUT_ENB  }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 1               }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 2               }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 3               }
         };
 
 

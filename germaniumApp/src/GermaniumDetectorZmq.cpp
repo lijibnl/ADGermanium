@@ -290,6 +290,10 @@ void GermaniumDetector::zmqRxThread()
                      , "[%s]: detector ZMQ server recovered\n", portName);
             zmqServerDown.store(false);
             zmqNeedReset.store(true);
+
+            // Re-read parameters that are initialized by the detector,
+            // since the Zynq may have rebooted with fresh defaults.
+            readInitParams();
         }
 
         asynPrint( pasynUserSelf
@@ -342,7 +346,7 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
             break;
 
         case ZMQ_CMD_I2C_ADC_READ:
-            processReplyI2cAdcRead( reply );
+            processReplyI2cAdcRead( reply.addr, reply.value );
             break;
 
         case ZMQ_CMD_MARS_GLOBAL_SET:
@@ -363,6 +367,10 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
 
         case ZMQ_CMD_ADC_CLK_SKEW_SET:
             processReplyAdcClkSkewSet( reply );
+            break;
+
+        case ZMQ_CMD_ADC_CLK_SKEW_READ:
+            processReplyAdcClkSkewRead( reply );
             break;
 
         case ZMQ_CMD_I2C_DAC_WRITE:
@@ -537,6 +545,85 @@ void GermaniumDetector::processReplyI2cAdcRead( const uint32_t addr, const uint3
             break;
     }
     callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyMarsGlobalSet( const ZmqCommandMsg& reply )
+{
+    // Echo-back acknowledgement — no PV update needed.
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyMarsGlobalRead( const ZmqCommandMsg& reply )
+{
+    uint16_t field_id = reply.addr & 0xFFFF;
+    uint32_t value    = reply.value;
+
+    switch ( field_id )
+    {
+        case MARS_FIELD_ST:   setIntegerParam(GermaniumSHPT, value); break;
+        case MARS_FIELD_GAIN: setIntegerParam(GermaniumGAIN, value); break;
+        case MARS_FIELD_POL:  setIntegerParam(GermaniumPOL,  value); break;
+        case MARS_FIELD_EBLK: setIntegerParam(GermaniumEBLK, value); break;
+        case MARS_FIELD_PUEN: setIntegerParam(GermaniumPUEN, value); break;
+        case MARS_FIELD_MFS:  setIntegerParam(GermaniumMFS,  value); break;
+        case MARS_FIELD_TDS:  setIntegerParam(GermaniumTDS,  value); break;
+        case MARS_FIELD_TDM:  setIntegerParam(GermaniumTDM,  value); break;
+        case MARS_FIELD_TH:   break;  // per-chip array, handled separately
+        default: break;
+    }
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyMarsChannelSet( const ZmqCommandMsg& reply )
+{
+    // Echo-back acknowledgement — no PV update needed.
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyMarsChannelRead( const ZmqCommandMsg& reply )
+{
+    // Per-channel readback — update cached state if needed.
+    // Currently no per-channel _RBV PVs are defined.
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyAdcClkSkewSet( const ZmqCommandMsg& reply )
+{
+    // Echo-back acknowledgement — no PV update needed.
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyAdcClkSkewRead( const ZmqCommandMsg& reply )
+{
+    switch ( reply.addr )
+    {
+        case 1: setIntegerParam(GermaniumADC0_CLK_SKEW, reply.value); break;
+        case 2: setIntegerParam(GermaniumADC1_CLK_SKEW, reply.value); break;
+        case 3: setIntegerParam(GermaniumADC2_CLK_SKEW, reply.value); break;
+    }
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyI2cDacWrite( const ZmqCommandMsg& reply )
+{
+    // Echo-back acknowledgement — no PV update needed.
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyI2cDacInit( const ZmqCommandMsg& reply )
+{
+    // Echo-back acknowledgement — no PV update needed.
 }
 
 //===========================================================================//

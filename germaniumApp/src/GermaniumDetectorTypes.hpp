@@ -109,6 +109,7 @@ struct DataBlock
 #define ZMQ_CMD_I2C_DAC_WRITE     0x23
 #define ZMQ_CMD_I2C_ADC_READ      0x24
 #define ZMQ_CMD_I2C_DAC_INIT      0x25
+#define ZMQ_CMD_ADC_CLK_SKEW_READ 0x26
 #define ZMQ_CMD_SET_LOG_LEVEL     0x30
 
 //-------------------------------------------------------------
