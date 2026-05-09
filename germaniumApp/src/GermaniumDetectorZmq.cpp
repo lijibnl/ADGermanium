@@ -101,8 +101,6 @@ bool GermaniumDetector::initializeZmq()
     //--------------------------------------------------------------
     // Read startup PVs which will never need be read again.
     //--------------------------------------------------------------
-    zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
-    zmqTx(ZMQ_CMD_REG_READ, DETECTOR_MODEL, 0);
 
     std::cout << "[" << __func__ << "]: ZMQ initialized\n";
     std::cout << "                 - Tx: " << zmqTxEndpoint << "\n";
@@ -158,7 +156,7 @@ asynStatus GermaniumDetector::zmqMarsSetGlobal( uint32_t chipMask
                                               , uint32_t value
                                               )
 {
-    return zmqTx( ZMQ_CMD_MARS_SET_GLOBAL
+    return zmqTx( ZMQ_CMD_MARS_GLOBAL_SET
                 , (chipMask << 16) | static_cast<uint32_t>(field)
                 , value
                 );
@@ -171,7 +169,7 @@ asynStatus GermaniumDetector::zmqMarsSetChannel( uint32_t channel
                                                , uint32_t value
                                                )
 {
-    return zmqTx( ZMQ_CMD_MARS_SET_CHANNEL
+    return zmqTx( ZMQ_CMD_MARS_CHANNEL_SET
                 , (channel << 16) | static_cast<uint32_t>(field)
                 , value
                 );
@@ -280,6 +278,7 @@ void GermaniumDetector::zmqRxThread()
         }
         else if ( rs == ZmqClient::RecvStatus::SizeMismatch )
         {
+            // Wrong size
             continue;
         }
 
@@ -322,106 +321,56 @@ void GermaniumDetector::zmqRxThread()
 
 void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
 {
+
     switch (reply.cmd)
     {
         case ZMQ_CMD_REG_READ:
-        {
-            uint32_t addr  = reply.addr;
-            uint32_t value = reply.value;
-
-            // Update the appropriate readback parameter
-            if (addr == VERSIONREG)
-                setIntegerParam(GermaniumFVER, static_cast<int>(value));
-            else if (addr == DETECTOR_MODEL)
-                setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
-            else if (addr == MARS_CALPULSE)
-                setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
-            else if (addr == CALPULSE_RATE)
-                setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
-            else if (addr == CALPULSE_CNT)
-                setIntegerParam(GermaniumTPCNT_RBV, static_cast<int>(value));
-            else if (addr == CALPULSE_MODE)
-                setIntegerParam(GermaniumTPENB_RBV, static_cast<int>(value));
-            else if (addr == MARS_PIPE_DELAY)
-                setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
-            else if (addr == MARS_RDOUT_ENB)
-                setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
-            else if (addr == TRIG)
-                setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
-            else if (addr == COUNT_MODE)
-                setIntegerParam(GermaniumMODE, value ? 1 : 0);
-            else if (addr == EVENT_TIME_CNTR)
-                setDoubleParam(GermaniumT, static_cast<double>(value) / 25.0e6);
-            else if (addr == COUNT_TIME_LO || addr == COUNT_TIME_HI)
-            {
-                // Time preset readback handled below
-            }
-            else if (addr == UDP_IP_ADDR)
-            {
-                uint32_t host = ntohl(value);
-                struct in_addr a;
-                a.s_addr = host;
-                char buf[INET_ADDRSTRLEN];
-                inet_ntop( AF_INET, &a, buf, sizeof(buf) );
-                setStringParam( GermaniumIPADDR_RBV, buf );
-            }
-
-            callParamCallbacks();
+            processReplyRegRead( reply.addr, reply.value );
             break;
-        }
 
         case ZMQ_CMD_REG_WRITE:
-            updateRbvFromReply( reply.addr, reply.value );
+            processReplyRegWrite( reply.addr, reply.value );
             break;
 
         case ZMQ_CMD_I2C_TEMP_READ:
-        {
-            double tempC = static_cast<double>(reply.value >> 4) * 0.0625;
-            switch (reply.addr)
-            {
-                case 0: setDoubleParam(GermaniumTEMP1, tempC); break;
-                case 1: setDoubleParam(GermaniumTEMP2, tempC); break;
-                case 2: setDoubleParam(GermaniumTEMP3, tempC); break;
-            }
+            processReplyI2cTempRead( reply.addr, reply.value );
             break;
-        }
+
 
         case ZMQ_CMD_XADC_READ:
-        {
-            double tempC = 503.975 * static_cast<double>(reply.value) / 4096.0 - 273.15;
-            setDoubleParam(GermaniumZTEMP, tempC);
+            processReplyXadcRead( reply.value );
             break;
-        }
 
         case ZMQ_CMD_I2C_ADC_READ:
-        {
-            // LTC2309 12-bit ADC → engineering units
-            double raw = static_cast<double>(reply.value);
-            switch (reply.addr)
-            {
-                case ADC_CH_HV_RBV:
-                    setDoubleParam(GermaniumHV_RBV, raw * 500.0 / 4096.0);
-                    break;
-                case ADC_CH_HV_CUR:
-                    setDoubleParam(GermaniumHV_CURR, raw * 5.0 / 4096.0);
-                    break;
-                case ADC_CH_P1_CUR:
-                    setDoubleParam(GermaniumP1_CURR, raw * 500.0 / 4096.0);
-                    break;
-                case ADC_CH_P2_CUR:
-                    setDoubleParam(GermaniumP2_CURR, raw * 5.0 / 4096.0);
-                    break;
-            }
+            processReplyI2cAdcRead( reply );
             break;
-        }
 
-        case ZMQ_CMD_MARS_SET_GLOBAL:
-        case ZMQ_CMD_MARS_SET_CHANNEL:
-        case ZMQ_CMD_MARS_LOAD:
-        case ZMQ_CMD_ADC_CLK_SKEW:
+        case ZMQ_CMD_MARS_GLOBAL_SET:
+            processReplyMarsGlobalSet( reply );
+            break;
+
+        case ZMQ_CMD_MARS_GLOBAL_READ:
+            processReplyMarsGlobalRead( reply );
+            break;
+
+        case ZMQ_CMD_MARS_CHANNEL_SET:
+            processReplyMarsChannelSet( reply );
+            break;
+
+        case ZMQ_CMD_MARS_CHANNEL_READ:
+            processReplyMarsChannelRead( reply );
+            break;
+
+        case ZMQ_CMD_ADC_CLK_SKEW_SET:
+            processReplyAdcClkSkewSet( reply );
+            break;
+
         case ZMQ_CMD_I2C_DAC_WRITE:
+            processReplyI2cDacWrite( reply );
+            break;
+
         case ZMQ_CMD_I2C_DAC_INIT:
-            // Confirmation only — no PV update needed
+            processReplyI2cDacInit( reply );
             break;
 
         case ZMQ_CMD_HEARTBEAT:
@@ -437,7 +386,78 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
 
 //===========================================================================//
 
-void GermaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
+void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
+{
+    static uint32_t count_time_lo = 0;
+    static uint32_t count_time_hi = 0;
+
+    switch( addr )
+    {
+        case VERSIONREG:
+            setIntegerParam(GermaniumFVER, static_cast<int>(value));
+            break;
+        case DETECTOR_MODEL:
+            break;
+            setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
+        case MARS_CALPULSE;
+            break;
+            setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
+        case CALPULSE_RATE;
+            break;
+            setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
+        case CALPULSE_CNT;
+            break;
+            setIntegerParam(GermaniumTPCNT_RBV, static_cast<int>(value));
+        case CALPULSE_MODE;
+            break;
+            setIntegerParam(GermaniumTPENB_RBV, static_cast<int>(value));
+        case MARS_PIPE_DELAY;
+            break;
+            setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
+        case MARS_RDOUT_ENB;
+            break;
+            setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
+        case TRIG;
+            break;
+            setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
+        case COUNT_MODE;
+            break;
+            setIntegerParam(GermaniumMODE, value ? 1 : 0);
+        case EVENT_TIME_CNTR;
+            break;
+            setDoubleParam(GermaniumT, static_cast<double>(value) / 25.0e6);
+        case COUNT_TIME_LO:
+        case COUNT_TIME_HI:
+        {
+            static bool full_length_count_time = true;
+            
+            full_length_count_time = !full_length_count_time;
+
+            if ( full_length_count_time )
+            {
+                double count_time = static_cast<double>( ( static_cast<uint64_t>(count_time_hi ) << 32)
+                                                         | count_time_lo );
+                setDoubleParam(GermaniumTP, count_time);
+            }
+            break;
+        }
+        case UDP_IP_ADDR:
+        {
+            uint32_t host = ntohl(value);
+            struct in_addr a;
+            a.s_addr = host;
+            char buf[INET_ADDRSTRLEN];
+            inet_ntop( AF_INET, &a, buf, sizeof(buf) );
+            setStringParam( GermaniumIPADDR_RBV, buf );
+            break;
+        }
+    }
+
+    callParamCallbacks();
+}
+//===========================================================================//
+
+void GermaniumDetector::processReplyRegWrite(uint32_t addr, uint32_t value)
 {
     switch (addr)
     {
@@ -466,6 +486,54 @@ void GermaniumDetector::updateRbvFromReply(uint32_t addr, uint32_t value)
             setIntegerParam(GermaniumFVER, static_cast<int>(value));
             break;
         default:
+            break;
+    }
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyI2cTempRead( const uint32_t addr, const uint32_t value )
+{
+    double tempC = static_cast<double>(value >> 4) * 0.0625;
+    switch (addr)
+    {
+        case 0: setDoubleParam(GermaniumTEMP1, tempC); break;
+        case 1: setDoubleParam(GermaniumTEMP2, tempC); break;
+        case 2: setDoubleParam(GermaniumTEMP3, tempC); break;
+    }
+
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyXadcRead( const uint32_t value )
+{
+    double tempC = 503.975 * static_cast<double>(value) / 4096.0 - 273.15;
+    setDoubleParam(GermaniumZTEMP, tempC);
+    break;
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyI2cAdcRead( const uint32_t addr, const uint32_t value )
+{
+    // LTC2309 12-bit ADC → engineering units
+    double raw = static_cast<double>(value);
+    switch (addr)
+    {
+        case ADC_CH_HV_RBV:
+            setDoubleParam(GermaniumHV_RBV, raw * 500.0 / 4096.0);
+            break;
+        case ADC_CH_HV_CUR:
+            setDoubleParam(GermaniumHV_CURR, raw * 5.0 / 4096.0);
+            break;
+        case ADC_CH_P1_CUR:
+            setDoubleParam(GermaniumP1_CURR, raw * 500.0 / 4096.0);
+            break;
+        case ADC_CH_P2_CUR:
+            setDoubleParam(GermaniumP2_CURR, raw * 5.0 / 4096.0);
             break;
     }
     callParamCallbacks();

@@ -121,15 +121,15 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumADC0_CLK_SKEW)
     {
-        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 1, static_cast<uint32_t>(value));
+        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW_SET, 1, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumADC1_CLK_SKEW)
     {
-        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 2, static_cast<uint32_t>(value));
+        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW_SET, 2, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumADC2_CLK_SKEW)
     {
-        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW, 3, static_cast<uint32_t>(value));
+        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW_SET, 3, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumLOG_LEVEL)
     {

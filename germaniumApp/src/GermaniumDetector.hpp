@@ -204,10 +204,20 @@ public:
 
     //---------------------------------------------------------------------------//
 
-    GermaniumDetector(const char *portName, int numElements, const char *ipAddress,
-              int maxAddr, int numParams, int maxBuffers, size_t maxMemory,
-              int interfaceMask, int interruptMask,
-              int asynFlags, int autoConnect, int priority, int stackSize);
+    GermaniumDetector( const char *portName
+                     , int numElements
+                     , const char *ipAddress
+                     , int maxAddr
+                     , int numParams
+                     , int maxBuffers
+                     , size_t maxMemory
+                     , int interfaceMask
+                     , int interruptMask
+                     , int asynFlags
+                     , int autoConnect
+                     , int priority
+                     , int stackSize
+                     );
 
     virtual ~GermaniumDetector();
 
@@ -261,8 +271,11 @@ public:
     
     virtual void report(FILE *fp, int details);
 
-    virtual asynStatus drvUserCreate(asynUser *pasynUser, const char *drvInfo,
-                                     const char **pptypeName, size_t *psize);
+    virtual asynStatus drvUserCreate( asynUser *pasynUser
+                                    , const char *drvInfo
+                                    , const char **pptypeName
+                                    , size_t *psize
+                                    );
 
     //---------------------------------------------------------------------------//
     // Parameter creation and initialization
@@ -288,8 +301,14 @@ public:
     //void zmqSend(const ZmqCommandMsg& msg);
 
     // MARS delta-config helpers (each calls zmqTx)
-    asynStatus zmqMarsSetGlobal(uint32_t chipMask, MarsGlobalField field, uint32_t value);
-    asynStatus zmqMarsSetChannel(uint32_t channel, MarsChannelField field, uint32_t value);
+    asynStatus zmqMarsSetGlobal( uint32_t chipMask
+                               , MarsGlobalField field
+                               , uint32_t value
+                               );
+    asynStatus zmqMarsSetChannel( uint32_t channel
+                                , MarsChannelField field
+                                , uint32_t value
+                                );
     asynStatus zmqMarsLoad(uint32_t chipMask);
 
     void zmqTxThread();
@@ -300,8 +319,24 @@ public:
     static void zmqRxThreadC(void *pPvt);
 
     // Reply processing (called by Control Rx thread)
-    void processReply(const ZmqCommandMsg& reply);
-    void updateRbvFromReply(uint32_t addr, uint32_t value);
+    void processReply( const ZmqCommandMsg& reply );
+    void processReplyRegRead( uint32_t addr, uint32_t value )
+    void processReplyRegWrite( uint32_t addr, uint32_t value );
+    void processReplyI2cTempRead( uint32_t addr, uint32_t value );
+    void processReplyXadcRead( uint32_t addr, uint32_t value );
+    void processReplyI2cAdcRead( uint32_t addr, uint32_t value );
+    void processReplyMarsGlobalSet( uint32_t addr, uint32_t value );
+    void processReplyMarsGlobalRead( uint32_t addr, uint32_t value );
+    void processReplyMarsChannelSet( uint32_t addr, uint32_t value );
+    void processReplyMarsChannelRead( uint32_t addr, uint32_t value );
+    void processReplyAdcClkSkewSet( uint32_t addr, uint32_t value );
+    void processReplyI2cDacWrite( uint32_t addr, uint32_t value );
+    void processReplyI2cDacInit( uint32_t addr, uint32_t value );
+
+    //---------------------------------------------------------------------//
+    // Read parameters initialized by detector.
+    //---------------------------------------------------------------------//
+    void readInitParams();
 
     //---------------------------------------------------------------------//
     // UDP data reception (GermaniumDetectorDataAcq.cpp)
@@ -535,6 +570,12 @@ private:
     {
         uint32_t opCode;
         uint32_t addr;
+    }  InitPollInfo;
+
+    typedef struct
+    {
+        uint32_t opCode;
+        uint32_t addr;
         int      slowDivider;
         int      fastDivider;
     }  PollInfo;
@@ -547,6 +588,17 @@ private:
     // Polling periods in units of 100ms (10Hz)
     static constexpr int POLLING_PERIOD_10HZ   = 10;
     static constexpr int POLLING_PERIOD_100HZ  = 1;
+
+    // Poll the parameters initialized by detector once during startup
+    static constexpr InitPollInfo initPollInfo[] =
+        { { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_POL  }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_GAIN }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_ST   }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_TH   }
+        , { ZMQ_CMD_REG_READ,         VERSIONREG      }
+        , { ZMQ_CMD_REG_READ,         DETECTOR_MODEL  }
+        };
+
 
     static constexpr PollInfo pollInfo[] =
         { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }

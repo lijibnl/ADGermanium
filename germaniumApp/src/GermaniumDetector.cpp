@@ -123,6 +123,11 @@ GermaniumDetector::GermaniumDetector( const char *portName
     }
 
     //---------------------------------------------------------------------//
+    
+    // Read initial parameters
+    readInitParams();
+
+    //---------------------------------------------------------------------//
 
     // UDP data proeceesing related initialization
     dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
@@ -410,7 +415,7 @@ void GermaniumDetector::setGermaniumInitialValues()
     setIntegerParam(GermaniumPLDEL,  72);
     setIntegerParam(GermaniumRODEL,  15);
 
-    setIntegerParam(GermaniumFWEN, 0);
+    setIntegerParam(GermaniumFWEN,  0);
     setIntegerParam(GermaniumCNT,   0);
     setIntegerParam(GermaniumCONT,  0);
     setIntegerParam(GermaniumMODE,  0);
@@ -503,6 +508,16 @@ void GermaniumDetector::setGermaniumInitialValues()
     setDoubleParam(GermaniumP2_CURR, 0.0);
 
     callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::readInitParams()
+{
+    for ( auto i : initPollInfo )
+    {
+        zmqTx( i.opCode, i.addr, 0 );
+    }
 }
 
 //===========================================================================//

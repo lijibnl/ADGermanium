@@ -25,10 +25,10 @@ const char* decode_cmd(uint32_t cmd)
     switch (cmd) {
         case ZMQ_CMD_REG_READ:          return "REG_READ";
         case ZMQ_CMD_REG_WRITE:         return "REG_WRITE";
-        case ZMQ_CMD_MARS_SET_GLOBAL:   return "SET_GLOBAL";
-        case ZMQ_CMD_MARS_SET_CHANNEL:  return "SET_CHANNEL";
+        case ZMQ_CMD_MARS_GLOBAL_SET:   return "SET_GLOBAL";
+        case ZMQ_CMD_MARS_CHANNEL_SET:  return "SET_CHANNEL";
         case ZMQ_CMD_MARS_LOAD:         return "MARS_LOAD";
-        case ZMQ_CMD_ADC_CLK_SKEW:      return "ADC_CLK_SKEW";
+        case ZMQ_CMD_ADC_CLK_SKEW_SET:      return "ADC_CLK_SKEW";
         case ZMQ_CMD_I2C_TEMP_READ:     return "I2C_TEMP_READ";
         case ZMQ_CMD_XADC_READ:         return "XADC_READ";
         case ZMQ_CMD_I2C_DAC_WRITE:     return "I2C_DAC_WRITE";
@@ -125,7 +125,7 @@ std::string format_zmq_msg(const ZmqCommandMsg& msg)
                 << " value=0x" << std::hex << msg.value;
             break;
         }
-        case ZMQ_CMD_MARS_SET_GLOBAL: {
+        case ZMQ_CMD_MARS_GLOBAL_SET: {
             uint16_t chip_mask = (msg.addr >> 16) & 0x0FFF;
             uint16_t field_id  = msg.addr & 0xFFFF;
             oss << "chip_mask=0x" << std::hex << chip_mask
@@ -134,7 +134,7 @@ std::string format_zmq_msg(const ZmqCommandMsg& msg)
                 << " value=0x" << std::hex << msg.value;
             break;
         }
-        case ZMQ_CMD_MARS_SET_CHANNEL: {
+        case ZMQ_CMD_MARS_CHANNEL_SET: {
             uint16_t channel  = (msg.addr >> 16) & 0x0FFF;
             uint16_t field_id = msg.addr & 0xFFFF;
             oss << "channel=" << std::dec << channel
