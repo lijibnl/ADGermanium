@@ -6,6 +6,9 @@ include $(TOP)/configure/CONFIG
 # Build the driver library
 LIBRARY_IOC = GermaniumDetector
 
+GERMANIUM_PROTOCOL ?= $(TOP)/../../prj/germanium/protocol
+USR_INCLUDES += -I$(GERMANIUM_PROTOCOL)
+
 DBD += GermaniumDetectorSupport.dbd
 
 # Source files

@@ -57,6 +57,10 @@ GermaniumDetector::GermaniumDetector( const char *portName
                                                             + ipAddress
                                                             + ":"
                                                             + ZMQ_CMD_PORT )
+                                    , zmqRxEndpoint         ( std::string("tcp://")
+                                                            + ipAddress
+                                                            + ":"
+                                                            + ZMQ_REPLY_PORT )
                                     //, zmqTxThreadId         ( nullptr     )
                                     //, zmqRxThreadId         ( nullptr     )
                                     //, plUdpDataThreadId     ( nullptr     )
@@ -596,13 +600,13 @@ void GermaniumDetector::clearSpectra()
 
 bool GermaniumDetector::createPoller()
 {
-    poller = std::make_unique<EpicsPoller>(1.0); // 1 second base period
+    poller = std::make_unique<EpicsPoller>();
     poller->setFast(false);
 
     for( auto info : pollInfo )
     {
-        poller->addItem( std::make_unique<EpicsPollItem>( 10
-                                                        , 100
+        poller->addItem( std::make_unique<EpicsPollItem>( info.slowDivider
+                                                        , info.fastDivider
                                                         , [this, info](){ this->zmqTx(info.opCode, info.addr, 0); }
                                                         )
                        );

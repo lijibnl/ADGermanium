@@ -19,6 +19,8 @@
 #include <atomic>
 // #include "GermaniumDetectorRegister.hpp"
 
+#include "GermaniumDetectorProtocol.hpp"
+
 //===========================================================================//
 
 // ZMQ communication ports (matching ZynqDetector async-zmq)
@@ -63,98 +65,42 @@ struct DataBlock
 // ZMQ command codes.
 //=====================================================================//
 
-// Register ops (matching germ-zmq-server)
-// Register addr is a word offset (see GermaniumDetectorRegister.hpp).
-#define ZMQ_CMD_REG_READ    0x00
-#define ZMQ_CMD_REG_WRITE   0x01
+#define ZMQ_CMD_REG_READ          GermaniumProtocol::Command::REG_READ
+#define ZMQ_CMD_REG_WRITE         GermaniumProtocol::Command::REG_WRITE
+#define ZMQ_CMD_MARS_GLOBAL_SET   GermaniumProtocol::Command::MARS_GLOBAL_SET
+#define ZMQ_CMD_MARS_GLOBAL_READ  GermaniumProtocol::Command::MARS_GLOBAL_READ
+#define ZMQ_CMD_MARS_CHANNEL_SET  GermaniumProtocol::Command::MARS_CHANNEL_SET
+#define ZMQ_CMD_MARS_CHANNEL_READ GermaniumProtocol::Command::MARS_CHANNEL_READ
+#define ZMQ_CMD_MARS_LOAD         GermaniumProtocol::Command::MARS_LOAD
+#define ZMQ_CMD_ADC_CLK_SKEW_SET  GermaniumProtocol::Command::ADC_CLK_SKEW_SET
+#define ZMQ_CMD_I2C_TEMP_READ     GermaniumProtocol::Command::I2C_TEMP_READ
+#define ZMQ_CMD_XADC_READ         GermaniumProtocol::Command::XADC_READ
+#define ZMQ_CMD_I2C_DAC_WRITE     GermaniumProtocol::Command::I2C_DAC_WRITE
+#define ZMQ_CMD_I2C_ADC_READ      GermaniumProtocol::Command::I2C_ADC_READ
+#define ZMQ_CMD_I2C_DAC_INIT      GermaniumProtocol::Command::I2C_DAC_INIT
+#define ZMQ_CMD_SET_LOG_LEVEL     GermaniumProtocol::Command::SET_LOG_LEVEL
+#define ZMQ_CMD_HEARTBEAT         GermaniumProtocol::Command::HEARTBEAT
 
-//-------------------------------------------------------------
-// MARS delta-config protocol
-// The IOC sends lightweight per-field deltas; the Zynq server
-// (germ-zmq-server) maintains chipstr/chanstr state, packs into
-// loads[12][14] via wrap(), and writes to the MARS ASICs.
-//
-// Message format (same 3×uint32 ZmqCommandMsg):
-//
-//   ZMQ_CMD_MARS_GLOBAL_SET/ZMQ_CMD_MARS_GLOBAL_READ:
-//     cmd   = 0x10
-//     addr  = chip_mask[27:16] | field_id[15:0]
-//     value = new value
-//     chip_mask: 12-bit, one bit per chip (0xFFF = all)
-//     field_id:  MarsGlobalField enum
-//
-//   ZMQ_CMD_MARS_CHANNEL_SET/ZMQ_CMD_MARS_CHANNEL_READ:
-//     cmd   = 0x12
-//     addr  = channel[27:16] | field_id[15:0]
-//     value = new value
-//     channel: 0..383, or 0xFFF = all channels
-//
-//   ZMQ_CMD_MARS_LOAD:
-//     cmd   = 0x14
-//     addr  = chip_mask[11:0]
-//     value = 0
-//     Triggers wrap() + stuff_mars() on Zynq for selected chips.
-//
-#define ZMQ_CMD_MARS_GLOBAL_SET   0x10
-#define ZMQ_CMD_MARS_GLOBAL_READ  0x11
-#define ZMQ_CMD_MARS_CHANNEL_SET  0x12
-#define ZMQ_CMD_MARS_CHANNEL_READ 0x13
-#define ZMQ_CMD_MARS_LOAD         0x14
-
-//-------------------------------------------------------------
-// Peripherals.
-#define ZMQ_CMD_ADC_CLK_SKEW_SET  0x20
-#define ZMQ_CMD_I2C_TEMP_READ     0x21
-#define ZMQ_CMD_XADC_READ         0x22
-#define ZMQ_CMD_I2C_DAC_WRITE     0x23
-#define ZMQ_CMD_I2C_ADC_READ      0x24
-#define ZMQ_CMD_I2C_DAC_INIT      0x25
-#define ZMQ_CMD_SET_LOG_LEVEL     0x30
-
-//-------------------------------------------------------------
-// Heartbeat.
-// Used to check if the detector is still alive.
-// ADGermanium sends  regularly (per second by default).
-// - GermaniumDetector echos this msg when receives it.
-// - ADGermanium omit it when receives it.
-#define ZMQ_CMD_HEARTBEAT         0xFF
-
-//===aLongNameInputParameter1,==================================================================//
-
-// Field IDs for CMD_MARS_SET_GLOBAL
-enum MarsGlobalField
-{
-    MARS_FIELD_ST   = 0,
-    MARS_FIELD_GAIN = 1,
-    MARS_FIELD_POL  = 2,
-    MARS_FIELD_EBLK = 3,
-    MARS_FIELD_GMON = 4,
-    MARS_FIELD_PUEN = 5,
-    MARS_FIELD_MFS  = 6,
-    MARS_FIELD_TDS  = 7,
-    MARS_FIELD_TDM  = 8,
-    MARS_FIELD_TH   = 9,
-    MARS_FIELD_C    = 10,
-    MARS_FIELD_M0   = 11,
-    MARS_FIELD_SAUX = 12,
-};
-
-// Field IDs for CMD_MARS_SET_CHANNEL
-enum MarsChannelField
-{
-    MARS_CH_CHEN = 0,
-    MARS_CH_TSEN = 1,
-    MARS_CH_THTR = 2,
-    MARS_CH_PUTR = 3,
-};
-
-// ZMQ message structure: 3 x uint32_t
-struct ZmqCommandMsg
-{
-    uint32_t cmd;       // Command code (0x00..0x12)
-    uint32_t addr;      // Register word offset or field encoding
-    uint32_t value;     // Data value
-};
+using ZmqCommandMsg = GermaniumProtocol::Message;
+using GermaniumProtocol::MarsGlobalField;
+using GermaniumProtocol::MarsChannelField;
+using GermaniumProtocol::MARS_FIELD_ST;
+using GermaniumProtocol::MARS_FIELD_GAIN;
+using GermaniumProtocol::MARS_FIELD_POL;
+using GermaniumProtocol::MARS_FIELD_EBLK;
+using GermaniumProtocol::MARS_FIELD_GMON;
+using GermaniumProtocol::MARS_FIELD_PUEN;
+using GermaniumProtocol::MARS_FIELD_MFS;
+using GermaniumProtocol::MARS_FIELD_TDS;
+using GermaniumProtocol::MARS_FIELD_TDM;
+using GermaniumProtocol::MARS_FIELD_TH;
+using GermaniumProtocol::MARS_FIELD_C;
+using GermaniumProtocol::MARS_FIELD_M0;
+using GermaniumProtocol::MARS_FIELD_SAUX;
+using GermaniumProtocol::MARS_CH_CHEN;
+using GermaniumProtocol::MARS_CH_TSEN;
+using GermaniumProtocol::MARS_CH_THTR;
+using GermaniumProtocol::MARS_CH_PUTR;
 
 //===========================================================================//
 

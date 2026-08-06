@@ -282,6 +282,9 @@ void GermaniumDetector::startDataAcquisition()
     //fileWritingEnabled = true;
     acquisitionRunning = true;
 
+    if (poller)
+        poller->setFast(true);
+
     // Start hardware acquisition via ZMQ register write
     zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 1);
 
@@ -298,6 +301,8 @@ void GermaniumDetector::stopDataAcquisition()
 
     zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 0);
     acquisitionRunning = false;
+    if (poller)
+        poller->setFast(false);
     //fileWritingEnabled = false;
 
     flushWriteBuffer();

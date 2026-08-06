@@ -320,7 +320,7 @@ public:
 
     // Reply processing (called by Control Rx thread)
     void processReply( const ZmqCommandMsg& reply );
-    void processReplyRegRead( uint32_t addr, uint32_t value )
+    void processReplyRegRead( uint32_t addr, uint32_t value );
     void processReplyRegWrite( uint32_t addr, uint32_t value );
     void processReplyI2cTempRead( uint32_t addr, uint32_t value );
     void processReplyXadcRead( uint32_t addr, uint32_t value );
@@ -489,7 +489,7 @@ private:
     zmq::context_t zmqContext{1};
     std::unique_ptr<ZmqClient> zmqClient;
     const std::string zmqTxEndpoint;
-    const std::string zmqRxEndpoint {std::string("tcp://*:") + ZMQ_REPLY_PORT};
+    const std::string zmqRxEndpoint;
     std::atomic<bool> zmqNeedReset {false};
     std::atomic<bool> zmqServerDown {false};
 
@@ -581,13 +581,13 @@ private:
     }  PollInfo;
 
     // Any info that needs periodic polling should be added to this array, 
-    static constexpr int TEMPERATURE1_I2C_ADDR = 1;
-    static constexpr int TEMPERATURE2_I2C_ADDR = 2;
-    static constexpr int TEMPERATURE3_I2C_ADDR = 3;
+    static constexpr int TEMPERATURE1_SELECTOR = 0;
+    static constexpr int TEMPERATURE2_SELECTOR = 1;
+    static constexpr int TEMPERATURE3_SELECTOR = 2;
 
-    // Polling periods in units of 100ms (10Hz)
-    static constexpr int POLLING_PERIOD_10HZ   = 10;
-    static constexpr int POLLING_PERIOD_100HZ  = 1;
+    // Poller dividers with 0.1 s base tick: 1 Hz default, 10 Hz fast.
+    static constexpr int POLLING_DIVIDER_1HZ  = 10;
+    static constexpr int POLLING_DIVIDER_10HZ = 1;
 
     // Poll the parameters initialized by detector once during startup
     static constexpr InitPollInfo initPollInfo[] =
@@ -601,32 +601,32 @@ private:
 
 
     static constexpr PollInfo pollInfo[] =
-        { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      CALPULSE_RATE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,          POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY,       POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,        POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      SIM_EVT_SEL,           POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      COUNT_MODE,            POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      TRIG,                  POLLING_PERIOD_10HZ, POLLING_PERIOD_100HZ }
-        , { ZMQ_CMD_REG_READ,      EVENT_TIME_CNTR,       POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      COUNT_TIME_LO,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      COUNT_TIME_HI,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_REG_READ,      UDP_IP_ADDR,           POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      CALPULSE_RATE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,          POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,        POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      SIM_EVT_SEL,           POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      COUNT_MODE,            POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      TRIG,                  POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      EVENT_TIME_CNTR,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      COUNT_TIME_LO,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      COUNT_TIME_HI,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_REG_READ,      UDP_IP_ADDR,           POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE1_I2C_ADDR, POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE2_I2C_ADDR, POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE3_I2C_ADDR, POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE1_SELECTOR, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE2_SELECTOR, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE3_SELECTOR, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_XADC_READ,     0,                     POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_XADC_READ,     0,                     POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_RBV,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,         POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_RBV,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_HEARTBEAT,     0,                     POLLING_PERIOD_10HZ, POLLING_PERIOD_10HZ }
+        , { ZMQ_CMD_HEARTBEAT,     0,                     POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
         };
     bool createPoller();
 
