@@ -60,7 +60,7 @@
 #define GermaniumIpaddrRbvString    "GERMANIUM_IPADDR_RBV"
 
 /* File handling */
-#define GermaniumFwEnString         "GERMANIUM_FILE_WR_EN"
+#define GermaniumUdpDataFileWriteEnableString "GERMANIUM_UDP_DATA_FILE_WR_EN"
 #define GermaniumFnamString         "GERMANIUM_FNAM"
 #define GermaniumCalfString         "GERMANIUM_CALF"
 #define GermaniumDirString          "GERMANIUM_DIR"
@@ -385,7 +385,7 @@ protected:
     int GermaniumIPADDR, GermaniumIPADDR_RBV;
 
     /* File handling */
-    int GermaniumFWEN, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
+    int GermaniumUDPDataFileWriteEnable, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
 
     /* Timing and control */
     int GermaniumFREQ, GermaniumCNT, GermaniumCNT_RBV, GermaniumPCNT, GermaniumCONT, GermaniumMODE;
@@ -516,7 +516,7 @@ private:
     bool plUdpInitialized {false};
 
     // File handling
-    std::atomic<bool>   fileWriteEnable      {false};
+    std::atomic<bool>   udpDataFileWriteEnable      {false};
     //std::atomic<bool>   fileWritingEnabled   {false};
     std::atomic<int>    currentFileHandle    {-1};
     std::atomic<size_t> currentFileSize      {0};

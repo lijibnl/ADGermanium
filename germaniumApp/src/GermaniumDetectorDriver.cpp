@@ -201,10 +201,10 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     //------------------------------------------------------------------
     // File size limit (in MB)
     //------------------------------------------------------------------
-    else if (function == GermaniumFWEN)
+    else if (function == GermaniumUDPDataFileWriteEnable)
     {
-        fileWriteEnable.store(value);
-        setIntegerParam(GermaniumFWEN, value);
+        udpDataFileWriteEnable.store(value);
+        setIntegerParam(GermaniumUDPDataFileWriteEnable, value);
     }
     else if (function == GermaniumFSIZE)
     {

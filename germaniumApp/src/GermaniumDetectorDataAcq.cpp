@@ -392,7 +392,7 @@ void GermaniumDetector::closeCurrentDataFile()
 
 bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
 {
-    if (!fileWriteEnable.load() || !data || dataSize == 0) return false;
+    if (!udpDataFileWriteEnable.load() || !data || dataSize == 0) return false;
 
     int maxSizeMB;
     getIntegerParam(GermaniumFSIZE, &maxSizeMB);
@@ -473,7 +473,7 @@ void GermaniumDetector::flushWriteBuffer()
         if (block.state.load(std::memory_order_acquire) != DATA_BLOCK_READY)
             break;  // producer still writing — preserve ordering
 
-        if ( fileWriteEnable.load() && block.data && block.size )
+        if ( udpDataFileWriteEnable.load() && block.data && block.size )
         {
             writeDataToFile(block.data, block.size);
         }

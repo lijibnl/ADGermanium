@@ -540,12 +540,12 @@ record(bi, "$(P)$(R)TestPulseEnable_RBV") {
 # =====================================================================
 # File handling
 # =====================================================================
-record(bo, "$(P)$(R)FireWriteEnable") {
+record(bo, "$(P)$(R)UDPDataFileWriteEnable") {
     field(DTYP, "asynInt32")
-    field(OUT,  "@asyn($(PORT), $(ADDR))GERMANIUM_FILE_WR_EN")
+    field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_UDP_DATA_FILE_WR_EN")
     field(ZNAM, "Disable")
     field(ONAM, "Enable")
-    field(DESC, "Data file write enable")
+    field(DESC, "UDP data file write enable")
 }
 
 record(stringout, "$(P)$(R)FilePath") {

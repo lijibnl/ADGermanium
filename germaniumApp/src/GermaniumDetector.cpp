@@ -202,7 +202,7 @@ GermaniumDetector::~GermaniumDetector()
 {
     threadsRunning.store(false);
     acquisitionRunning = false;
-    fileWriteEnable.store(false);
+    udpDataFileWriteEnable.store(false);
 
     closeCurrentDataFile();
     closePlUdpSocket();
@@ -261,7 +261,7 @@ void GermaniumDetector::createGermaniumParameters()
     createParam(GermaniumIpaddrRbvString, asynParamOctet, &GermaniumIPADDR_RBV);
 
     /* File handling */
-    createParam(GermaniumFwEnString,  asynParamInt32, &GermaniumFWEN);
+    createParam(GermaniumUdpDataFileWriteEnableString,  asynParamInt32, &GermaniumUDPDataFileWriteEnable);
     createParam(GermaniumFnamString,  asynParamOctet, &GermaniumFNAM);
     createParam(GermaniumCalfString,  asynParamOctet, &GermaniumCALF);
     createParam(GermaniumDirString,   asynParamOctet, &GermaniumDIR);
@@ -419,7 +419,7 @@ void GermaniumDetector::setGermaniumInitialValues()
     setIntegerParam(GermaniumPLDEL,  72);
     setIntegerParam(GermaniumRODEL,  15);
 
-    setIntegerParam(GermaniumFWEN,  0);
+    setIntegerParam(GermaniumUDPDataFileWriteEnable,  0);
     setIntegerParam(GermaniumCNT,   0);
     setIntegerParam(GermaniumCONT,  0);
     setIntegerParam(GermaniumMODE,  0);
