@@ -36,6 +36,15 @@ record(stringin, "$(P)$(R)IPAddress_RBV") {
     field(DESC, "Detector IP address readback")
 }
 
+record(bi, "$(P)$(R)UDPReachable_RBV") {
+    field(DTYP, "asynInt32")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_UDP_REACHABLE_RBV")
+    field(SCAN, "I/O Intr")
+    field(ZNAM, "Unreachable")
+    field(ONAM, "Reachable")
+    field(DESC, "PL UDP register path status")
+}
+
 # =====================================================================
 # Acquisition control (areaDetector standard names)
 # =====================================================================

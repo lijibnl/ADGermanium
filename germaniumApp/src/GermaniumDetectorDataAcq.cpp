@@ -121,7 +121,7 @@ void GermaniumDetector::plUdpDataThread()
                                          (struct sockaddr*)&senderAddr, &addrLen);
         if (bytesReceived <= 0) continue;
 
-        if (!acquisitionRunning) continue;
+        if (!acquisitionRunning.load()) continue;
 
         // Parse packet as big-endian 32-bit words
         size_t numWords = bytesReceived / sizeof(uint32_t);
@@ -176,11 +176,12 @@ void GermaniumDetector::dataProcessingThread()
     {
         epicsEventWaitWithTimeout(dataAvailable, 1.0);
 
-        setIntegerParam(GermaniumSS, acquisitionRunning ? 1 : 0);
+        const bool running = acquisitionRunning.load();
+        setIntegerParam(GermaniumSS, running ? 1 : 0);
         callParamCallbacks();
 
         // Publish MCA and TDC as NDArrays for plugin chain
-        if (acquisitionRunning)
+        if (running)
         {
             int arrayCallbacks;
             getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
@@ -271,7 +272,7 @@ void GermaniumDetector::dataWriteThread()
 
 void GermaniumDetector::startDataAcquisition()
 {
-    if (acquisitionRunning) return;
+    if (acquisitionRunning.load()) return;
 
     clearSpectra();
     currentSegmentNumber.store(0);;
@@ -280,10 +281,7 @@ void GermaniumDetector::startDataAcquisition()
 
     createDataDirectory();
     //fileWritingEnabled = true;
-    acquisitionRunning = true;
-
-    if (poller)
-        poller->setFast(true);
+    setAcquisitionRunning(true);
 
     // Start hardware acquisition via ZMQ register write
     zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 1);
@@ -297,12 +295,10 @@ void GermaniumDetector::startDataAcquisition()
 
 void GermaniumDetector::stopDataAcquisition()
 {
-    if (!acquisitionRunning) return;
+    if (!acquisitionRunning.load()) return;
 
     zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 0);
-    acquisitionRunning = false;
-    if (poller)
-        poller->setFast(false);
+    setAcquisitionRunning(false);
     //fileWritingEnabled = false;
 
     flushWriteBuffer();

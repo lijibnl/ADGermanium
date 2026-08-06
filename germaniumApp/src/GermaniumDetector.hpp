@@ -58,6 +58,7 @@
 /* Network */
 #define GermaniumIpaddrString       "GERMANIUM_IPADDR"
 #define GermaniumIpaddrRbvString    "GERMANIUM_IPADDR_RBV"
+#define GermaniumUdpReachableRbvString "GERMANIUM_UDP_REACHABLE_RBV"
 
 /* File handling */
 #define GermaniumUdpDataFileWriteEnableString "GERMANIUM_UDP_DATA_FILE_WR_EN"
@@ -344,14 +345,18 @@ public:
 
     bool initializePlUdpSocket();
     void closePlUdpSocket();
+    bool initializeUdpRegisterSocket();
+    void closeUdpRegisterSocket();
     void plUdpDataThread();
     void dataProcessingThread();
     void dataWriteThread();
+    void udpWatchdogThread();
 
    //static void zmqDataThreadC(void *pPvt);
     static void plUdpDataThreadC(void *pPvt);
     static void dataProcessingThreadC(void *pPvt);
     static void dataWriteThreadC(void *pPvt);
+    static void udpWatchdogThreadC(void *pPvt);
 
     // Event processing
     void processPhotonEvent(int element, int energy, int tdValue);
@@ -363,6 +368,8 @@ public:
 
     void startDataAcquisition();
     void stopDataAcquisition();
+    void setAcquisitionRunning(bool running);
+    void requestUdpReinitialization();
 
     //---------------------------------------------------------------------//
     
@@ -382,7 +389,7 @@ protected:
     int GermaniumEXSIZE, GermaniumEYSIZE, GermaniumTXSIZE, GermaniumTYSIZE;
 
     /* Network */
-    int GermaniumIPADDR, GermaniumIPADDR_RBV;
+    int GermaniumIPADDR, GermaniumIPADDR_RBV, GermaniumUDPReachable_RBV;
 
     /* File handling */
     int GermaniumUDPDataFileWriteEnable, GermaniumFNAM, GermaniumCALF, GermaniumDIR, GermaniumFSIZE;
@@ -481,7 +488,7 @@ private:
     // Acquisition state
     std::atomic<int> evttot {0};
 
-    bool acquisitionRunning {false};
+    std::atomic<bool> acquisitionRunning {false};
 
     //---------------------------------------------------------------------//
     // ZMQ communication
@@ -515,6 +522,11 @@ private:
     int  plUdpSocket {-1 };
     bool plUdpInitialized {false};
 
+    // Legacy PL UDP register path and ARP watchdog
+    int  udpRegisterSocket {-1};
+    bool udpRegisterInitialized {false};
+    std::atomic<bool> udpInitRequested {true};
+
     // File handling
     std::atomic<bool>   udpDataFileWriteEnable      {false};
     //std::atomic<bool>   fileWritingEnabled   {false};
@@ -526,6 +538,7 @@ private:
     std::atomic<int>    totalFilesWritten    {0};
 
     epicsThreadId     plUdpDataThreadId      {nullptr};
+    epicsThreadId     udpWatchdogThreadId    {nullptr};
     epicsThreadId     dataProcessingThreadId {nullptr};
     epicsThreadId     dataWriteThreadId      {nullptr};
 
@@ -550,6 +563,7 @@ private:
     std::unique_ptr<std::atomic<uint64_t>[]> totalCounts;
 
     epicsEventId      dataAvailable {nullptr};
+    epicsEventId      udpWatchdogEvent {nullptr};
 
     void        createDataDirectory();
     std::string generateFilename(int segmentNumber);
@@ -558,6 +572,13 @@ private:
     bool        writeDataToFile(const uint8_t* data, size_t dataSize);
     void        addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
     void        flushWriteBuffer();
+    bool        getConfiguredUdpAddress(std::string& address);
+    void        runUdpInitialization();
+    void        runUdpWatchdogProbe();
+    bool        sendUdpArpRequest(const std::string& targetAddress);
+    bool        legacyUdpRegisterWrite(const std::string& targetAddress, uint32_t addr, uint32_t value);
+    bool        legacyUdpRegisterRead(const std::string& targetAddress, uint32_t addr, uint32_t& value);
+    void        setUdpReachable(bool reachable);
 
     //---------------------------------------------------------------------//
     // Poller related

@@ -386,6 +386,10 @@ asynStatus GermaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
         //zmqTx(ZMQ_CMD_REG_READ, TRIG, 0);
         getIntegerParam(GermaniumCNT_RBV, value);
     }
+    else if (function == GermaniumUDPReachable_RBV)
+    {
+        getIntegerParam(GermaniumUDPReachable_RBV, value);
+    }
     else
     {
         return ADDriver::readInt32(pasynUser, value);
@@ -521,6 +525,8 @@ asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
         // Write to FPGA register for PL UDP destination
         // inet_pton produces network byte order; FPGA expects host byte order
         status = zmqTx(ZMQ_CMD_REG_WRITE, UDP_IP_ADDR, ntohl(addr.s_addr));
+        if (status == asynSuccess)
+            requestUdpReinitialization();
     }
 
     if (status == asynSuccess)
@@ -753,7 +759,7 @@ void GermaniumDetector::report(FILE *fp, int details)
            );
     fprintf( fp
            , "Acquisition: %s\n"
-           , acquisitionRunning ? "Running" : "Idle"
+           , acquisitionRunning.load() ? "Running" : "Idle"
            );
 
     ADDriver::report(fp, details);

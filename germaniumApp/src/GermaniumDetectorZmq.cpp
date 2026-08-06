@@ -290,6 +290,7 @@ void GermaniumDetector::zmqRxThread()
                      , "[%s]: detector ZMQ server recovered\n", portName);
             zmqServerDown.store(false);
             zmqNeedReset.store(true);
+            requestUdpReinitialization();
         }
 
         asynPrint( pasynUserSelf
@@ -419,6 +420,7 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             break;
         case TRIG:
             setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
+            setAcquisitionRunning(value != 0);
             break;
         case COUNT_MODE:
             setIntegerParam(GermaniumMODE, value ? 1 : 0);

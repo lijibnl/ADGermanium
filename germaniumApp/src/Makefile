@@ -16,6 +16,7 @@ LIB_SRCS += GermaniumDetector.cpp
 LIB_SRCS += GermaniumDetectorDriver.cpp
 LIB_SRCS += GermaniumDetectorZmq.cpp
 LIB_SRCS += GermaniumDetectorDataAcq.cpp
+LIB_SRCS += GermaniumDetectorUdpWatchdog.cpp
 LIB_SRCS += GermaniumDetectorParamFormat.cpp
 LIB_SRCS += GermaniumDetectorApp.cpp
 LIB_SRCS += EpicsPoller.cpp

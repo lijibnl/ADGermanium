@@ -136,6 +136,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
     // UDP data proeceesing related initialization
     dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
     dataAvailable      = epicsEventCreate(epicsEventEmpty);
+    udpWatchdogEvent   = epicsEventCreate(epicsEventEmpty);
 
     dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
                                  , epicsThreadPriorityMedium
@@ -179,6 +180,19 @@ GermaniumDetector::GermaniumDetector( const char *portName
                  );
     }
 
+    udpWatchdogThreadId = epicsThreadCreate( "GermaniumUdpWatch"
+                         , epicsThreadPriorityMedium
+                         , epicsThreadGetStackSize(epicsThreadStackMedium)
+                         , udpWatchdogThreadC
+                         , this
+                         );
+    if (!udpWatchdogThreadId)
+    {
+        std::cerr << "[" << __func__ << "]: failed to create UDP watchdog thread\n";
+        return;
+    }
+    requestUdpReinitialization();
+
     //---------------------------------------------------------------------//
 
     // Poller initialization
@@ -201,11 +215,15 @@ GermaniumDetector::GermaniumDetector( const char *portName
 GermaniumDetector::~GermaniumDetector()
 {
     threadsRunning.store(false);
-    acquisitionRunning = false;
+    acquisitionRunning.store(false);
+    udpInitRequested.store(false);
     udpDataFileWriteEnable.store(false);
+    if (udpWatchdogEvent)
+        epicsEventSignal(udpWatchdogEvent);
 
     closeCurrentDataFile();
     closePlUdpSocket();
+    closeUdpRegisterSocket();
 
     //delete[] dataQueue;
     //dataQueue = nullptr;
@@ -227,6 +245,11 @@ GermaniumDetector::~GermaniumDetector()
     {
         epicsEventDestroy(dataAvailable);
         dataAvailable = nullptr;
+    }
+    if (udpWatchdogEvent)
+    {
+        epicsEventDestroy(udpWatchdogEvent);
+        udpWatchdogEvent = nullptr;
     }
 
     asynPrint( pasynUserSelf
@@ -259,6 +282,7 @@ void GermaniumDetector::createGermaniumParameters()
     /* Network */
     createParam(GermaniumIpaddrString,    asynParamOctet, &GermaniumIPADDR);
     createParam(GermaniumIpaddrRbvString, asynParamOctet, &GermaniumIPADDR_RBV);
+    createParam(GermaniumUdpReachableRbvString, asynParamInt32, &GermaniumUDPReachable_RBV);
 
     /* File handling */
     createParam(GermaniumUdpDataFileWriteEnableString,  asynParamInt32, &GermaniumUDPDataFileWriteEnable);
@@ -444,6 +468,7 @@ void GermaniumDetector::setGermaniumInitialValues()
 
     // String / octet
     setStringParam(GermaniumIPADDR_RBV, "");
+    setIntegerParam(GermaniumUDPReachable_RBV, 0);
 
     // Int32 scalars
     setIntegerParam(GermaniumDETMODEL, 0);
