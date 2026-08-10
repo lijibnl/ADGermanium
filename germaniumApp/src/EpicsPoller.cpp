@@ -54,7 +54,7 @@ void EpicsPoller::setFast(bool fast)
 
 //===========================================================================//
 
-void EpicsPoller::setFunning(bool running)
+void EpicsPoller::setRunning(bool running)
 {
     this->running.store(running);
 }

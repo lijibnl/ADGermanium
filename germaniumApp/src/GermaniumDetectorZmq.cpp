@@ -290,6 +290,10 @@ void GermaniumDetector::zmqRxThread()
                      , "[%s]: detector ZMQ server recovered\n", portName);
             zmqServerDown.store(false);
             zmqNeedReset.store(true);
+
+            // Re-read parameters that are initialized by the detector,
+            // since the Zynq may have rebooted with fresh defaults.
+            readInitParams();
             requestUdpReinitialization();
         }
 
@@ -364,6 +368,10 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
 
         case ZMQ_CMD_ADC_CLK_SKEW_SET:
             processReplyAdcClkSkewSet( reply.addr, reply.value );
+            break;
+
+        case ZMQ_CMD_ADC_CLK_SKEW_READ:
+            processReplyAdcClkSkewRead( reply.addr, reply.value );
             break;
 
         case ZMQ_CMD_I2C_DAC_WRITE:
@@ -563,6 +571,21 @@ void GermaniumDetector::processReplyMarsGlobalRead( const uint32_t addr, const u
         case MARS_FIELD_POL:
             setIntegerParam(GermaniumPOL, static_cast<int>(value));
             break;
+        case MARS_FIELD_EBLK:
+            setIntegerParam(GermaniumEBLK, static_cast<int>(value));
+            break;
+        case MARS_FIELD_PUEN:
+            setIntegerParam(GermaniumPUEN, static_cast<int>(value));
+            break;
+        case MARS_FIELD_MFS:
+            setIntegerParam(GermaniumMFS, static_cast<int>(value));
+            break;
+        case MARS_FIELD_TDS:
+            setIntegerParam(GermaniumTDS, static_cast<int>(value));
+            break;
+        case MARS_FIELD_TDM:
+            setIntegerParam(GermaniumTDM, static_cast<int>(value));
+            break;
         default:
             break;
     }
@@ -591,6 +614,20 @@ void GermaniumDetector::processReplyAdcClkSkewSet( const uint32_t addr, const ui
 {
     (void)addr;
     (void)value;
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyAdcClkSkewRead( const uint32_t addr, const uint32_t value )
+{
+    switch ( addr )
+    {
+        case 1: setIntegerParam(GermaniumADC0_CLK_SKEW, static_cast<int>(value)); break;
+        case 2: setIntegerParam(GermaniumADC1_CLK_SKEW, static_cast<int>(value)); break;
+        case 3: setIntegerParam(GermaniumADC2_CLK_SKEW, static_cast<int>(value)); break;
+        default: break;
+    }
+    callParamCallbacks();
 }
 
 //===========================================================================//

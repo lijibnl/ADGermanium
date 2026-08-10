@@ -636,7 +636,7 @@ bool GermaniumDetector::createPoller()
                                                         )
                        );
     }
-    poller->setFunning(true);
+    poller->setRunning(true);
 
     return true;
 }

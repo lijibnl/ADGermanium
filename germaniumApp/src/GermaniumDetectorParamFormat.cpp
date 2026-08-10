@@ -28,7 +28,8 @@ const char* decode_cmd(uint32_t cmd)
         case ZMQ_CMD_MARS_GLOBAL_SET:   return "SET_GLOBAL";
         case ZMQ_CMD_MARS_CHANNEL_SET:  return "SET_CHANNEL";
         case ZMQ_CMD_MARS_LOAD:         return "MARS_LOAD";
-        case ZMQ_CMD_ADC_CLK_SKEW_SET:      return "ADC_CLK_SKEW";
+        case ZMQ_CMD_ADC_CLK_SKEW_SET:      return "ADC_CLK_SKEW_SET";
+        case ZMQ_CMD_ADC_CLK_SKEW_READ:     return "ADC_CLK_SKEW_READ";
         case ZMQ_CMD_I2C_TEMP_READ:     return "I2C_TEMP_READ";
         case ZMQ_CMD_XADC_READ:         return "XADC_READ";
         case ZMQ_CMD_I2C_DAC_WRITE:     return "I2C_DAC_WRITE";

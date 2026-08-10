@@ -39,7 +39,7 @@ public:
 
     void addItem(std::unique_ptr<EpicsPollItem> item);
     void setFast( bool fast );
-    void setFunning( bool running );
+    void setRunning( bool running );
 
 private:
     std::vector<std::unique_ptr<EpicsPollItem>> pollItems;

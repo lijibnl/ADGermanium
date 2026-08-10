@@ -78,7 +78,9 @@ struct DataBlock
 #define ZMQ_CMD_I2C_DAC_WRITE     GermaniumProtocol::Command::I2C_DAC_WRITE
 #define ZMQ_CMD_I2C_ADC_READ      GermaniumProtocol::Command::I2C_ADC_READ
 #define ZMQ_CMD_I2C_DAC_INIT      GermaniumProtocol::Command::I2C_DAC_INIT
+#define ZMQ_CMD_ADC_CLK_SKEW_READ GermaniumProtocol::Command::ADC_CLK_SKEW_READ
 #define ZMQ_CMD_SET_LOG_LEVEL     GermaniumProtocol::Command::SET_LOG_LEVEL
+#define ZMQ_CMD_GET_PROTOCOL_VERSION GermaniumProtocol::Command::GET_PROTOCOL_VERSION
 #define ZMQ_CMD_HEARTBEAT         GermaniumProtocol::Command::HEARTBEAT
 
 using ZmqCommandMsg = GermaniumProtocol::Message;

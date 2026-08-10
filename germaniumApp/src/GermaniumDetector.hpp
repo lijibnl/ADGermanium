@@ -331,6 +331,7 @@ public:
     void processReplyMarsChannelSet( uint32_t addr, uint32_t value );
     void processReplyMarsChannelRead( uint32_t addr, uint32_t value );
     void processReplyAdcClkSkewSet( uint32_t addr, uint32_t value );
+    void processReplyAdcClkSkewRead( uint32_t addr, uint32_t value );
     void processReplyI2cDacWrite( uint32_t addr, uint32_t value );
     void processReplyI2cDacInit( uint32_t addr, uint32_t value );
 
@@ -612,12 +613,16 @@ private:
 
     // Poll the parameters initialized by detector once during startup
     static constexpr InitPollInfo initPollInfo[] =
-        { { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_POL  }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_GAIN }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_ST   }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, MARS_FIELD_TH   }
+        { { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_POL  }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_GAIN }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_ST   }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TH   }
         , { ZMQ_CMD_REG_READ,         VERSIONREG      }
         , { ZMQ_CMD_REG_READ,         DETECTOR_MODEL  }
+        , { ZMQ_CMD_REG_READ,         MARS_RDOUT_ENB  }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 1               }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 2               }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 3               }
         };
 
 
