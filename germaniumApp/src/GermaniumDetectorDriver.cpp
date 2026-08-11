@@ -495,18 +495,11 @@ asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
     int function = pasynUser->reason;
     asynStatus status = asynSuccess;
 
-    status = ADDriver::setStringParam(function, value);
-    if (status != asynSuccess) return status;
-
-    if (function == GermaniumDIR)
+    if (function == GermaniumIPADDR)
     {
-        createDataDirectory();
-    }
-    else if (function == GermaniumIPADDR)
-    {
-        // Validate IP address format
         struct in_addr addr;
-        
+        char currentValue[64] {};
+
         asynPrint( pasynUserSelf
                  , ASYN_TRACEIO_DRIVER
                  , "[%s]: Setting IP address to '%s'\n"
@@ -523,11 +516,32 @@ asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                      );
             return asynError;
         }
-        // Write to FPGA register for PL UDP destination
-        // inet_pton produces network byte order; FPGA expects host byte order
-        status = zmqTx(ZMQ_CMD_REG_WRITE, UDP_IP_ADDR, ntohl(addr.s_addr));
-        if (status == asynSuccess)
-            requestUdpReinitialization();
+
+        getStringParam(GermaniumIPADDR, sizeof(currentValue), currentValue);
+        bool changed = std::strcmp(currentValue, value) != 0;
+
+        status = ADDriver::setStringParam(function, value);
+        if (status != asynSuccess) return status;
+
+        // Write to FPGA register for PL UDP destination.
+        // inet_pton produces network byte order; FPGA expects host byte order.
+        if (changed)
+        {
+            setUdpReachable(false);
+            status = zmqTx(ZMQ_CMD_REG_WRITE, UDP_IP_ADDR, ntohl(addr.s_addr));
+            if (status == asynSuccess)
+                requestUdpReinitialization();
+        }
+    }
+    else
+    {
+        status = ADDriver::setStringParam(function, value);
+        if (status != asynSuccess) return status;
+
+        if (function == GermaniumDIR)
+        {
+            createDataDirectory();
+        }
     }
 
     if (status == asynSuccess)

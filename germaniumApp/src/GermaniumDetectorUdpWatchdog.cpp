@@ -287,10 +287,12 @@ void GermaniumDetector::udpWatchdogThread()
 
 void GermaniumDetector::runUdpInitialization()
 {
+    closeUdpRegisterSocket();
+    setUdpReachable(false);
+
     std::string targetAddress;
     if (!getConfiguredUdpAddress(targetAddress))
     {
-        setUdpReachable(false);
         return;
     }
 
