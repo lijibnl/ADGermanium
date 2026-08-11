@@ -4,6 +4,7 @@
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
+ * 
  * @copyright
  * Copyright (c) 2026 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
@@ -27,15 +28,19 @@ static const iocshArg germaniumConfigArg4 = {"numParams",   iocshArgInt};
 static const iocshArg germaniumConfigArg5 = {"maxBuffers",  iocshArgInt};
 static const iocshArg germaniumConfigArg6 = {"maxMemory",   iocshArgInt};
 
-static const iocshArg * const germaniumConfigArgs[] = {
-    &germaniumConfigArg0, &germaniumConfigArg1, &germaniumConfigArg2,
-    &germaniumConfigArg3, &germaniumConfigArg4, &germaniumConfigArg5,
-    &germaniumConfigArg6
-};
+static const iocshArg * const germaniumConfigArgs[] = { &germaniumConfigArg0
+                                                      , &germaniumConfigArg1
+                                                      , &germaniumConfigArg2
+                                                      , &germaniumConfigArg3
+                                                      , &germaniumConfigArg4
+                                                      , &germaniumConfigArg5
+                                                      , &germaniumConfigArg6
+                                                      };
 
-static const iocshFuncDef germaniumConfigFuncDef = {
-    "germaniumConfig", 7, germaniumConfigArgs
-};
+static const iocshFuncDef germaniumConfigFuncDef = { "germaniumConfig"
+                                                   , 7
+                                                   , germaniumConfigArgs
+                                                   };
 
 //===========================================================================//
 

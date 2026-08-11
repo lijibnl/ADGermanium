@@ -11,6 +11,7 @@
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
+ * 
  * @copyright
  * Copyright (c) 2026 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
@@ -20,6 +21,7 @@
 
 #include <cstring>
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <algorithm>
 #include <iostream>
@@ -27,6 +29,7 @@
 
 #include "GermaniumDetector.hpp"
 #include "GermaniumDetectorParamFormat.hpp"
+#include "GermaniumProtocolCompatibility.hpp"
 #include "Zmq.hpp"
 
 //===========================================================================//
@@ -124,6 +127,13 @@ asynStatus GermaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 
     epicsEventSignal(txQueueEvent_);
     return asynSuccess;
+}
+
+//===========================================================================//
+
+void GermaniumDetector::requestProtocolVersion()
+{
+    zmqTx(ZMQ_CMD_GET_PROTOCOL_VERSION, 0, 0);
 }
 
 //===========================================================================//
@@ -329,6 +339,10 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
 
     switch (reply.cmd)
     {
+        case ZMQ_CMD_GET_PROTOCOL_VERSION:
+            processReplyProtocolVersion( reply.value );
+            break;
+
         case ZMQ_CMD_REG_READ:
             processReplyRegRead( reply.addr, reply.value );
             break;
@@ -391,6 +405,60 @@ void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
     }
 
     callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processReplyProtocolVersion( uint32_t value )
+{
+    constexpr uint32_t expected = GermaniumProtocol::PROTOCOL_VERSION;
+
+    const uint16_t reportedMajor = GermaniumProtocol::protocolVersionMajor(value);
+    const uint16_t reportedMinor = GermaniumProtocol::protocolVersionMinor(value);
+    const uint16_t expectedMajor = GermaniumProtocol::PROTOCOL_MAJOR;
+    const uint16_t expectedMinor = GermaniumProtocol::PROTOCOL_MINOR;
+
+    if ( value == expected )
+    {
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_FLOW
+                 , "[%s]: detector protocol version %u.%u verified\n"
+                 , portName
+                 , expectedMajor
+                 , expectedMinor
+                 );
+        return;
+    }
+
+    const char* recommendation =
+        GermaniumProtocolCompatibility::recommendedAdGermaniumVersion(reportedMajor, reportedMinor);
+
+    std::cerr << "\nERROR: Germanium protocol mismatch.\n\n"
+              << "ZynqDetector reports protocol "
+              << reportedMajor << "." << reportedMinor
+              << " (0x" << std::hex << value << std::dec << ").\n"
+              << "This ADGermanium build requires protocol "
+              << expectedMajor << "." << expectedMinor
+              << " (0x" << std::hex << expected << std::dec << ").\n\n"
+              << "This IOC cannot safely control this detector.\n";
+
+    if ( recommendation )
+    {
+        std::cerr << "Use " << recommendation << " for this detector,\n"
+                  << "or update ZynqDetector to protocol "
+                  << expectedMajor << "." << expectedMinor << ".\n";
+    }
+    else
+    {
+        std::cerr << "No ADGermanium release recommendation is recorded for protocol "
+                  << reportedMajor << "." << reportedMinor << " in this build.\n"
+                  << "Use an ADGermanium release built for that protocol,\n"
+                  << "or update ZynqDetector to protocol "
+                  << expectedMajor << "." << expectedMinor << ".\n";
+    }
+
+    std::cerr << "Exiting.\n";
+    std::exit(EXIT_FAILURE);
 }
 
 //===========================================================================//

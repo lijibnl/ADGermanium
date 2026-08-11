@@ -7,6 +7,7 @@
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/12/2026
+ * 
  * @copyright
  * Copyright (c) 2026 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
@@ -36,6 +37,8 @@ const char* decode_cmd(uint32_t cmd)
         case ZMQ_CMD_I2C_ADC_READ:      return "I2C_ADC_READ";
         case ZMQ_CMD_I2C_DAC_INIT:      return "I2C_DAC_INIT";
         case ZMQ_CMD_SET_LOG_LEVEL:     return "SET_LOG_LEVEL";
+        case ZMQ_CMD_GET_PROTOCOL_VERSION: return "GET_PROTOCOL_VERSION";
+        case ZMQ_CMD_HEARTBEAT:         return "HEARTBEAT";
         default: return "UNKNOWN";
     }
 }
@@ -151,6 +154,17 @@ std::string format_zmq_msg(const ZmqCommandMsg& msg)
         }
         case ZMQ_CMD_SET_LOG_LEVEL: {
             oss << "level=" << msg.value;
+            break;
+        }
+        case ZMQ_CMD_GET_PROTOCOL_VERSION: {
+            oss << "version="
+                << GermaniumProtocol::protocolVersionMajor(msg.value)
+                << "."
+                << GermaniumProtocol::protocolVersionMinor(msg.value);
+            break;
+        }
+        case ZMQ_CMD_HEARTBEAT: {
+            oss << "heartbeat";
             break;
         }
         default:

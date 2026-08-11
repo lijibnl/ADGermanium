@@ -1,3 +1,17 @@
+/**
+ * @file Zmq.cpp
+ * @brief ZMQ client implementation for ADGermanium.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 08/04/2026
+ * 
+ * @copyright
+ * Copyright (c) 2026 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
+ */
+
+//===========================================================================//
+
 #include <cstring>
 #include <string>
 #include <iostream>

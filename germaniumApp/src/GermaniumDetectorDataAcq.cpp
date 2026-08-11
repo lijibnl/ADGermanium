@@ -8,6 +8,7 @@
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
+ * 
  * @copyright
  * Copyright (c) 2026 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
@@ -40,7 +41,12 @@ bool GermaniumDetector::initializePlUdpSocket()
     plUdpSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (plUdpSocket < 0)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create PL UDP socket: %s\n", portName, strerror(errno));
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "%s: failed to create PL UDP socket: %s\n"
+                 , portName
+                 , strerror(errno)
+                 );
         return false;
     }
 
@@ -59,14 +65,25 @@ bool GermaniumDetector::initializePlUdpSocket()
 
     if (bind(plUdpSocket, (struct sockaddr*)&bindAddr, sizeof(bindAddr)) < 0)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to bind PL UDP socket to port %d: %s\n", portName, PL_UDP_DATA_PORT, strerror(errno));
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "%s: failed to bind PL UDP socket to port %d: %s\n"
+                 , portName
+                 , PL_UDP_DATA_PORT
+                 , strerror(errno)
+                 );
         close(plUdpSocket);
         plUdpSocket = -1;
         return false;
     }
 
     plUdpInitialized = true;
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP socket bound to port %d\n", portName, PL_UDP_DATA_PORT);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: PL UDP socket bound to port %d\n"
+             , portName
+             , PL_UDP_DATA_PORT
+             );
     return true;
 }
 
@@ -80,6 +97,78 @@ void GermaniumDetector::closePlUdpSocket()
         close(plUdpSocket);
         plUdpSocket = -1;
     }
+}
+
+//===========================================================================//
+
+void GermaniumDetector::allocateDataArrays()
+{
+    // Flat atomic arrays — safe for concurrent access from multiple
+    // producer threads (zmqData, plUdp) and the EPICS read thread.
+    size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+    size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
+
+    //mcaData    = new std::atomic<uint32_t>[mcaTotal];
+    //tdcData    = new std::atomic<uint32_t>[tdcTotal];
+    //countRates = new std::atomic<uint32_t>[numElements];
+    //totalCounts= new std::atomic<uint64_t>[numElements];
+    mcaData    = std::make_unique<std::atomic<uint32_t>[]>(mcaTotal);
+    tdcData    = std::make_unique<std::atomic<uint32_t>[]>(tdcTotal);
+    countRates = std::make_unique<std::atomic<uint32_t>[]>(numElements);
+    totalCounts= std::make_unique<std::atomic<uint64_t>[]>(numElements);
+
+    for (size_t i = 0; i < mcaTotal; i++)
+        mcaData[i].store(0, std::memory_order_relaxed);
+    for (size_t i = 0; i < tdcTotal; i++)
+        tdcData[i].store(0, std::memory_order_relaxed);
+    for (int i = 0; i < numElements; i++)
+    {
+        countRates[i].store(0, std::memory_order_relaxed);
+        totalCounts[i].store(0, std::memory_order_relaxed);
+    }
+    evttot.store(0, std::memory_order_relaxed);
+
+    // Allocate lock-free block queue
+    //dataQueue = new DataBlock[DATA_QUEUE_CAPACITY];
+    dataQueue = std::make_unique<DataBlock[]>(DATA_QUEUE_CAPACITY);
+    for (int i = 0; i < DATA_QUEUE_CAPACITY; i++)
+        dataQueue[i].state.store(DATA_BLOCK_FREE, std::memory_order_relaxed);
+
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: allocated data arrays for %d elements\n", portName, numElements);
+}
+
+//===========================================================================//
+
+void GermaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
+{
+    if (element < 0 || element >= numElements) return;
+    if (energy < 0 || energy >= SPECTRUM_SIZE) return;
+    if (tdValue < 0 || tdValue >= TDC_SIZE) return;
+
+    mcaData[element * SPECTRUM_SIZE + energy].fetch_add(1, std::memory_order_relaxed);
+    tdcData[element * TDC_SIZE + tdValue].fetch_add(1, std::memory_order_relaxed);
+    countRates[element].fetch_add(1, std::memory_order_relaxed);
+    totalCounts[element].fetch_add(1, std::memory_order_relaxed);
+    evttot.fetch_add(1, std::memory_order_relaxed);
+}
+
+//===========================================================================//
+
+void GermaniumDetector::clearSpectra()
+{
+    size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+    size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
+
+    for (size_t i = 0; i < mcaTotal; i++)
+        mcaData[i].store(0, std::memory_order_relaxed);
+    for (size_t i = 0; i < tdcTotal; i++)
+        tdcData[i].store(0, std::memory_order_relaxed);
+    for (int i = 0; i < numElements; i++)
+    {
+        countRates[i].store(0, std::memory_order_relaxed);
+        totalCounts[i].store(0, std::memory_order_relaxed);
+    }
+    evttot.store(0, std::memory_order_relaxed);
 }
 
 //===========================================================================//
@@ -99,7 +188,11 @@ void GermaniumDetector::plUdpDataThreadC(void *pPvt)
 
 void GermaniumDetector::plUdpDataThread()
 {
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread started\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: PL UDP data thread started\n"
+             , portName
+             );
 
     uint8_t recvBuf[UDP_BUFFER_SIZE];
     struct sockaddr_in senderAddr;
@@ -117,8 +210,13 @@ void GermaniumDetector::plUdpDataThread()
         int result = select(plUdpSocket + 1, &readfds, nullptr, nullptr, &timeout);
         if (result <= 0) continue;
 
-        ssize_t bytesReceived = recvfrom(plUdpSocket, recvBuf, sizeof(recvBuf), 0,
-                                         (struct sockaddr*)&senderAddr, &addrLen);
+        ssize_t bytesReceived = recvfrom( plUdpSocket
+                                        , recvBuf
+                                        , sizeof(recvBuf)
+                                        , 0
+                                        , (struct sockaddr*)&senderAddr
+                                        , &addrLen
+                                        );
         if (bytesReceived <= 0) continue;
 
         if (!acquisitionRunning.load()) continue;
@@ -155,7 +253,11 @@ void GermaniumDetector::plUdpDataThread()
         epicsEventSignal(dataAvailable);
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: PL UDP data thread stopped\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: PL UDP data thread stopped\n"
+             , portName
+             );
 }
 
 //===========================================================================//
@@ -167,7 +269,11 @@ void GermaniumDetector::dataProcessingThreadC(void *pPvt)
 
 void GermaniumDetector::dataProcessingThread()
 {
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data processing thread started\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: Data processing thread started\n"
+             , portName
+             );
 
     int arrayCounter = 0;
     int colorMode = NDColorModeMono;
@@ -245,7 +351,11 @@ void GermaniumDetector::dataProcessingThread()
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data processing thread stopped\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: Data processing thread stopped\n"
+             , portName
+             );
 }
 
 //===========================================================================//
@@ -257,7 +367,11 @@ void GermaniumDetector::dataWriteThreadC(void *pPvt)
 
 void GermaniumDetector::dataWriteThread()
 {
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data write thread started\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: Data write thread started\n"
+             , portName
+             );
 
     while ( threadsRunning.load() )
     {
@@ -265,7 +379,11 @@ void GermaniumDetector::dataWriteThread()
         flushWriteBuffer();
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: Data write thread stopped\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: Data write thread stopped\n"
+             , portName
+             );
 }
 
 //===========================================================================//
@@ -288,7 +406,11 @@ void GermaniumDetector::startDataAcquisition()
 
     setIntegerParam(GermaniumCNT, 1);
     callParamCallbacks();
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: acquisition started\n", portName);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: acquisition started\n"
+             , portName
+             );
 }
 
 //===========================================================================//
@@ -326,9 +448,20 @@ void GermaniumDetector::createDataDirectory()
     if (stat(dirPath, &st) == -1)
     {
         if (mkdir(dirPath, 0755) == 0)
-            asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: created directory %s\n", portName, dirPath);
+            asynPrint( pasynUserSelf
+                     , ASYN_TRACE_FLOW
+                     , "%s: created directory %s\n"
+                     , portName
+                     , dirPath
+                     );
         else
-            asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to create directory %s: %s\n", portName, dirPath, strerror(errno));
+            asynPrint( pasynUserSelf
+                     , ASYN_TRACE_ERROR
+                     , "%s: failed to create directory %s: %s\n"
+                     , portName
+                     , dirPath
+                     , strerror(errno)
+                     );
     }
 }
 
@@ -361,7 +494,13 @@ bool GermaniumDetector::openNewDataFile()
     auto fileHandle = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fileHandle < 0)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR, "%s: failed to open %s: %s\n", portName, filename.c_str(), strerror(errno));
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "%s: failed to open %s: %s\n"
+                 , portName
+                 , filename.c_str()
+                 , strerror(errno)
+                 );
         return false;
     }
     currentFileHandle.store(fileHandle);

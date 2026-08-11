@@ -1,10 +1,28 @@
+/**
+ * @file Zmq.hpp
+ * @brief ZMQ client interface for ADGermanium.
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 04/04/2026
+ * 
+ * @copyright
+ * Copyright (c) 2026 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
+ */
+
+//===========================================================================//
+
 #pragma once
+
+//===========================================================================//
 
 #include <type_traits>
 #include <atomic>
 #include <string>
 
 #include <zmq.hpp>
+
+//===========================================================================//
 
 template<typename T>
 concept ZmqMessage = std::is_trivially_copyable_v<T> &&

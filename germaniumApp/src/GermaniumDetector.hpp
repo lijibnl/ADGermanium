@@ -7,10 +7,14 @@
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 08/11/2025
+ * 
  * @copyright
  * Copyright (c) 2025 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
  */
+
+//===========================================================================//
+
 #pragma once
 
 //===========================================================================//
@@ -297,6 +301,7 @@ public:
 
     // Non-blocking ZMQ Tx: push to tx queue, return immediately
     asynStatus zmqTx(uint32_t cmd, uint32_t addr, uint32_t value);
+    void requestProtocolVersion();
 
     // Low-level send with logging (called by Tx thread)
     //void zmqSend(const ZmqCommandMsg& msg);
@@ -321,6 +326,7 @@ public:
 
     // Reply processing (called by Control Rx thread)
     void processReply( const ZmqCommandMsg& reply );
+    void processReplyProtocolVersion( uint32_t value );
     void processReplyRegRead( uint32_t addr, uint32_t value );
     void processReplyRegWrite( uint32_t addr, uint32_t value );
     void processReplyI2cTempRead( uint32_t addr, uint32_t value );

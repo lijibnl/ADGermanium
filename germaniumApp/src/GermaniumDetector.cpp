@@ -5,6 +5,7 @@
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 04/03/2026
+ * 
  * @copyright
  * Copyright (c) 2026 Brookhaven National Laboratory
  * @license BSD 3-Clause License. See LICENSE file for details.
@@ -139,11 +140,11 @@ GermaniumDetector::GermaniumDetector( const char *portName
     udpWatchdogEvent   = epicsEventCreate(epicsEventEmpty);
 
     dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
-                                 , epicsThreadPriorityMedium
-                                 , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                 , dataProcessingThreadC
-                                 , this
-                                 );
+                                              , epicsThreadPriorityMedium
+                                              , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                              , dataProcessingThreadC
+                                              , this
+                                              );
     if (!dataProcessingThreadId)
     {
         std::cerr << "[" << __func__ << "]: failed to create data processing thread\n";
@@ -152,11 +153,11 @@ GermaniumDetector::GermaniumDetector( const char *portName
     std::cerr << "[" << __func__ << "]: ZMQ data processing threads started\n";
 
     dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
-                            , epicsThreadPriorityMedium
-                            , epicsThreadGetStackSize(epicsThreadStackMedium)
-                            , dataWriteThreadC
-                            , this
-                            );
+                                         , epicsThreadPriorityMedium
+                                         , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                         , dataWriteThreadC
+                                         , this
+                                         );
     if (!dataWriteThreadId)
     {
         std::cerr << "[" << __func__ << "]: failed to create UDP data write thread\n";
@@ -168,11 +169,11 @@ GermaniumDetector::GermaniumDetector( const char *portName
     if (initializePlUdpSocket())
     {
         plUdpDataThreadId = epicsThreadCreate( "GermaniumPlUdp"
-                             , epicsThreadPriorityHigh
-                             , epicsThreadGetStackSize(epicsThreadStackMedium)
-                             , plUdpDataThreadC
-                             , this
-                             );
+                                             , epicsThreadPriorityHigh
+                                             , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                             , plUdpDataThreadC
+                                             , this
+                                             );
         asynPrint( pasynUserSelf
                  , ASYN_TRACE_FLOW
                  , "%s: PL UDP data thread started\n"
@@ -181,11 +182,11 @@ GermaniumDetector::GermaniumDetector( const char *portName
     }
 
     udpWatchdogThreadId = epicsThreadCreate( "GermaniumUdpWatch"
-                         , epicsThreadPriorityMedium
-                         , epicsThreadGetStackSize(epicsThreadStackMedium)
-                         , udpWatchdogThreadC
-                         , this
-                         );
+                                           , epicsThreadPriorityMedium
+                                           , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                           , udpWatchdogThreadC
+                                           , this
+                                           );
     if (!udpWatchdogThreadId)
     {
         std::cerr << "[" << __func__ << "]: failed to create UDP watchdog thread\n";
@@ -543,82 +544,12 @@ void GermaniumDetector::setGermaniumInitialValues()
 
 void GermaniumDetector::readInitParams()
 {
+    requestProtocolVersion();
+
     for ( auto i : initPollInfo )
     {
         zmqTx( i.opCode, i.addr, 0 );
     }
-}
-
-//===========================================================================//
-
-void GermaniumDetector::allocateDataArrays()
-{
-    // Flat atomic arrays — safe for concurrent access from multiple
-    // producer threads (zmqData, plUdp) and the EPICS read thread.
-    size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-    size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
-
-    //mcaData    = new std::atomic<uint32_t>[mcaTotal];
-    //tdcData    = new std::atomic<uint32_t>[tdcTotal];
-    //countRates = new std::atomic<uint32_t>[numElements];
-    //totalCounts= new std::atomic<uint64_t>[numElements];
-    mcaData    = std::make_unique<std::atomic<uint32_t>[]>(mcaTotal);
-    tdcData    = std::make_unique<std::atomic<uint32_t>[]>(tdcTotal);
-    countRates = std::make_unique<std::atomic<uint32_t>[]>(numElements);
-    totalCounts= std::make_unique<std::atomic<uint64_t>[]>(numElements);
-
-    for (size_t i = 0; i < mcaTotal; i++)
-        mcaData[i].store(0, std::memory_order_relaxed);
-    for (size_t i = 0; i < tdcTotal; i++)
-        tdcData[i].store(0, std::memory_order_relaxed);
-    for (int i = 0; i < numElements; i++)
-    {
-        countRates[i].store(0, std::memory_order_relaxed);
-        totalCounts[i].store(0, std::memory_order_relaxed);
-    }
-    evttot.store(0, std::memory_order_relaxed);
-
-    // Allocate lock-free block queue
-    //dataQueue = new DataBlock[DATA_QUEUE_CAPACITY];
-    dataQueue = std::make_unique<DataBlock[]>(DATA_QUEUE_CAPACITY);
-    for (int i = 0; i < DATA_QUEUE_CAPACITY; i++)
-        dataQueue[i].state.store(DATA_BLOCK_FREE, std::memory_order_relaxed);
-
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: allocated data arrays for %d elements\n", portName, numElements);
-}
-
-//===========================================================================//
-
-void GermaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
-{
-    if (element < 0 || element >= numElements) return;
-    if (energy < 0 || energy >= SPECTRUM_SIZE) return;
-    if (tdValue < 0 || tdValue >= TDC_SIZE) return;
-
-    mcaData[element * SPECTRUM_SIZE + energy].fetch_add(1, std::memory_order_relaxed);
-    tdcData[element * TDC_SIZE + tdValue].fetch_add(1, std::memory_order_relaxed);
-    countRates[element].fetch_add(1, std::memory_order_relaxed);
-    totalCounts[element].fetch_add(1, std::memory_order_relaxed);
-    evttot.fetch_add(1, std::memory_order_relaxed);
-}
-
-//===========================================================================//
-
-void GermaniumDetector::clearSpectra()
-{
-    size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-    size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
-
-    for (size_t i = 0; i < mcaTotal; i++)
-        mcaData[i].store(0, std::memory_order_relaxed);
-    for (size_t i = 0; i < tdcTotal; i++)
-        tdcData[i].store(0, std::memory_order_relaxed);
-    for (int i = 0; i < numElements; i++)
-    {
-        countRates[i].store(0, std::memory_order_relaxed);
-        totalCounts[i].store(0, std::memory_order_relaxed);
-    }
-    evttot.store(0, std::memory_order_relaxed);
 }
 
 //===========================================================================//
