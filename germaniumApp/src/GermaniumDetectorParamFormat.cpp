@@ -83,19 +83,20 @@ const char* decode_reg(uint32_t addr)
 const char* decode_global_field(uint16_t field_id)
 {
     switch (field_id) {
-        case MARS_FIELD_ST:   return "ST";
-        case MARS_FIELD_GAIN: return "GAIN";
-        case MARS_FIELD_POL:  return "POL";
-        case MARS_FIELD_EBLK: return "EBLK";
-        case MARS_FIELD_GMON: return "GMON";
-        case MARS_FIELD_PUEN: return "PUEN";
-        case MARS_FIELD_MFS:  return "MFS";
-        case MARS_FIELD_TDS:  return "TDS";
-        case MARS_FIELD_TDM:  return "TDM";
-        case MARS_FIELD_TH:   return "TH";
-        case MARS_FIELD_C:    return "C";
-        case MARS_FIELD_M0:   return "M0";
-        case MARS_FIELD_SAUX: return "SAUX";
+        case MARS_FIELD_ST:      return "ST";
+        case MARS_FIELD_GAIN:    return "GAIN";
+        case MARS_FIELD_POL:     return "POL";
+        case MARS_FIELD_EBLK:    return "EBLK";
+        case MARS_FIELD_GMON:    return "GMON";
+        case MARS_FIELD_PUEN:    return "PUEN";
+        case MARS_FIELD_MFS:     return "MFS";
+        case MARS_FIELD_TDS:     return "TDS";
+        case MARS_FIELD_TDM:     return "TDM";
+        case MARS_FIELD_TH:      return "TH";
+        case MARS_FIELD_TPAMP:   return "TPAMP";
+        case MARS_FIELD_C:       return "C";
+        case MARS_FIELD_M0:      return "M0";
+        case MARS_FIELD_SAUX:    return "SAUX";
         default: return "?";
     }
 }
@@ -109,6 +110,7 @@ const char* decode_channel_field(uint16_t field_id)
         case MARS_CH_TSEN: return "TSEN";
         case MARS_CH_THTR: return "THTR";
         case MARS_CH_PUTR: return "PUTR";
+        case MARS_CH_SEL:  return "SEL";
         default: return "?";
     }
 }

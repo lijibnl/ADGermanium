@@ -246,8 +246,12 @@ record(mbbo, "$(P)$(R)TDCMode") {
 record(bo, "$(P)$(R)LeakageCurrent") {
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_EBLK")
-    field(ZNAM, "Off")
-    field(ONAM, "On")
+    field(ZRST, "Off")
+    field(ONST, "2pA")
+    field(TWST, "8pA")
+    field(ZRVL, 0)
+    field(ONVL, 1)
+    field(TWVL, 2)
     field(DESC, "Input bias current enable")
 }
 

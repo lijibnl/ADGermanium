@@ -619,22 +619,22 @@ private:
 
     // Poll the parameters initialized by detector once during startup
     static constexpr InitPollInfo initPollInfo[] =
-        { { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_POL  }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_GAIN }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_ST   }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TH   }
-        , { ZMQ_CMD_REG_READ,         VERSIONREG      }
-        , { ZMQ_CMD_REG_READ,         DETECTOR_MODEL  }
-        , { ZMQ_CMD_REG_READ,         MARS_RDOUT_ENB  }
-        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 1               }
-        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 2               }
-        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 3               }
+        { { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_POL   }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_GAIN  }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_ST    }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TH    }
+        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TPAMP }
+        , { ZMQ_CMD_REG_READ,         VERSIONREG                    }
+        , { ZMQ_CMD_REG_READ,         DETECTOR_MODEL                }
+        , { ZMQ_CMD_REG_READ,         MARS_RDOUT_ENB                }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 1                            }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 2                            }
+        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 3                            }
         };
 
 
     static constexpr PollInfo pollInfo[] =
-        { { ZMQ_CMD_REG_READ,      MARS_CALPULSE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      CALPULSE_RATE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        { { ZMQ_CMD_REG_READ,      CALPULSE_RATE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
         , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,          POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
         , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
         , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }

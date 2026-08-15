@@ -85,7 +85,7 @@ bool GermaniumDetector::initializeZmq()
         std::cerr << "[" << __func__ << "]: failed to create Tx thread\n";
         return false;
     }
-    std::cout << "[" << __func__ << "]: Tx thread started\n";
+    std::cout << "[" << __func__ << "]: ZMQ Tx thread started\n";
 
     zmqRxThreadId = epicsThreadCreate( "zmqRx"
                                      , epicsThreadPriorityMedium
@@ -99,7 +99,7 @@ bool GermaniumDetector::initializeZmq()
         std::cerr << "[" << __func__ << "]: failed to create ZMQ Rx thread\n";
         return false;
     }
-    std::cout << "[" << __func__ << "]: ZMQ Rx threads started\n";
+    std::cout << "[" << __func__ << "]: ZMQ Rx thread started\n";
 
     //--------------------------------------------------------------
     // Read startup PVs which will never need be read again.
@@ -476,9 +476,6 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
         case DETECTOR_MODEL:
             setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             break;
-        case MARS_CALPULSE:
-            setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
-            break;
         case CALPULSE_RATE:
             setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
             break;
@@ -537,9 +534,6 @@ void GermaniumDetector::processReplyRegWrite(uint32_t addr, uint32_t value)
 {
     switch (addr)
     {
-        case MARS_CALPULSE:
-            setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
-            break;
         case CALPULSE_RATE:
             setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
             break;
@@ -571,7 +565,12 @@ void GermaniumDetector::processReplyRegWrite(uint32_t addr, uint32_t value)
 
 void GermaniumDetector::processReplyI2cTempRead( const uint32_t addr, const uint32_t value )
 {
-    double tempC = static_cast<double>(value >> 4) * 0.0625;
+    int32_t rawTemp = static_cast<int32_t>((value & 0xFFF0U) >> 4);
+    if (rawTemp > 2047)
+        rawTemp -= 4096;
+
+    double tempC = static_cast<double>(rawTemp) * 0.0625;
+
     switch (addr)
     {
         case TEMPERATURE1_SELECTOR: setDoubleParam(GermaniumTEMP1, tempC); break;
@@ -601,16 +600,16 @@ void GermaniumDetector::processReplyI2cAdcRead( const uint32_t addr, const uint3
     switch (addr)
     {
         case ADC_CH_HV_RBV:
-            setDoubleParam(GermaniumHV_RBV, raw * 500.0 / 4096.0);
+            setDoubleParam(GermaniumHV_RBV, raw * 500.0 / 4095.0);
             break;
         case ADC_CH_HV_CUR:
-            setDoubleParam(GermaniumHV_CURR, raw * 5.0 / 4096.0);
+            setDoubleParam(GermaniumHV_CURR, raw * 5.0 / 4095.0);
             break;
         case ADC_CH_P1_CUR:
-            setDoubleParam(GermaniumP1_CURR, raw * 500.0 / 4096.0);
+            setDoubleParam(GermaniumP1_CURR, raw * 500.0 / 4095.0);
             break;
         case ADC_CH_P2_CUR:
-            setDoubleParam(GermaniumP2_CURR, raw * 5.0 / 4096.0);
+            setDoubleParam(GermaniumP2_CURR, raw * 5.0 / 4095.0);
             break;
     }
     callParamCallbacks();
@@ -620,8 +619,7 @@ void GermaniumDetector::processReplyI2cAdcRead( const uint32_t addr, const uint3
 
 void GermaniumDetector::processReplyMarsGlobalSet( const uint32_t addr, const uint32_t value )
 {
-    (void)addr;
-    (void)value;
+    processReplyMarsGlobalRead( addr, value );
 }
 
 //===========================================================================//
@@ -654,6 +652,10 @@ void GermaniumDetector::processReplyMarsGlobalRead( const uint32_t addr, const u
         case MARS_FIELD_TDM:
             setIntegerParam(GermaniumTDM, static_cast<int>(value));
             break;
+        case MARS_FIELD_TPAMP:
+            setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
+            break;
+
         default:
             break;
     }

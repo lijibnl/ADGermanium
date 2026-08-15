@@ -40,6 +40,16 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
 
     uint32_t allChipMask = (1U << nchips) - 1;
 
+    auto setMonitorSourceField = [this](int chip, int monch, int source) -> asynStatus
+    {
+        int channel = chip * 32 + monch;
+        if (chip < 0 || chip >= nchips || monch < 0 || monch >= 32 || channel >= numElements)
+            return asynError;
+  
+        return zmqMarsSetChannel(static_cast<uint32_t>(channel), MARS_CH_SEL, source ? 1 : 0);
+    };
+
+
     if (function == GermaniumSHPT)
     {
         status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_ST, value);
@@ -82,7 +92,8 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     //------------------------------------------------------------------
     else if (function == GermaniumTPAMP)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_CALPULSE, value);
+        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_TPAMP, value);
+        if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumTPFRQ)
     {
@@ -94,7 +105,9 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumTPENB)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_MODE, value);
+        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_CALPULSE, value ? 0xFFF : 0);
+        if (status == asynSuccess)
+            status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_MODE, value ? 1 : 0);
     }
     else if (function == GermaniumPLDEL)
     {
@@ -106,7 +119,14 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     }
     else if (function == GermaniumLOAO)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, SIM_EVT_SEL, value);
+        int currentChip;
+        int monch;
+        getIntegerParam(GermaniumCHIP, &currentChip);
+        getIntegerParam(GermaniumMONCH, &monch);
+  
+        status = setMonitorSourceField(currentChip, monch, value);
+        if (status == asynSuccess)
+            status = zmqMarsLoad(1U << currentChip);
     }
     else if (function == GermaniumMODE)
     {
@@ -152,12 +172,16 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         if (gmonMode == 5 && value >= 0 && value < nchips)
         {
             int monch;
+            int loao;
             getIntegerParam(GermaniumMONCH, &monch);
+            getIntegerParam(GermaniumLOAO, &loao);
+      
             uint32_t chipBit = 1U << value;
             zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
             zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
             zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
-            status = zmqMarsLoad(chipBit);
+            status = setMonitorSourceField(value, monch, loao);
+            if (status == asynSuccess) status = zmqMarsLoad(chipBit);
         }
     }
     else if (function == GermaniumCHAN)
@@ -171,11 +195,15 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         getIntegerParam(GermaniumGMON, &gmonMode);
         if (gmonMode == 5 && chip >= 0 && chip < nchips)
         {
+            int loao;
+            getIntegerParam(GermaniumLOAO, &loao);
+
             uint32_t chipBit = 1U << chip;
             zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
             zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
             zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
-            status = zmqMarsLoad(chipBit);
+            status = setMonitorSourceField(chip, monch, loao);
+            if (status == asynSuccess) status = zmqMarsLoad(chipBit);
         }
     }
 
@@ -227,11 +255,15 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             getIntegerParam(GermaniumCHIP, &currentChip);
             if (currentChip >= 0 && currentChip < nchips)
             {
+                int loao;
+                getIntegerParam(GermaniumLOAO, &loao);
+          
                 uint32_t chipBit = 1U << currentChip;
                 zmqMarsSetGlobal(chipBit, MARS_FIELD_C, value);
                 zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
                 zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
-                status = zmqMarsLoad(chipBit);
+                status = setMonitorSourceField(currentChip, value, loao);
+                if (status == asynSuccess) status = zmqMarsLoad(chipBit);
             }
         }
     }
@@ -268,15 +300,19 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
                 case 5: // Channel monitor
                 {
                     int monch;
+                    int loao;
                     getIntegerParam(GermaniumMONCH, &monch);
+                    getIntegerParam(GermaniumLOAO, &loao);
+              
                     zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
                     zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
                     zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                    status = setMonitorSourceField(currentChip, monch, loao);
                     break;
                 }
             }
         }
-        status = zmqMarsLoad(allChipMask);
+        if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
 
     //------------------------------------------------------------------
@@ -483,7 +519,6 @@ asynStatus GermaniumDetector::readInt32Array(asynUser *pasynUser, epicsInt32 *va
 asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                                  size_t maxChars, size_t *nActual)
 {
-    std::cout << "[" << __func__ << "]: writeOctet: function=" << pasynUser->reason << ", value='" << value << "'\n";
     asynPrint( pasynUserSelf
              , ASYN_TRACEIO_DRIVER
              , "[%s]: writeOctet: function=%d, value='%s'\n"
@@ -506,6 +541,7 @@ asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
                  , portName
                  , value
                  );
+
         if (inet_pton(AF_INET, value, &addr) != 1)
         {
             asynPrint( pasynUserSelf
