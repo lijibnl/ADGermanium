@@ -38,7 +38,7 @@ constexpr uint16_t GIGE_REGISTER_WRITE_TX_PORT = 0x7D00;
 constexpr uint16_t GIGE_REGISTER_READ_TX_PORT  = 0x7D01;
 constexpr uint16_t GIGE_REGISTER_RX_PORT       = 0x7D02;
 
-constexpr uint32_t UDP_ENABLE_REGISTER = LEDS;
+constexpr uint32_t UDP_ENABLE_REGISTER = GermaniumProtocol::Register::LEDS;
 constexpr uint32_t UDP_ENABLE_VALUE = 0x1;
 
 constexpr double UDP_WATCHDOG_TICK_SEC = 1.0;
@@ -299,7 +299,7 @@ void GermaniumDetector::runUdpInitialization()
     in_addr configuredAddr {};
     if (inet_pton(AF_INET, targetAddress.c_str(), &configuredAddr) == 1)
     {
-        zmqTx(ZMQ_CMD_REG_WRITE, UDP_IP_ADDR, ntohl(configuredAddr.s_addr));
+        zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::UDP_IP_ADDR, ntohl(configuredAddr.s_addr));
         epicsThreadSleep(0.1);
     }
 

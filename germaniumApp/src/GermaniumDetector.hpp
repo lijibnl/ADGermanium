@@ -33,7 +33,6 @@
 
 #include "ADDriver.h"
 #include "GermaniumDetectorTypes.hpp"
-#include "GermaniumDetectorRegister.hpp"
 #include "EpicsPoller.hpp"
 #include "Zmq.hpp"
 #include <zmq.h>
@@ -304,15 +303,15 @@ public:
     void requestProtocolVersion();
 
     // Low-level send with logging (called by Tx thread)
-    //void zmqSend(const ZmqCommandMsg& msg);
+    //void zmqSend(const GermaniumProtocol::Message& msg);
 
     // MARS delta-config helpers (each calls zmqTx)
     asynStatus zmqMarsSetGlobal( uint32_t chipMask
-                               , MarsGlobalField field
+                               , GermaniumProtocol::MarsGlobalField field
                                , uint32_t value
                                );
     asynStatus zmqMarsSetChannel( uint32_t channel
-                                , MarsChannelField field
+                                , GermaniumProtocol::MarsChannelField field
                                 , uint32_t value
                                 );
     asynStatus zmqMarsLoad(uint32_t chipMask);
@@ -325,7 +324,7 @@ public:
     static void zmqRxThreadC(void *pPvt);
 
     // Reply processing (called by Control Rx thread)
-    void processReply( const ZmqCommandMsg& reply );
+    void processReply( const GermaniumProtocol::Message& reply );
     void processReplyProtocolVersion( uint32_t value );
     void processReplyRegRead( uint32_t addr, uint32_t value );
     void processReplyRegWrite( uint32_t addr, uint32_t value );
@@ -507,12 +506,12 @@ private:
     std::atomic<bool> zmqNeedReset {false};
     std::atomic<bool> zmqServerDown {false};
 
-    void zmqSend( const ZmqCommandMsg& msg );
+    void zmqSend( const GermaniumProtocol::Message& msg );
 
     // Async tx queue (EPICS threads → Tx thread → PUSH socket)
     struct TxQueueItem
     {
-        ZmqCommandMsg msg;
+        GermaniumProtocol::Message msg;
     };
     std::vector<TxQueueItem> txQueue_;
     epicsMutexId txQueueMutex_ {nullptr};
@@ -608,10 +607,7 @@ private:
         int      fastDivider;
     }  PollInfo;
 
-    // Any info that needs periodic polling should be added to this array, 
-    static constexpr int TEMPERATURE1_SELECTOR = 0;
-    static constexpr int TEMPERATURE2_SELECTOR = 1;
-    static constexpr int TEMPERATURE3_SELECTOR = 2;
+    // Any info that needs periodic polling should be added to this array.
 
     // Poller dividers with 0.1 s base tick: 1 Hz default, 10 Hz fast.
     static constexpr int POLLING_DIVIDER_1HZ  = 10;
@@ -619,46 +615,46 @@ private:
 
     // Poll the parameters initialized by detector once during startup
     static constexpr InitPollInfo initPollInfo[] =
-        { { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_POL   }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_GAIN  }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_ST    }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TH    }
-        , { ZMQ_CMD_MARS_GLOBAL_READ, (1u << 16) | MARS_FIELD_TPAMP }
-        , { ZMQ_CMD_REG_READ,         VERSIONREG                    }
-        , { ZMQ_CMD_REG_READ,         DETECTOR_MODEL                }
-        , { ZMQ_CMD_REG_READ,         MARS_RDOUT_ENB                }
-        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 1                            }
-        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 2                            }
-        , { ZMQ_CMD_ADC_CLK_SKEW_READ, 3                            }
+        { { GermaniumProtocol::Command::MARS_GLOBAL_READ, (1u << 16) | GermaniumProtocol::MARS_FIELD_POL   }
+        , { GermaniumProtocol::Command::MARS_GLOBAL_READ, (1u << 16) | GermaniumProtocol::MARS_FIELD_GAIN  }
+        , { GermaniumProtocol::Command::MARS_GLOBAL_READ, (1u << 16) | GermaniumProtocol::MARS_FIELD_ST    }
+        , { GermaniumProtocol::Command::MARS_GLOBAL_READ, (1u << 16) | GermaniumProtocol::MARS_FIELD_TH    }
+        , { GermaniumProtocol::Command::MARS_GLOBAL_READ, (1u << 16) | GermaniumProtocol::MARS_FIELD_TPAMP }
+        , { GermaniumProtocol::Command::REG_READ,         GermaniumProtocol::Register::VERSIONREG                    }
+        , { GermaniumProtocol::Command::REG_READ,         GermaniumProtocol::Register::DETECTOR_MODEL                }
+        , { GermaniumProtocol::Command::REG_READ,         GermaniumProtocol::Register::MARS_RDOUT_ENB                }
+        , { GermaniumProtocol::Command::ADC_CLK_SKEW_READ, 1                            }
+        , { GermaniumProtocol::Command::ADC_CLK_SKEW_READ, 2                            }
+        , { GermaniumProtocol::Command::ADC_CLK_SKEW_READ, 3                            }
         };
 
 
     static constexpr PollInfo pollInfo[] =
-        { { ZMQ_CMD_REG_READ,      CALPULSE_RATE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      CALPULSE_CNT,          POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      CALPULSE_MODE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      MARS_PIPE_DELAY,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      MARS_RDOUT_ENB,        POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      SIM_EVT_SEL,           POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      COUNT_MODE,            POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      TRIG,                  POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      EVENT_TIME_CNTR,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      COUNT_TIME_LO,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      COUNT_TIME_HI,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_REG_READ,      UDP_IP_ADDR,           POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        { { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_RATE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_CNT,          POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_MODE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_PIPE_DELAY,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_RDOUT_ENB,        POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::SIM_EVT_SEL,           POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_MODE,            POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::TRIG,                  POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::EVENT_TIME_CNTR,       POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_LO,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_HI,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::UDP_IP_ADDR,           POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE1_SELECTOR, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE2_SELECTOR, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_I2C_TEMP_READ, TEMPERATURE3_SELECTOR, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_1, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_2, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_3, POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_XADC_READ,     0,                     POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::XADC_READ,     0,                     POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_RBV,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_HV_CUR,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P1_CUR,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
-        , { ZMQ_CMD_I2C_ADC_READ,  ADC_CH_P2_CUR,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_VOLTAGE,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_CURRENT,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER1_CURRENT,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER2_CURRENT,         POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
 
-        , { ZMQ_CMD_HEARTBEAT,     0,                     POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
+        , { GermaniumProtocol::Command::HEARTBEAT,     0,                     POLLING_DIVIDER_1HZ, POLLING_DIVIDER_10HZ }
         };
     bool createPoller();
 

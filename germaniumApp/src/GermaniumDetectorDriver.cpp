@@ -46,44 +46,44 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         if (chip < 0 || chip >= nchips || monch < 0 || monch >= 32 || channel >= numElements)
             return asynError;
   
-        return zmqMarsSetChannel(static_cast<uint32_t>(channel), MARS_CH_SEL, source ? 1 : 0);
+        return zmqMarsSetChannel(static_cast<uint32_t>(channel), GermaniumProtocol::MARS_CH_SEL, source ? 1 : 0);
     };
 
 
     if (function == GermaniumSHPT)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_ST, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_ST, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumGAIN)
     {
         asynPrint(pasynUserSelf, ASYN_TRACEIO_DRIVER, "%s: GAIN: value=0x%08X\n", portName, value);
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_GAIN, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_GAIN, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumPOL)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_POL, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_POL, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumEBLK)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_EBLK, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_EBLK, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumPUEN)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_PUEN, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_PUEN, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumMFS)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_MFS, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_MFS, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumTDM)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_TDM, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_TDM, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
 
@@ -92,30 +92,30 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     //------------------------------------------------------------------
     else if (function == GermaniumTPAMP)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_TPAMP, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_TPAMP, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumTPFRQ)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_RATE, value);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::CALPULSE_RATE, value);
     }
     else if (function == GermaniumTPCNT)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_CNT, value);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::CALPULSE_CNT, value);
     }
     else if (function == GermaniumTPENB)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_CALPULSE, value ? 0xFFF : 0);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::MARS_CALPULSE, value ? 0xFFF : 0);
         if (status == asynSuccess)
-            status = zmqTx(ZMQ_CMD_REG_WRITE, CALPULSE_MODE, value ? 1 : 0);
+            status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::CALPULSE_MODE, value ? 1 : 0);
     }
     else if (function == GermaniumPLDEL)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_PIPE_DELAY, value);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::MARS_PIPE_DELAY, value);
     }
     else if (function == GermaniumRODEL)
     {
-        status = zmqTx(ZMQ_CMD_REG_WRITE, MARS_RDOUT_ENB, value);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::MARS_RDOUT_ENB, value);
     }
     else if (function == GermaniumLOAO)
     {
@@ -131,30 +131,30 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if (function == GermaniumMODE)
     {
         int modeReg = value ? 1 : 0;
-        status = zmqTx(ZMQ_CMD_REG_WRITE, COUNT_MODE, modeReg);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::COUNT_MODE, modeReg);
         if (status == asynSuccess)
             setIntegerParam(GermaniumMODE, modeReg);
     }
     else if (function == GermaniumTDS)
     {
-        status = zmqMarsSetGlobal(allChipMask, MARS_FIELD_TDS, value);
+        status = zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_TDS, value);
         if (status == asynSuccess) status = zmqMarsLoad(allChipMask);
     }
     else if (function == GermaniumADC0_CLK_SKEW)
     {
-        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW_SET, 1, static_cast<uint32_t>(value));
+        status = zmqTx(GermaniumProtocol::Command::ADC_CLK_SKEW_SET, 1, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumADC1_CLK_SKEW)
     {
-        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW_SET, 2, static_cast<uint32_t>(value));
+        status = zmqTx(GermaniumProtocol::Command::ADC_CLK_SKEW_SET, 2, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumADC2_CLK_SKEW)
     {
-        status = zmqTx(ZMQ_CMD_ADC_CLK_SKEW_SET, 3, static_cast<uint32_t>(value));
+        status = zmqTx(GermaniumProtocol::Command::ADC_CLK_SKEW_SET, 3, static_cast<uint32_t>(value));
     }
     else if (function == GermaniumLOG_LEVEL)
     {
-        status = zmqTx(ZMQ_CMD_SET_LOG_LEVEL, 0, static_cast<uint32_t>(value));
+        status = zmqTx(GermaniumProtocol::Command::SET_LOG_LEVEL, 0, static_cast<uint32_t>(value));
     }
 
     //------------------------------------------------------------------
@@ -177,9 +177,9 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             getIntegerParam(GermaniumLOAO, &loao);
       
             uint32_t chipBit = 1U << value;
-            zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
-            zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
-            zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+            zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, monch);
+            zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_M0, 1);
+            zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
             status = setMonitorSourceField(value, monch, loao);
             if (status == asynSuccess) status = zmqMarsLoad(chipBit);
         }
@@ -199,9 +199,9 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             getIntegerParam(GermaniumLOAO, &loao);
 
             uint32_t chipBit = 1U << chip;
-            zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
-            zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
-            zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+            zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, monch);
+            zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_M0, 1);
+            zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
             status = setMonitorSourceField(chip, monch, loao);
             if (status == asynSuccess) status = zmqMarsLoad(chipBit);
         }
@@ -259,9 +259,9 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
                 getIntegerParam(GermaniumLOAO, &loao);
           
                 uint32_t chipBit = 1U << currentChip;
-                zmqMarsSetGlobal(chipBit, MARS_FIELD_C, value);
-                zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
-                zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, value);
+                zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_M0, 1);
+                zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
                 status = setMonitorSourceField(currentChip, value, loao);
                 if (status == asynSuccess) status = zmqMarsLoad(chipBit);
             }
@@ -270,9 +270,9 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
     else if (function == GermaniumGMON)
     {
         // Reset all chips
-        zmqMarsSetGlobal(allChipMask, MARS_FIELD_C, 0);
-        zmqMarsSetGlobal(allChipMask, MARS_FIELD_M0, 0);
-        zmqMarsSetGlobal(allChipMask, MARS_FIELD_SAUX, 0);
+        zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_C, 0);
+        zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_M0, 0);
+        zmqMarsSetGlobal(allChipMask, GermaniumProtocol::MARS_FIELD_SAUX, 0);
 
         int currentChip;
         getIntegerParam(GermaniumCHIP, &currentChip);
@@ -282,20 +282,20 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
             switch (value)
             {
                 case 1: // Temperature
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_C, 4);
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, 4);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
                     break;
                 case 2: // Baseline
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_C, 5);
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, 5);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
                     break;
                 case 3: // Threshold
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_C, 6);
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, 6);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
                     break;
                 case 4: // Test pulse
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_C, 7);
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, 7);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
                     break;
                 case 5: // Channel monitor
                 {
@@ -304,9 +304,9 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
                     getIntegerParam(GermaniumMONCH, &monch);
                     getIntegerParam(GermaniumLOAO, &loao);
               
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_C, monch);
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_M0, 1);
-                    zmqMarsSetGlobal(chipBit, MARS_FIELD_SAUX, 1);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_C, monch);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_M0, 1);
+                    zmqMarsSetGlobal(chipBit, GermaniumProtocol::MARS_FIELD_SAUX, 1);
                     status = setMonitorSourceField(currentChip, monch, loao);
                     break;
                 }
@@ -324,13 +324,13 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         getIntegerParam(GermaniumCHAN, &chan);
         if (chan >= 0 && chan < numElements)
         {
-            zmqMarsSetChannel(chan, MARS_CH_CHEN, value ? 1 : 0);
+            zmqMarsSetChannel(chan, GermaniumProtocol::MARS_CH_CHEN, value ? 1 : 0);
             status = zmqMarsLoad((1U << nchips) - 1);
         }
     }
     else if (function == GermaniumCHEN_ALL)
     {
-        zmqMarsSetChannel(0xFFF, MARS_CH_CHEN, value ? 1 : 0);
+        zmqMarsSetChannel(0xFFF, GermaniumProtocol::MARS_CH_CHEN, value ? 1 : 0);
         status = zmqMarsLoad((1U << nchips) - 1);
     }
     else if (function == GermaniumTSEN_SEL)
@@ -339,13 +339,13 @@ asynStatus GermaniumDetector::writeInt32(asynUser *pasynUser, epicsInt32 value)
         getIntegerParam(GermaniumCHAN, &chan);
         if (chan >= 0 && chan < numElements)
         {
-            zmqMarsSetChannel(chan, MARS_CH_TSEN, value ? 1 : 0);
+            zmqMarsSetChannel(chan, GermaniumProtocol::MARS_CH_TSEN, value ? 1 : 0);
             status = zmqMarsLoad((1U << nchips) - 1);
         }
     }
     else if (function == GermaniumTSEN_ALL)
     {
-        zmqMarsSetChannel(0xFFF, MARS_CH_TSEN, value ? 1 : 0);
+        zmqMarsSetChannel(0xFFF, GermaniumProtocol::MARS_CH_TSEN, value ? 1 : 0);
         status = zmqMarsLoad((1U << nchips) - 1);
     }
 
@@ -375,52 +375,52 @@ asynStatus GermaniumDetector::readInt32(asynUser *pasynUser, epicsInt32 *value)
 
     if (function == GermaniumFVER)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, VERSIONREG, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::VERSIONREG, 0);
         getIntegerParam(GermaniumFVER, value);
     }
     else if (function == GermaniumDETMODEL)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, DETECTOR_MODEL, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::DETECTOR_MODEL, 0);
         getIntegerParam(GermaniumDETMODEL, value);
     }
     else if (function == GermaniumTPAMP_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, MARS_CALPULSE, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::MARS_CALPULSE, 0);
         getIntegerParam(GermaniumTPAMP_RBV, value);
     }
     else if (function == GermaniumTPFRQ_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, CALPULSE_RATE, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::CALPULSE_RATE, 0);
         getIntegerParam(GermaniumTPFRQ_RBV, value);
     }
     else if (function == GermaniumTPCNT_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, CALPULSE_CNT, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::CALPULSE_CNT, 0);
         getIntegerParam(GermaniumTPCNT_RBV, value);
     }
     else if (function == GermaniumTPENB_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, CALPULSE_MODE, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::CALPULSE_MODE, 0);
         getIntegerParam(GermaniumTPENB_RBV, value);
     }
     else if (function == GermaniumPLDEL_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, MARS_PIPE_DELAY, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::MARS_PIPE_DELAY, 0);
         getIntegerParam(GermaniumPLDEL_RBV, value);
     }
     else if (function == GermaniumRODEL_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, MARS_RDOUT_ENB, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::MARS_RDOUT_ENB, 0);
         getIntegerParam(GermaniumRODEL_RBV, value);
     }
     else if (function == GermaniumMODE)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, COUNT_MODE, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::COUNT_MODE, 0);
         getIntegerParam(GermaniumMODE, value);
     }
     else if (function == GermaniumCNT_RBV)
     {
-        //zmqTx(ZMQ_CMD_REG_READ, TRIG, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::TRIG, 0);
         getIntegerParam(GermaniumCNT_RBV, value);
     }
     else if (function == GermaniumUDPReachable_RBV)
@@ -447,7 +447,7 @@ asynStatus GermaniumDetector::writeInt32Array(asynUser *pasynUser, epicsInt32 *v
     {
         size_t count = std::min(nElements, static_cast<size_t>(nchips));
         for (size_t i = 0; i < count; i++)
-            zmqMarsSetGlobal(1U << i, MARS_FIELD_TH, value[i]);
+            zmqMarsSetGlobal(1U << i, GermaniumProtocol::MARS_FIELD_TH, value[i]);
         status = zmqMarsLoad((1U << nchips) - 1);
     }
     else
@@ -564,7 +564,7 @@ asynStatus GermaniumDetector::writeOctet(asynUser *pasynUser, const char *value,
         if (changed)
         {
             setUdpReachable(false);
-            status = zmqTx(ZMQ_CMD_REG_WRITE, UDP_IP_ADDR, ntohl(addr.s_addr));
+            status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::UDP_IP_ADDR, ntohl(addr.s_addr));
             if (status == asynSuccess)
                 requestUdpReinitialization();
         }
@@ -599,7 +599,7 @@ asynStatus GermaniumDetector::readOctet(asynUser *pasynUser, char *value,
                  , "[%s]: Reading IP address from FPGA register\n"
                  , portName
                  );
-        //zmqTx(ZMQ_CMD_REG_READ, UDP_IP_ADDR, 0);
+        //zmqTx(GermaniumProtocol::Command::REG_READ, GermaniumProtocol::Register::UDP_IP_ADDR, 0);
         getStringParam(GermaniumIPADDR_RBV, 15, value);
         *nActual = strlen(value);
         *eomReason = ASYN_EOM_END;
@@ -620,26 +620,26 @@ asynStatus GermaniumDetector::writeInt8Array(asynUser *pasynUser, epicsInt8 *val
     //if (function == GermaniumCHEN)
     //{
     //    for (size_t i = 0; i < count; i++)
-    //        zmqMarsSetChannel(i, MARS_CH_CHEN, (value[i] != 0) ? 1 : 0);
+    //        zmqMarsSetChannel(i, GermaniumProtocol::MARS_CH_CHEN, (value[i] != 0) ? 1 : 0);
     //    status = zmqMarsLoad((1U << nchips) - 1);
     //}
     //else if (function == GermaniumTSEN)
     //{
     //    for (size_t i = 0; i < count; i++)
-    //        zmqMarsSetChannel(i, MARS_CH_TSEN, (value[i] != 0) ? 1 : 0);
+    //        zmqMarsSetChannel(i, GermaniumProtocol::MARS_CH_TSEN, (value[i] != 0) ? 1 : 0);
     //    status = zmqMarsLoad((1U << nchips) - 1);
     //}
     //else
     if (function == GermaniumTHTR)
     {
         for (size_t i = 0; i < count; i++)
-            zmqMarsSetChannel(i, MARS_CH_THTR, value[i]);
+            zmqMarsSetChannel(i, GermaniumProtocol::MARS_CH_THTR, value[i]);
         status = zmqMarsLoad((1U << nchips) - 1);
     }
     else if (function == GermaniumPUTR)
     {
         for (size_t i = 0; i < count; i++)
-            zmqMarsSetChannel(i, MARS_CH_PUTR, value[i]);
+            zmqMarsSetChannel(i, GermaniumProtocol::MARS_CH_PUTR, value[i]);
         status = zmqMarsLoad((1U << nchips) - 1);
     }
 
@@ -675,31 +675,31 @@ asynStatus GermaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
     {
         // Time preset in seconds → FPGA COUNT_TIME registers (25 MHz clock)
         uint64_t ticks = static_cast<uint64_t>(value * 25.0e6);
-        zmqTx(ZMQ_CMD_REG_WRITE, COUNT_TIME_LO, static_cast<uint32_t>(ticks & 0xFFFFFFFF));
-        status = zmqTx(ZMQ_CMD_REG_WRITE, COUNT_TIME_HI, static_cast<uint32_t>(ticks >> 32));
+        zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::COUNT_TIME_LO, static_cast<uint32_t>(ticks & 0xFFFFFFFF));
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::COUNT_TIME_HI, static_cast<uint32_t>(ticks >> 32));
     }
     else if (function == GermaniumDLY)
     {
         uint32_t delayReg = static_cast<uint32_t>(value * 1000);
-        status = zmqTx(ZMQ_CMD_REG_WRITE, TD_CAL, delayReg);
+        status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::TD_CAL, delayReg);
     }
     else if (function == GermaniumHV)
     {
         // DAC7678 channel 5 for HV, scale: 8.19 counts/V
         uint32_t dacCode = static_cast<uint32_t>(8.19 * value);
-        status = zmqTx(ZMQ_CMD_I2C_DAC_WRITE, DAC_CH_HV, dacCode);
+        status = zmqTx(GermaniumProtocol::Command::I2C_DAC_WRITE, GermaniumProtocol::DacChannel::HV, dacCode);
     }
     else if (function == GermaniumP1)
     {
         // DAC7678 channel 6 for Peltier 1, scale: 819 counts/V
         uint32_t dacCode = static_cast<uint32_t>(819.0 * value);
-        status = zmqTx(ZMQ_CMD_I2C_DAC_WRITE, DAC_CH_P1, dacCode);
+        status = zmqTx(GermaniumProtocol::Command::I2C_DAC_WRITE, GermaniumProtocol::DacChannel::PELTIER1, dacCode);
     }
     else if (function == GermaniumP2)
     {
         // DAC7678 channel 2 for Peltier 2, scale: 819 counts/V
         uint32_t dacCode = static_cast<uint32_t>(819.0 * value);
-        status = zmqTx(ZMQ_CMD_I2C_DAC_WRITE, DAC_CH_P2, dacCode);
+        status = zmqTx(GermaniumProtocol::Command::I2C_DAC_WRITE, GermaniumProtocol::DacChannel::PELTIER2, dacCode);
     }
     else
     {

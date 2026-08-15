@@ -19,7 +19,6 @@
 #include <cstdint>
 #include <cstddef>
 #include <atomic>
-// #include "GermaniumDetectorRegister.hpp"
 
 #include "GermaniumDetectorProtocol.hpp"
 
@@ -62,51 +61,6 @@ struct DataBlock
     uint8_t               data[DATA_BLOCK_SIZE];
 };
 
-
-//=====================================================================//
-// ZMQ command codes.
-//=====================================================================//
-
-#define ZMQ_CMD_REG_READ              GermaniumProtocol::Command::REG_READ
-#define ZMQ_CMD_REG_WRITE             GermaniumProtocol::Command::REG_WRITE
-#define ZMQ_CMD_MARS_GLOBAL_SET       GermaniumProtocol::Command::MARS_GLOBAL_SET
-#define ZMQ_CMD_MARS_GLOBAL_READ      GermaniumProtocol::Command::MARS_GLOBAL_READ
-#define ZMQ_CMD_MARS_CHANNEL_SET      GermaniumProtocol::Command::MARS_CHANNEL_SET
-#define ZMQ_CMD_MARS_CHANNEL_READ     GermaniumProtocol::Command::MARS_CHANNEL_READ
-#define ZMQ_CMD_MARS_LOAD             GermaniumProtocol::Command::MARS_LOAD
-#define ZMQ_CMD_ADC_CLK_SKEW_SET      GermaniumProtocol::Command::ADC_CLK_SKEW_SET
-#define ZMQ_CMD_I2C_TEMP_READ         GermaniumProtocol::Command::I2C_TEMP_READ
-#define ZMQ_CMD_XADC_READ             GermaniumProtocol::Command::XADC_READ
-#define ZMQ_CMD_I2C_DAC_WRITE         GermaniumProtocol::Command::I2C_DAC_WRITE
-#define ZMQ_CMD_I2C_ADC_READ          GermaniumProtocol::Command::I2C_ADC_READ
-#define ZMQ_CMD_I2C_DAC_INIT          GermaniumProtocol::Command::I2C_DAC_INIT
-#define ZMQ_CMD_ADC_CLK_SKEW_READ     GermaniumProtocol::Command::ADC_CLK_SKEW_READ
-#define ZMQ_CMD_SET_LOG_LEVEL         GermaniumProtocol::Command::SET_LOG_LEVEL
-#define ZMQ_CMD_GET_PROTOCOL_VERSION  GermaniumProtocol::Command::GET_PROTOCOL_VERSION
-#define ZMQ_CMD_HEARTBEAT             GermaniumProtocol::Command::HEARTBEAT
-
-using ZmqCommandMsg = GermaniumProtocol::Message;
-using GermaniumProtocol::MarsGlobalField;
-using GermaniumProtocol::MarsChannelField;
-using GermaniumProtocol::MARS_FIELD_ST;
-using GermaniumProtocol::MARS_FIELD_GAIN;
-using GermaniumProtocol::MARS_FIELD_POL;
-using GermaniumProtocol::MARS_FIELD_EBLK;
-using GermaniumProtocol::MARS_FIELD_GMON;
-using GermaniumProtocol::MARS_FIELD_PUEN;
-using GermaniumProtocol::MARS_FIELD_MFS;
-using GermaniumProtocol::MARS_FIELD_TDS;
-using GermaniumProtocol::MARS_FIELD_TDM;
-using GermaniumProtocol::MARS_FIELD_TH;
-using GermaniumProtocol::MARS_FIELD_TPAMP;
-using GermaniumProtocol::MARS_FIELD_C;
-using GermaniumProtocol::MARS_FIELD_M0;
-using GermaniumProtocol::MARS_FIELD_SAUX;
-using GermaniumProtocol::MARS_CH_CHEN;
-using GermaniumProtocol::MARS_CH_TSEN;
-using GermaniumProtocol::MARS_CH_THTR;
-using GermaniumProtocol::MARS_CH_PUTR;
-using GermaniumProtocol::MARS_CH_SEL;
 
 //===========================================================================//
 

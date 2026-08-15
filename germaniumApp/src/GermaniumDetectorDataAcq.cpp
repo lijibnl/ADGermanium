@@ -402,7 +402,7 @@ void GermaniumDetector::startDataAcquisition()
     setAcquisitionRunning(true);
 
     // Start hardware acquisition via ZMQ register write
-    zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 1);
+    zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::TRIG, 1);
 
     setIntegerParam(GermaniumCNT, 1);
     callParamCallbacks();
@@ -419,7 +419,7 @@ void GermaniumDetector::stopDataAcquisition()
 {
     if (!acquisitionRunning.load()) return;
 
-    zmqTx(ZMQ_CMD_REG_WRITE, TRIG, 0);
+    zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::TRIG, 0);
     setAcquisitionRunning(false);
     //fileWritingEnabled = false;
 

@@ -28,7 +28,6 @@
 #include <arpa/inet.h>
 
 #include "GermaniumDetector.hpp"
-#include "GermaniumDetectorParamFormat.hpp"
 #include "GermaniumProtocolCompatibility.hpp"
 #include "Zmq.hpp"
 
@@ -133,12 +132,12 @@ asynStatus GermaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 
 void GermaniumDetector::requestProtocolVersion()
 {
-    zmqTx(ZMQ_CMD_GET_PROTOCOL_VERSION, 0, 0);
+    zmqTx(GermaniumProtocol::Command::GET_PROTOCOL_VERSION, 0, 0);
 }
 
 //===========================================================================//
 
-void GermaniumDetector::zmqSend(const ZmqCommandMsg& msg)
+void GermaniumDetector::zmqSend(const GermaniumProtocol::Message& msg)
 {
     asynPrint( pasynUserSelf
              , ASYN_TRACEIO_DRIVER
@@ -153,20 +152,20 @@ void GermaniumDetector::zmqSend(const ZmqCommandMsg& msg)
              , ASYN_TRACEIO_DRIVER
              , "[%s]: ZMQ TX (decoded): %s\n"
              , portName
-             , format_zmq_msg(msg).c_str()
+             , GermaniumProtocol::formatMessage(msg).c_str()
              );
 
-    zmqClient->tx<ZmqCommandMsg>( msg );
+    zmqClient->tx<GermaniumProtocol::Message>( msg );
 }
 
 //===========================================================================//
 
 asynStatus GermaniumDetector::zmqMarsSetGlobal( uint32_t chipMask
-                                              , MarsGlobalField field
+                                              , GermaniumProtocol::MarsGlobalField field
                                               , uint32_t value
                                               )
 {
-    return zmqTx( ZMQ_CMD_MARS_GLOBAL_SET
+    return zmqTx( GermaniumProtocol::Command::MARS_GLOBAL_SET
                 , (chipMask << 16) | static_cast<uint32_t>(field)
                 , value
                 );
@@ -175,11 +174,11 @@ asynStatus GermaniumDetector::zmqMarsSetGlobal( uint32_t chipMask
 //===========================================================================//
 
 asynStatus GermaniumDetector::zmqMarsSetChannel( uint32_t channel
-                                               , MarsChannelField field
+                                               , GermaniumProtocol::MarsChannelField field
                                                , uint32_t value
                                                )
 {
-    return zmqTx( ZMQ_CMD_MARS_CHANNEL_SET
+    return zmqTx( GermaniumProtocol::Command::MARS_CHANNEL_SET
                 , (channel << 16) | static_cast<uint32_t>(field)
                 , value
                 );
@@ -189,7 +188,7 @@ asynStatus GermaniumDetector::zmqMarsSetChannel( uint32_t channel
 
 asynStatus GermaniumDetector::zmqMarsLoad(uint32_t chipMask)
 {
-    return zmqTx( ZMQ_CMD_MARS_LOAD
+    return zmqTx( GermaniumProtocol::Command::MARS_LOAD
                 , chipMask
                 , 0
                 );
@@ -238,20 +237,20 @@ void GermaniumDetector::zmqTxThread()
                      );
 
             // In server-down status, only send heartbeat messages
-            auto it = std::ranges::find(batch, ZMQ_CMD_HEARTBEAT, [](const auto& item) {
+            auto it = std::ranges::find(batch, GermaniumProtocol::Command::HEARTBEAT, [](const auto& item) {
                                                                      return item.msg.cmd;
                                                                     });
 
             if (it != batch.end())
             {
-                zmqClient->tx<ZmqCommandMsg>(it->msg);
+                zmqClient->tx<GermaniumProtocol::Message>(it->msg);
             }
         }
         else
         {
             for (auto& item : batch)
             {
-                zmqClient->tx<ZmqCommandMsg>(item.msg);
+                zmqClient->tx<GermaniumProtocol::Message>(item.msg);
             }
         }
     }
@@ -278,8 +277,8 @@ void GermaniumDetector::zmqRxThread()
 
     while ( threadsRunning.load() )
     {
-        ZmqCommandMsg reply;
-        auto rs = zmqClient->rx<ZmqCommandMsg>( reply );
+        GermaniumProtocol::Message reply;
+        auto rs = zmqClient->rx<GermaniumProtocol::Message>( reply );
         if ( rs == ZmqClient::RecvStatus::Timeout )
         {
             // Set server-down state on timeout
@@ -319,7 +318,7 @@ void GermaniumDetector::zmqRxThread()
                  , ASYN_TRACEIO_DRIVER
                  , "[%s]: ZMQ RX (decoded): %s\n"
                  , portName
-                 , format_zmq_msg(reply).c_str()
+                 , GermaniumProtocol::formatMessage(reply).c_str()
                  );
 
         processReply(reply);
@@ -334,69 +333,69 @@ void GermaniumDetector::zmqRxThread()
 
 //===========================================================================//
 
-void GermaniumDetector::processReply(const ZmqCommandMsg& reply)
+void GermaniumDetector::processReply(const GermaniumProtocol::Message& reply)
 {
 
     switch (reply.cmd)
     {
-        case ZMQ_CMD_GET_PROTOCOL_VERSION:
+        case GermaniumProtocol::Command::GET_PROTOCOL_VERSION:
             processReplyProtocolVersion( reply.value );
             break;
 
-        case ZMQ_CMD_REG_READ:
+        case GermaniumProtocol::Command::REG_READ:
             processReplyRegRead( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_REG_WRITE:
+        case GermaniumProtocol::Command::REG_WRITE:
             processReplyRegWrite( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_I2C_TEMP_READ:
+        case GermaniumProtocol::Command::I2C_TEMP_READ:
             processReplyI2cTempRead( reply.addr, reply.value );
             break;
 
 
-        case ZMQ_CMD_XADC_READ:
+        case GermaniumProtocol::Command::XADC_READ:
             processReplyXadcRead( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_I2C_ADC_READ:
+        case GermaniumProtocol::Command::I2C_ADC_READ:
             processReplyI2cAdcRead( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_MARS_GLOBAL_SET:
+        case GermaniumProtocol::Command::MARS_GLOBAL_SET:
             processReplyMarsGlobalSet( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_MARS_GLOBAL_READ:
+        case GermaniumProtocol::Command::MARS_GLOBAL_READ:
             processReplyMarsGlobalRead( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_MARS_CHANNEL_SET:
+        case GermaniumProtocol::Command::MARS_CHANNEL_SET:
             processReplyMarsChannelSet( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_MARS_CHANNEL_READ:
+        case GermaniumProtocol::Command::MARS_CHANNEL_READ:
             processReplyMarsChannelRead( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_ADC_CLK_SKEW_SET:
+        case GermaniumProtocol::Command::ADC_CLK_SKEW_SET:
             processReplyAdcClkSkewSet( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_ADC_CLK_SKEW_READ:
+        case GermaniumProtocol::Command::ADC_CLK_SKEW_READ:
             processReplyAdcClkSkewRead( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_I2C_DAC_WRITE:
+        case GermaniumProtocol::Command::I2C_DAC_WRITE:
             processReplyI2cDacWrite( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_I2C_DAC_INIT:
+        case GermaniumProtocol::Command::I2C_DAC_INIT:
             processReplyI2cDacInit( reply.addr, reply.value );
             break;
 
-        case ZMQ_CMD_HEARTBEAT:
+        case GermaniumProtocol::Command::HEARTBEAT:
             // No action needed for heartbeat replies
             break;
 
@@ -470,41 +469,41 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
 
     switch( addr )
     {
-        case VERSIONREG:
+        case GermaniumProtocol::Register::VERSIONREG:
             setIntegerParam(GermaniumFVER, static_cast<int>(value));
             break;
-        case DETECTOR_MODEL:
+        case GermaniumProtocol::Register::DETECTOR_MODEL:
             setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             break;
-        case CALPULSE_RATE:
+        case GermaniumProtocol::Register::CALPULSE_RATE:
             setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
             break;
-        case CALPULSE_CNT:
+        case GermaniumProtocol::Register::CALPULSE_CNT:
             setIntegerParam(GermaniumTPCNT_RBV, static_cast<int>(value));
             break;
-        case CALPULSE_MODE:
+        case GermaniumProtocol::Register::CALPULSE_MODE:
             setIntegerParam(GermaniumTPENB_RBV, static_cast<int>(value));
             break;
-        case MARS_PIPE_DELAY:
+        case GermaniumProtocol::Register::MARS_PIPE_DELAY:
             setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
             break;
-        case MARS_RDOUT_ENB:
+        case GermaniumProtocol::Register::MARS_RDOUT_ENB:
             setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
             break;
-        case TRIG:
+        case GermaniumProtocol::Register::TRIG:
             setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
             setAcquisitionRunning(value != 0);
             break;
-        case COUNT_MODE:
+        case GermaniumProtocol::Register::COUNT_MODE:
             setIntegerParam(GermaniumMODE, value ? 1 : 0);
             break;
-        case EVENT_TIME_CNTR:
+        case GermaniumProtocol::Register::EVENT_TIME_CNTR:
             setDoubleParam(GermaniumT, static_cast<double>(value) / 25.0e6);
             break;
-        case COUNT_TIME_LO:
+        case GermaniumProtocol::Register::COUNT_TIME_LO:
             count_time_lo = value;
             break;
-        case COUNT_TIME_HI:
+        case GermaniumProtocol::Register::COUNT_TIME_HI:
         {
             count_time_hi = value;
             double count_time = static_cast<double>( ( static_cast<uint64_t>(count_time_hi ) << 32)
@@ -512,7 +511,7 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             setDoubleParam(GermaniumTP, count_time);
             break;
         }
-        case UDP_IP_ADDR:
+        case GermaniumProtocol::Register::UDP_IP_ADDR:
         {
             uint32_t host = ntohl(value);
             struct in_addr a;
@@ -534,25 +533,25 @@ void GermaniumDetector::processReplyRegWrite(uint32_t addr, uint32_t value)
 {
     switch (addr)
     {
-        case CALPULSE_RATE:
+        case GermaniumProtocol::Register::CALPULSE_RATE:
             setIntegerParam(GermaniumTPFRQ_RBV, static_cast<int>(value));
             break;
-        case CALPULSE_CNT:
+        case GermaniumProtocol::Register::CALPULSE_CNT:
             setIntegerParam(GermaniumTPCNT_RBV, static_cast<int>(value));
             break;
-        case CALPULSE_MODE:
+        case GermaniumProtocol::Register::CALPULSE_MODE:
             setIntegerParam(GermaniumTPENB_RBV, static_cast<int>(value));
             break;
-        case MARS_PIPE_DELAY:
+        case GermaniumProtocol::Register::MARS_PIPE_DELAY:
             setIntegerParam(GermaniumPLDEL_RBV, static_cast<int>(value));
             break;
-        case MARS_RDOUT_ENB:
+        case GermaniumProtocol::Register::MARS_RDOUT_ENB:
             setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
             break;
-        case DETECTOR_MODEL:
+        case GermaniumProtocol::Register::DETECTOR_MODEL:
             setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             break;
-        case VERSIONREG:
+        case GermaniumProtocol::Register::VERSIONREG:
             setIntegerParam(GermaniumFVER, static_cast<int>(value));
             break;
         default:
@@ -573,9 +572,9 @@ void GermaniumDetector::processReplyI2cTempRead( const uint32_t addr, const uint
 
     switch (addr)
     {
-        case TEMPERATURE1_SELECTOR: setDoubleParam(GermaniumTEMP1, tempC); break;
-        case TEMPERATURE2_SELECTOR: setDoubleParam(GermaniumTEMP2, tempC); break;
-        case TEMPERATURE3_SELECTOR: setDoubleParam(GermaniumTEMP3, tempC); break;
+        case GermaniumProtocol::TemperatureSelector::TMP100_1: setDoubleParam(GermaniumTEMP1, tempC); break;
+        case GermaniumProtocol::TemperatureSelector::TMP100_2: setDoubleParam(GermaniumTEMP2, tempC); break;
+        case GermaniumProtocol::TemperatureSelector::TMP100_3: setDoubleParam(GermaniumTEMP3, tempC); break;
     }
 
     callParamCallbacks();
@@ -599,16 +598,16 @@ void GermaniumDetector::processReplyI2cAdcRead( const uint32_t addr, const uint3
     double raw = static_cast<double>(value);
     switch (addr)
     {
-        case ADC_CH_HV_RBV:
+        case GermaniumProtocol::AdcChannel::HV_VOLTAGE:
             setDoubleParam(GermaniumHV_RBV, raw * 500.0 / 4095.0);
             break;
-        case ADC_CH_HV_CUR:
+        case GermaniumProtocol::AdcChannel::HV_CURRENT:
             setDoubleParam(GermaniumHV_CURR, raw * 5.0 / 4095.0);
             break;
-        case ADC_CH_P1_CUR:
+        case GermaniumProtocol::AdcChannel::PELTIER1_CURRENT:
             setDoubleParam(GermaniumP1_CURR, raw * 500.0 / 4095.0);
             break;
-        case ADC_CH_P2_CUR:
+        case GermaniumProtocol::AdcChannel::PELTIER2_CURRENT:
             setDoubleParam(GermaniumP2_CURR, raw * 5.0 / 4095.0);
             break;
     }
@@ -628,31 +627,31 @@ void GermaniumDetector::processReplyMarsGlobalRead( const uint32_t addr, const u
 {
     switch ( addr & 0xFFFF )
     {
-        case MARS_FIELD_ST:
+        case GermaniumProtocol::MARS_FIELD_ST:
             setIntegerParam(GermaniumSHPT, static_cast<int>(value));
             break;
-        case MARS_FIELD_GAIN:
+        case GermaniumProtocol::MARS_FIELD_GAIN:
             setIntegerParam(GermaniumGAIN, static_cast<int>(value));
             break;
-        case MARS_FIELD_POL:
+        case GermaniumProtocol::MARS_FIELD_POL:
             setIntegerParam(GermaniumPOL, static_cast<int>(value));
             break;
-        case MARS_FIELD_EBLK:
+        case GermaniumProtocol::MARS_FIELD_EBLK:
             setIntegerParam(GermaniumEBLK, static_cast<int>(value));
             break;
-        case MARS_FIELD_PUEN:
+        case GermaniumProtocol::MARS_FIELD_PUEN:
             setIntegerParam(GermaniumPUEN, static_cast<int>(value));
             break;
-        case MARS_FIELD_MFS:
+        case GermaniumProtocol::MARS_FIELD_MFS:
             setIntegerParam(GermaniumMFS, static_cast<int>(value));
             break;
-        case MARS_FIELD_TDS:
+        case GermaniumProtocol::MARS_FIELD_TDS:
             setIntegerParam(GermaniumTDS, static_cast<int>(value));
             break;
-        case MARS_FIELD_TDM:
+        case GermaniumProtocol::MARS_FIELD_TDM:
             setIntegerParam(GermaniumTDM, static_cast<int>(value));
             break;
-        case MARS_FIELD_TPAMP:
+        case GermaniumProtocol::MARS_FIELD_TPAMP:
             setIntegerParam(GermaniumTPAMP_RBV, static_cast<int>(value));
             break;
 
