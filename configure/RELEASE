@@ -4,13 +4,13 @@
 
 # RELEASE - Location of external support modules
 
-EPICS_BASE = /epics/base
-ASYN = /epics/modules/asyn
-ADCORE = /epics/modules/ADCore
-BUSY = /epics/modules/busy
-SSCAN = /epics/modules/sscan
-CALC = /epics/modules/calc
-AUTOSAVE = /epics/modules/autosave
+EPICS_BASE = /usr/lib/epics
+ASYN       = /usr/lib/epics
+ADCORE     = /epics/modules/ADCore
+BUSY       = /usr/lib/epics
+SSCAN      = /usr/lib/epics
+CALC       = /usr/lib/epics
+AUTOSAVE   = /usr/lib/epics
 
 -include $(TOP)/../configure/RELEASE_LIBS_INCLUDE
 -include $(TOP)/RELEASE.local

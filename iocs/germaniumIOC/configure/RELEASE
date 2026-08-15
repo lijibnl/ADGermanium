@@ -1,12 +1,22 @@
 ADGERMANIUM=$(TOP)/../..
 
-EPICS_BASE = /epics/base
-ASYN = /epics/modules/asyn
-ADCORE = /epics/modules/ADCore
-BUSY = /epics/modules/busy
-SSCAN = /epics/modules/sscan
-CALC = /epics/modules/calc
-AUTOSAVE = /epics/modules/autosave
+ASYN       = /usr/lib/epics
+BUSY       = /usr/lib/epics
+SSCAN      = /usr/lib/epics
+CALC       = /usr/lib/epics
+AUTOSAVE   = /usr/lib/epics
+EPICS_BASE = /usr/lib/epics
+
+ADSUPPORT  = /epics/modules/ADSupport
+ADCORE     = /epics/modules/ADCore
+
+#ADCORE     = /nsls2/users/liji/epics/modules/ADCore
+#EPICS_BASE = /nsls2/users/liji/epics/base
+#ASYN       = /nsls2/users/liji/epics/modules/asyn
+#BUSY       = /nsls2/users/liji/epics/modules/busy
+#SSCAN      = /nsls2/users/liji/epics/modules/sscan
+#CALC       = /nsls2/users/liji/epics/modules/calc
+#AUTOSAVE   = /nsls2/users/liji/epics/modules/autosave
 
 -include $(TOP)/../../../configure/RELEASE_PRODS_INCLUDE
 -include $(TOP)/RELEASE.local
