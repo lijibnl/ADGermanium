@@ -1,6 +1,6 @@
 /**
  * @file GermaniumDetectorUdpWatchdog.cpp
- * @brief PL UDP ARP watchdog and legacy UDP register reachability checks.
+ * @brief PL UDP watchdog and UDP register reachability checks.
  *
  * @author Ji Li <liji@bnl.gov>
  * @date 08/11/2025
@@ -13,16 +13,10 @@
 
 #include "GermaniumDetector.hpp"
 
-#include <iostream>
-#include <array>
+#include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
-#include <ifaddrs.h>
-#include <linux/if_ether.h>
-#include <linux/if_packet.h>
-#include <net/if.h>
 #include <netinet/in.h>
-#include <sys/ioctl.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -39,94 +33,13 @@ constexpr uint16_t GIGE_REGISTER_WRITE_TX_PORT = 0x7D00;
 constexpr uint16_t GIGE_REGISTER_READ_TX_PORT  = 0x7D01;
 constexpr uint16_t GIGE_REGISTER_RX_PORT       = 0x7D02;
 
-constexpr uint32_t UDP_ENABLE_REGISTER = GermaniumProtocol::Register::LEDS;
+// Address in the detector UDP register protocol, not the ZMQ register map.
+constexpr uint32_t UDP_CONTROL_REGISTER = 0x00000001;
 constexpr uint32_t UDP_ENABLE_VALUE = 0x1;
 
 constexpr double UDP_WATCHDOG_TICK_SEC = 1.0;
 constexpr double UDP_WATCHDOG_PERIOD_SEC = 30.0;
 constexpr double UDP_REINIT_RETRY_PERIOD_SEC = 10.0;
-
-struct ArpInterface
-{
-    char name[IFNAMSIZ] {};
-    int ifIndex {-1};
-    in_addr ip {};
-    in_addr netmask {};
-    std::array<uint8_t, ETH_ALEN> mac {};
-};
-
-struct ArpPacket
-{
-    uint8_t  ethDst[ETH_ALEN];
-    uint8_t  ethSrc[ETH_ALEN];
-    uint16_t ethType;
-    uint16_t hwType;
-    uint16_t protoType;
-    uint8_t  hwSize;
-    uint8_t  protoSize;
-    uint16_t opCode;
-    uint8_t  senderMac[ETH_ALEN];
-    uint8_t  senderIp[4];
-    uint8_t  targetMac[ETH_ALEN];
-    uint8_t  targetIp[4];
-} __attribute__((packed));
-
-bool sameSubnet(in_addr lhs, in_addr rhs, in_addr mask)
-{
-    return (lhs.s_addr & mask.s_addr) == (rhs.s_addr & mask.s_addr);
-}
-
-bool findInterfaceForTarget(in_addr target, ArpInterface& out)
-{
-    ifaddrs *ifaddr = nullptr;
-    if (getifaddrs(&ifaddr) != 0)
-        return false;
-
-    bool found = false;
-    for (ifaddrs *ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
-    {
-        if (!ifa->ifa_addr || !ifa->ifa_netmask)
-            continue;
-        if (ifa->ifa_addr->sa_family != AF_INET)
-            continue;
-        if (!(ifa->ifa_flags & IFF_UP) || (ifa->ifa_flags & IFF_LOOPBACK))
-            continue;
-
-        auto *addr = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr);
-        auto *mask = reinterpret_cast<sockaddr_in*>(ifa->ifa_netmask);
-        if (!sameSubnet(addr->sin_addr, target, mask->sin_addr))
-            continue;
-
-        std::strncpy(out.name, ifa->ifa_name, sizeof(out.name) - 1);
-        out.name[sizeof(out.name) - 1] = '\0';
-        out.ip = addr->sin_addr;
-        out.netmask = mask->sin_addr;
-        found = true;
-        break;
-    }
-
-    freeifaddrs(ifaddr);
-    if (!found)
-        return false;
-
-    out.ifIndex = if_nametoindex(out.name);
-    if (out.ifIndex <= 0)
-        return false;
-
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0)
-        return false;
-
-    ifreq ifr {};
-    std::memcpy(ifr.ifr_name, out.name, sizeof(ifr.ifr_name));
-    bool macOk = ioctl(fd, SIOCGIFHWADDR, &ifr) == 0;
-    close(fd);
-    if (!macOk)
-        return false;
-
-    std::memcpy(out.mac.data(), ifr.ifr_hwaddr.sa_data, ETH_ALEN);
-    return true;
-}
 
 } // namespace
 
@@ -300,26 +213,23 @@ void GermaniumDetector::runUdpInitialization()
     in_addr configuredAddr {};
     if (inet_pton(AF_INET, targetAddress.c_str(), &configuredAddr) == 1)
     {
-        std::cerr << "[%s]: configure detector UDP IP address\n";
         zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::UDP_IP_ADDR, ntohl(configuredAddr.s_addr));
         epicsThreadSleep(0.1);
     }
 
-    bool arpOk = sendUdpArpRequest(targetAddress);
-    bool writeOk = legacyUdpRegisterWrite(targetAddress, UDP_ENABLE_REGISTER, UDP_ENABLE_VALUE);
+    bool writeOk = udpRegisterWrite(targetAddress, UDP_CONTROL_REGISTER, UDP_ENABLE_VALUE);
 
     uint32_t value = 0;
-    bool readOk = legacyUdpRegisterRead(targetAddress, UDP_ENABLE_REGISTER, value);
+    bool readOk = udpRegisterRead(targetAddress, UDP_CONTROL_REGISTER, value);
     bool reachable = writeOk && readOk && (value == UDP_ENABLE_VALUE);
 
     setUdpReachable(reachable);
 
-    if (!arpOk || !reachable)
+    if (!reachable)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: PL UDP initialization %s (arp=%d write=%d read=%d value=0x%08X)\n",
-                  __func__, reachable ? "partially succeeded" : "failed",
-                  arpOk ? 1 : 0, writeOk ? 1 : 0, readOk ? 1 : 0, value);
+                  "[%s]: PL UDP initialization failed (write=%d read=%d value=0x%08X)\n",
+                  __func__, writeOk ? 1 : 0, readOk ? 1 : 0, value);
     }
 }
 
@@ -334,83 +244,16 @@ void GermaniumDetector::runUdpWatchdogProbe()
         return;
     }
 
-    sendUdpArpRequest(targetAddress);
-
     uint32_t value = 0;
-    bool readOk = legacyUdpRegisterRead(targetAddress, UDP_ENABLE_REGISTER, value);
+    bool readOk = udpRegisterRead(targetAddress, UDP_CONTROL_REGISTER, value);
     setUdpReachable(readOk);
 }
 
 //===========================================================================//
 
-bool GermaniumDetector::sendUdpArpRequest(const std::string& targetAddress)
-{
-    in_addr target {};
-    if (inet_pton(AF_INET, targetAddress.c_str(), &target) != 1)
-        return false;
-
-    ArpInterface iface {};
-    if (!findInterfaceForTarget(target, iface))
-    {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: failed to find local interface for ARP target %s\n",
-                  __func__, targetAddress.c_str());
-        return false;
-    }
-
-    int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
-    if (fd < 0)
-    {
-        perror("socket");
-        std::cerr << __func__ << ": sockt() errno = " << errno << "\n";
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: failed to create raw ARP socket: %s\n",
-                  __func__, strerror(errno));
-        return false;
-    }
-
-    ArpPacket pkt {};
-    std::memset(pkt.ethDst, 0xff, ETH_ALEN);
-    std::memcpy(pkt.ethSrc, iface.mac.data(), ETH_ALEN);
-    pkt.ethType = htons(ETH_P_ARP);
-    pkt.hwType = htons(1);
-    pkt.protoType = htons(ETH_P_IP);
-    pkt.hwSize = ETH_ALEN;
-    pkt.protoSize = 4;
-    pkt.opCode = htons(1);
-    std::memcpy(pkt.senderMac, iface.mac.data(), ETH_ALEN);
-    std::memcpy(pkt.senderIp, &iface.ip.s_addr, sizeof(pkt.senderIp));
-    std::memset(pkt.targetMac, 0x00, ETH_ALEN);
-    std::memcpy(pkt.targetIp, &target.s_addr, sizeof(pkt.targetIp));
-
-    sockaddr_ll dest {};
-    dest.sll_family = AF_PACKET;
-    dest.sll_protocol = htons(ETH_P_ARP);
-    dest.sll_ifindex = iface.ifIndex;
-    dest.sll_halen = ETH_ALEN;
-    std::memset(dest.sll_addr, 0xff, ETH_ALEN);
-
-    ssize_t sent = sendto(fd, &pkt, sizeof(pkt), 0,
-                          reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
-    int savedErrno = errno;
-    close(fd);
-
-    if (sent != static_cast<ssize_t>(sizeof(pkt)))
-    {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: failed to send ARP request to %s on %s: %s\n",
-                  __func__, targetAddress.c_str(), iface.name, strerror(savedErrno));
-        return false;
-    }
-
-    return true;
-}
-
-//===========================================================================//
-
-bool GermaniumDetector::legacyUdpRegisterWrite(const std::string& targetAddress,
-                                               uint32_t addr,
-                                               uint32_t value)
+bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
+                                         uint32_t addr,
+                                         uint32_t value)
 {
     if (!initializeUdpRegisterSocket())
         return false;
@@ -465,9 +308,9 @@ bool GermaniumDetector::legacyUdpRegisterWrite(const std::string& targetAddress,
 
 //===========================================================================//
 
-bool GermaniumDetector::legacyUdpRegisterRead(const std::string& targetAddress,
-                                              uint32_t addr,
-                                              uint32_t& value)
+bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
+                                        uint32_t addr,
+                                        uint32_t& value)
 {
     value = 0;
     if (!initializeUdpRegisterSocket())

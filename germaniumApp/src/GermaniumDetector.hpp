@@ -528,7 +528,7 @@ private:
     int  plUdpSocket {-1 };
     bool plUdpInitialized {false};
 
-    // Legacy PL UDP register path and ARP watchdog
+    // PL UDP register path and watchdog
     int  udpRegisterSocket {-1};
     bool udpRegisterInitialized {false};
     std::atomic<bool> udpInitRequested {true};
@@ -581,9 +581,8 @@ private:
     bool        getConfiguredUdpAddress(std::string& address);
     void        runUdpInitialization();
     void        runUdpWatchdogProbe();
-    bool        sendUdpArpRequest(const std::string& targetAddress);
-    bool        legacyUdpRegisterWrite(const std::string& targetAddress, uint32_t addr, uint32_t value);
-    bool        legacyUdpRegisterRead(const std::string& targetAddress, uint32_t addr, uint32_t& value);
+    bool        udpRegisterWrite(const std::string& targetAddress, uint32_t addr, uint32_t value);
+    bool        udpRegisterRead(const std::string& targetAddress, uint32_t addr, uint32_t& value);
     void        setUdpReachable(bool reachable);
 
     //---------------------------------------------------------------------//
