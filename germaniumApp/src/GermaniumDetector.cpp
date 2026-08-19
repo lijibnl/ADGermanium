@@ -20,6 +20,7 @@
 
 #include "GermaniumDetector.hpp"
 #include "EpicsPoller.hpp"
+#include "GermaniumDetectorProtocol.hpp"
 
 //===========================================================================//
 
@@ -559,13 +560,15 @@ bool GermaniumDetector::createPoller()
     poller = std::make_unique<EpicsPoller>();
     poller->setFast(false);
 
-    for( auto info : pollInfo )
+    for( const auto& info : pollInfo )
     {
         poller->addItem( std::make_unique<EpicsPollItem>( info.slowDivider
                                                         , info.fastDivider
                                                         , [this, info](){ this->zmqTx(info.opCode, info.addr, 0); }
                                                         )
                        );
+        std::cout << "Poller: " << GermaniumProtocol::commandName(info.opCode) << ", "
+                  << GermaniumProtocol::registerName(info.addr) << "\n";
     }
     poller->setRunning(true);
 

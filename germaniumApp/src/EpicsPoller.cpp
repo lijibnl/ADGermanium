@@ -50,6 +50,7 @@ EpicsPoller::EpicsPoller( double period )
                                  , threadFuncC
                                  , this
                                  );
+    std::cout << "EpicPoller ctor\n";
 }
 
 //===========================================================================//
@@ -88,11 +89,14 @@ void EpicsPoller::threadFuncC(void *p)
 
     auto self = static_cast<EpicsPoller*>(p);
 
+    std::cout << "Poller created\n";
+    while(!self->running.load()){};
+
     while( self->running.load() )
     {
         if ( self->pollItemFast.load() )
         {
-            for ( auto& item : self->pollItems )
+            for ( const auto& item : self->pollItems )
             {
                 if (   (item->dividerFast > 0)
                     && (self->tick % item->dividerFast == 0) )
@@ -103,7 +107,7 @@ void EpicsPoller::threadFuncC(void *p)
         }
         else
         {
-            for ( auto& item : self->pollItems )
+            for ( const auto& item : self->pollItems )
             {
                 if (   (item->dividerSlow > 0)
                     && (self->tick % item->dividerSlow == 0)

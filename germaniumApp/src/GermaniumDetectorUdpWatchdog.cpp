@@ -13,6 +13,7 @@
 
 #include "GermaniumDetector.hpp"
 
+#include <iostream>
 #include <array>
 #include <cerrno>
 #include <cstring>
@@ -161,8 +162,8 @@ bool GermaniumDetector::initializeUdpRegisterSocket()
     if (udpRegisterSocket < 0)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: failed to create UDP register socket: %s\n",
-                  portName, strerror(errno));
+                  "[%s]: failed to create UDP register socket: %s\n",
+                  __func__, strerror(errno));
         return false;
     }
 
@@ -177,8 +178,8 @@ bool GermaniumDetector::initializeUdpRegisterSocket()
     if (bind(udpRegisterSocket, reinterpret_cast<sockaddr*>(&bindAddr), sizeof(bindAddr)) < 0)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: failed to bind UDP register socket to port %u: %s\n",
-                  portName, GIGE_REGISTER_RX_PORT, strerror(errno));
+                  "[%s]: failed to bind UDP register socket to port %u: %s\n",
+                  __func__, GIGE_REGISTER_RX_PORT, strerror(errno));
         closeUdpRegisterSocket();
         return false;
     }
@@ -212,8 +213,8 @@ bool GermaniumDetector::getConfiguredUdpAddress(std::string& address)
     if (inet_pton(AF_INET, buf, &addr) != 1)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: no valid configured PL UDP IP address ('%s')\n",
-                  portName, buf);
+                  "[%s]: no valid configured PL UDP IP address ('%s')\n",
+                  __func__, buf);
         return false;
     }
 
@@ -241,7 +242,7 @@ void GermaniumDetector::udpWatchdogThreadC(void *pPvt)
 void GermaniumDetector::udpWatchdogThread()
 {
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW,
-              "%s: UDP watchdog thread started\n", portName);
+              "[%s]: UDP watchdog thread started\n", __func__);
 
     double idleElapsed = 0.0;
     double reinitRetryElapsed = UDP_REINIT_RETRY_PERIOD_SEC;
@@ -280,7 +281,7 @@ void GermaniumDetector::udpWatchdogThread()
     }
 
     asynPrint(pasynUserSelf, ASYN_TRACE_FLOW,
-              "%s: UDP watchdog thread stopped\n", portName);
+              "[%s]: UDP watchdog thread stopped\n", __func__);
 }
 
 //===========================================================================//
@@ -299,6 +300,7 @@ void GermaniumDetector::runUdpInitialization()
     in_addr configuredAddr {};
     if (inet_pton(AF_INET, targetAddress.c_str(), &configuredAddr) == 1)
     {
+        std::cerr << "[%s]: configure detector UDP IP address\n";
         zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::UDP_IP_ADDR, ntohl(configuredAddr.s_addr));
         epicsThreadSleep(0.1);
     }
@@ -315,8 +317,8 @@ void GermaniumDetector::runUdpInitialization()
     if (!arpOk || !reachable)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: PL UDP initialization %s (arp=%d write=%d read=%d value=0x%08X)\n",
-                  portName, reachable ? "partially succeeded" : "failed",
+                  "[%s]: PL UDP initialization %s (arp=%d write=%d read=%d value=0x%08X)\n",
+                  __func__, reachable ? "partially succeeded" : "failed",
                   arpOk ? 1 : 0, writeOk ? 1 : 0, readOk ? 1 : 0, value);
     }
 }
@@ -351,17 +353,19 @@ bool GermaniumDetector::sendUdpArpRequest(const std::string& targetAddress)
     if (!findInterfaceForTarget(target, iface))
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: failed to find local interface for ARP target %s\n",
-                  portName, targetAddress.c_str());
+                  "[%s]: failed to find local interface for ARP target %s\n",
+                  __func__, targetAddress.c_str());
         return false;
     }
 
     int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ARP));
     if (fd < 0)
     {
+        perror("socket");
+        std::cerr << __func__ << ": sockt() errno = " << errno << "\n";
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: failed to create raw ARP socket: %s\n",
-                  portName, strerror(errno));
+                  "[%s]: failed to create raw ARP socket: %s\n",
+                  __func__, strerror(errno));
         return false;
     }
 
@@ -395,7 +399,7 @@ bool GermaniumDetector::sendUdpArpRequest(const std::string& targetAddress)
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
                   "%s: failed to send ARP request to %s on %s: %s\n",
-                  portName, targetAddress.c_str(), iface.name, strerror(savedErrno));
+                  __func__, targetAddress.c_str(), iface.name, strerror(savedErrno));
         return false;
     }
 
@@ -430,8 +434,8 @@ bool GermaniumDetector::legacyUdpRegisterWrite(const std::string& targetAddress,
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: UDP register write send failed: %s\n",
-                  portName, strerror(errno));
+                  "[%s]: UDP register write send failed: %s\n",
+                  __func__, strerror(errno));
         return false;
     }
 
@@ -487,8 +491,8 @@ bool GermaniumDetector::legacyUdpRegisterRead(const std::string& targetAddress,
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
         asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "%s: UDP register read send failed: %s\n",
-                  portName, strerror(errno));
+                  "[%s]: UDP register read send failed: %s\n",
+                  __func__, strerror(errno));
         return false;
     }
 

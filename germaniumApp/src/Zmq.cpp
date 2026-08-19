@@ -64,7 +64,7 @@ void ZmqClient::initRxSocket()
     int linger = 0;
     rxSock_.set(zmq::sockopt::linger, linger);
     
-    int timeout = 1000;    
+    int timeout = 2000;    
     rxSock_.set(zmq::sockopt::rcvtimeo, timeout);
         
     try

@@ -115,6 +115,8 @@ bool GermaniumDetector::initializeZmq()
 
 asynStatus GermaniumDetector::zmqTx(uint32_t cmd, uint32_t addr, uint32_t value)
 {
+    std::cerr << "zmqTx: " << GermaniumProtocol::commandName(cmd) << ", " << GermaniumProtocol::registerName(addr) << "\n";
+
     TxQueueItem item;
     item.msg.cmd   = cmd;
     item.msg.addr  = addr;
@@ -137,26 +139,26 @@ void GermaniumDetector::requestProtocolVersion()
 
 //===========================================================================//
 
-void GermaniumDetector::zmqSend(const GermaniumProtocol::Message& msg)
-{
-    asynPrint( pasynUserSelf
-             , ASYN_TRACEIO_DRIVER
-             , "[%s]: ZMQ TX: cmd=0x%02X addr=0x%04X value=0x%08X\n"
-             , portName
-             , msg.cmd
-             , msg.addr
-             , msg.value
-             );
-
-    asynPrint( pasynUserSelf
-             , ASYN_TRACEIO_DRIVER
-             , "[%s]: ZMQ TX (decoded): %s\n"
-             , portName
-             , GermaniumProtocol::formatMessage(msg).c_str()
-             );
-
-    zmqClient->tx<GermaniumProtocol::Message>( msg );
-}
+//void GermaniumDetector::zmqSend(const GermaniumProtocol::Message& msg)
+//{
+//    asynPrint( pasynUserSelf
+//             , ASYN_TRACEIO_DRIVER
+//             , "[%s]: ZMQ TX: cmd=0x%02X addr=0x%04X value=0x%08X\n"
+//             , __func__
+//             , msg.cmd
+//             , msg.addr
+//             , msg.value
+//             );
+//
+//    asynPrint( pasynUserSelf
+//             , ASYN_TRACEIO_DRIVER
+//             , "[%s]: ZMQ TX (decoded): %s\n"
+//             , __func__
+//             , GermaniumProtocol::formatMessage(msg).c_str()
+//             );
+//
+//    zmqClient->tx<GermaniumProtocol::Message>( msg );
+//}
 
 //===========================================================================//
 
@@ -205,7 +207,7 @@ void GermaniumDetector::zmqTxThreadC(void *pPvt)
 
 void GermaniumDetector::zmqTxThread()
 {
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "[%s]: Tx thread started\n", portName);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "[%s]: Tx thread started\n", __func__);
 
     while ( threadsRunning.load() )
     {
@@ -216,7 +218,7 @@ void GermaniumDetector::zmqTxThread()
             asynPrint( pasynUserSelf
                      , ASYN_TRACE_ERROR
                      , "[%s]: Tx thread resetting ZMQ client\n"
-                     , portName
+                     , __func__
                      );
             zmqClient->resetTxSocket();
             continue;
@@ -233,7 +235,7 @@ void GermaniumDetector::zmqTxThread()
             asynPrint( pasynUserSelf
                      , ASYN_TRACE_ERROR
                      , "[%s]: Tx thread detected server down, skipping send\n"
-                     , portName
+                     , __func__
                      );
 
             // In server-down status, only send heartbeat messages
@@ -243,6 +245,12 @@ void GermaniumDetector::zmqTxThread()
 
             if (it != batch.end())
             {
+                asynPrint( pasynUserSelf
+                         , ASYN_TRACE_ERROR
+                         , "[%s]: sending heartbeat\n"
+                         , __func__
+                         );
+
                 zmqClient->tx<GermaniumProtocol::Message>(it->msg);
             }
         }
@@ -252,14 +260,11 @@ void GermaniumDetector::zmqTxThread()
             {
                 zmqClient->tx<GermaniumProtocol::Message>(item.msg);
             }
+            batch.erase( batch.begin(), batch.end() );
         }
     }
 
-    asynPrint( pasynUserSelf
-             , ASYN_TRACE_FLOW
-             , "[%s]: Tx thread stopped\n"
-             , portName
-             );
+    std::cout << "[%s]: Tx thread stopped\n";
 }
 
 //===========================================================================//
@@ -282,6 +287,7 @@ void GermaniumDetector::zmqRxThread()
         if ( rs == ZmqClient::RecvStatus::Timeout )
         {
             // Set server-down state on timeout
+            std::cerr << "zmq rx timeout \n";
             zmqServerDown.store(true);
             continue;
         }
@@ -296,7 +302,7 @@ void GermaniumDetector::zmqRxThread()
             // Receive in server-down state, Tx should reset the socket.
             asynPrint( pasynUserSelf
                      , ASYN_TRACE_ERROR
-                     , "[%s]: detector ZMQ server recovered\n", portName);
+                     , "[%s]: detector ZMQ server recovered\n", __func__);
             zmqServerDown.store(false);
             zmqNeedReset.store(true);
 
@@ -309,7 +315,7 @@ void GermaniumDetector::zmqRxThread()
         asynPrint( pasynUserSelf
                  , ASYN_TRACEIO_DRIVER
                  , "[%s]: ZMQ RX: cmd=0x%02X addr=0x%04X value=0x%08X\n"
-                 , portName
+                 , __func__
                  , reply.cmd
                  , reply.addr
                  , reply.value
@@ -317,7 +323,7 @@ void GermaniumDetector::zmqRxThread()
         asynPrint( pasynUserSelf
                  , ASYN_TRACEIO_DRIVER
                  , "[%s]: ZMQ RX (decoded): %s\n"
-                 , portName
+                 , __func__
                  , GermaniumProtocol::formatMessage(reply).c_str()
                  );
 
@@ -327,7 +333,7 @@ void GermaniumDetector::zmqRxThread()
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "[%s]: ZMQ Rx thread stopped\n"
-             , portName
+             , __func__
              );
 }
 
@@ -422,7 +428,7 @@ void GermaniumDetector::processReplyProtocolVersion( uint32_t value )
         asynPrint( pasynUserSelf
                  , ASYN_TRACE_FLOW
                  , "[%s]: detector protocol version %u.%u verified\n"
-                 , portName
+                 , __func__
                  , expectedMajor
                  , expectedMinor
                  );
@@ -732,7 +738,7 @@ void GermaniumDetector::zmqDataThread()
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "[%s]: ZMQ data thread started\n"
-             , portName
+             , __func__
              );
 
     while ( threadsRunning.load() )
@@ -821,7 +827,7 @@ void GermaniumDetector::zmqDataThread()
         zmq_msg_close(&payloadMsg);
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "[%s]: ZMQ data thread stopped\n", portName);
+    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "[%s]: ZMQ data thread stopped\n", __func__);
 }
 */
 
