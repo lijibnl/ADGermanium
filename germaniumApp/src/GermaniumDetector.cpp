@@ -164,7 +164,7 @@ GermaniumDetector::GermaniumDetector( const char *portName
         std::cerr << "[" << __func__ << "]: failed to create UDP data write thread\n";
         return;
     }
-    std::cout << "[" << __func__ << "]: UDP data write thread started\n";
+    std::cerr << "[" << __func__ << "]: UDP data write thread started\n";
 
     // Initialize PL UDP socket for raw data reception
     if (initializePlUdpSocket())

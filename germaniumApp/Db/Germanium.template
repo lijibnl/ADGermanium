@@ -243,7 +243,7 @@ record(mbbo, "$(P)$(R)TDCMode") {
     field(DESC, "TDC mode")
 }
 
-record(bo, "$(P)$(R)LeakageCurrent") {
+record(mbbo, "$(P)$(R)LeakageCurrent") {
     field(DTYP, "asynInt32")
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_EBLK")
     field(ZRST, "Off")

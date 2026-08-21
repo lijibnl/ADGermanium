@@ -506,8 +506,6 @@ private:
     std::atomic<bool> zmqNeedReset {false};
     std::atomic<bool> zmqServerDown {false};
 
-    //void zmqSend( const GermaniumProtocol::Message& msg );
-
     // Async tx queue (EPICS threads → Tx thread → PUSH socket)
     struct TxQueueItem
     {
@@ -634,28 +632,28 @@ private:
 
     static constexpr PollInfo pollInfo[] =
         { { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_RATE,         POLLING_SLOW, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_CNT,          POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_MODE,         POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_PIPE_DELAY,       POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_RDOUT_ENB,        POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::SIM_EVT_SEL,           POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_MODE,            POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::TRIG,                  POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::EVENT_TIME_CNTR,       POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_LO,         POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_HI,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_CNT,          POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_MODE,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_PIPE_DELAY,       POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_RDOUT_ENB,        POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::SIM_EVT_SEL,           POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_MODE,            POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::TRIG,                  POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::EVENT_TIME_CNTR,       POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_LO,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_HI,         POLLING_REGULAR, POLLING_FAST }
         , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::UDP_IP_ADDR,           POLLING_REGULAR, POLLING_FAST }
 
-        //, { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_1, POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_2, POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_3, POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_1, POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_2, POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_3, POLLING_REGULAR, POLLING_FAST }
 
-        //, { GermaniumProtocol::Command::XADC_READ,     0,                     POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::XADC_READ,     0,                     POLLING_REGULAR, POLLING_FAST }
 
-        //, { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_VOLTAGE,         POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_CURRENT,         POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER1_CURRENT,         POLLING_REGULAR, POLLING_FAST }
-        //, { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER2_CURRENT,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_VOLTAGE,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_CURRENT,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER1_CURRENT,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER2_CURRENT,         POLLING_REGULAR, POLLING_FAST }
 
         , { GermaniumProtocol::Command::HEARTBEAT,     0,                     POLLING_REGULAR, POLLING_REGULAR }
         };

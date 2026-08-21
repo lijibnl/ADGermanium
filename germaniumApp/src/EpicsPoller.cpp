@@ -22,18 +22,18 @@
 //===========================================================================//
 
 EpicsPollItem::EpicsPollItem( int slowDivider, int fastDivider, PollFunc pollFunc )
-                            : dividerSlow( slowDivider )
-                            , dividerFast( fastDivider )
-                            , divider    ( slowDivider )
-                            , pollFunc   ( pollFunc    )
+                            : divider_    ( slowDivider )
+                            , dividerSlow_( slowDivider )
+                            , dividerFast_( fastDivider )
+                            , pollFunc_   ( pollFunc    )
 {}
 
 //===========================================================================//
 
 void EpicsPollItem::execute()
 {
-    if (pollFunc)
-        pollFunc();
+    if (pollFunc_)
+        pollFunc_();
     else
         std::cerr << "[" << __func__ << "]: warning: no poll function defined for this item\n";
 }
@@ -41,44 +41,43 @@ void EpicsPollItem::execute()
 //===========================================================================//
 
 EpicsPoller::EpicsPoller( double period )
-                        : basePeriod( period )
-                        , tick      ( 1      )
+                        : basePeriod_( period )
+                        , tick_      ( 1      )
 {
-    threadId = epicsThreadCreate( "EpicsPoller"
+    threadId_ = epicsThreadCreate( "EpicsPoller"
                                  , epicsThreadPriorityMedium
                                  , epicsThreadGetStackSize(epicsThreadStackMedium)
                                  , threadFuncC
                                  , this
                                  );
-    std::cout << "EpicPoller ctor\n";
 }
 
 //===========================================================================//
 
 EpicsPoller::~EpicsPoller()
 {
-    running.store(false);
+    running_.store(false);
 }
 
 //===========================================================================//
 
 void EpicsPoller::setFast(bool fast)
 {
-    pollItemFast.store( fast );
+    pollItemFast_.store( fast );
 }
 
 //===========================================================================//
 
 void EpicsPoller::setRunning(bool running)
 {
-    this->running.store(running);
+    this->running_.store(running);
 }
 
 //===========================================================================//
 
 void EpicsPoller::addItem(std::unique_ptr<EpicsPollItem> item)
 {
-    pollItems.push_back( std::move(item) );
+    pollItems_.push_back( std::move(item) );
 }
 
 //===========================================================================//
@@ -89,17 +88,16 @@ void EpicsPoller::threadFuncC(void *p)
 
     auto self = static_cast<EpicsPoller*>(p);
 
-    std::cout << "Poller created\n";
-    while(!self->running.load()){};
+    while(!self->running_.load()){};
 
-    while( self->running.load() )
+    while( self->running_.load() )
     {
-        if ( self->pollItemFast.load() )
+        if ( self->pollItemFast_.load() )
         {
-            for ( const auto& item : self->pollItems )
+            for ( const auto& item : self->pollItems_ )
             {
-                if (   (item->dividerFast > 0)
-                    && (self->tick % item->dividerFast == 0) )
+                if (   (item->dividerFast_ > 0)
+                    && (self->tick_ % item->dividerFast_ == 0) )
                 {
                     item->execute();
                 }
@@ -107,10 +105,10 @@ void EpicsPoller::threadFuncC(void *p)
         }
         else
         {
-            for ( const auto& item : self->pollItems )
+            for ( const auto& item : self->pollItems_ )
             {
-                if (   (item->dividerSlow > 0)
-                    && (self->tick % item->dividerSlow == 0)
+                if (   (item->dividerSlow_ > 0)
+                    && (self->tick_ % item->dividerSlow_ == 0)
                    )
                 {
                     item->execute();
@@ -118,10 +116,10 @@ void EpicsPoller::threadFuncC(void *p)
             }
         }
 
-        self->tick++;
-        if (self->tick >= maxTick) self->tick = 0;
+        self->tick_++;
+        if (self->tick_ >= maxTick) self->tick_ = 0;
 
-        epicsThreadSleep( self->basePeriod );
+        epicsThreadSleep( self->basePeriod_ );
     }
 
     std::cerr << "[" << __func__ << "]: : exiting\n";

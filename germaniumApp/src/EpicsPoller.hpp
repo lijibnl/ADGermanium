@@ -34,14 +34,14 @@ public:
                  , PollFunc pollFunc
                  );
 ;
-    int divider;
-    int dividerSlow;
-    int dividerFast;
+    int divider_;
+    int dividerSlow_;
+    int dividerFast_;
 
     void execute();
 
 private:
-    PollFunc pollFunc;
+    PollFunc pollFunc_;
 };
 
 //=============================================================================//
@@ -59,16 +59,17 @@ public:
     void setRunning( bool running );
 
 private:
-    std::vector<std::unique_ptr<EpicsPollItem>> pollItems;
+    std::vector<std::unique_ptr<EpicsPollItem>> pollItems_;
 
-    std::atomic<bool> pollItemFast; // parallel vector to track which items are "fast"
+    std::atomic<bool> pollItemFast_; // parallel vector to track which items are "fast"
     
-    double basePeriod;
-    int    tick;
+    double basePeriod_;
+    int    tick_;
 
-    epicsThreadId threadId;
-    std::atomic<bool> running;
+    epicsThreadId threadId_;
+    std::atomic<bool> running_;
 
     static void threadFuncC(void *p);
     void threadFunc();
 };
+
