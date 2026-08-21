@@ -1,0 +1,4 @@
+NAME=germaniumIOC
+USER=softioc-hex
+PORT=4050
+HOST=xf27id1-det6
