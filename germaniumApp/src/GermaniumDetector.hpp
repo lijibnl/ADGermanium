@@ -553,14 +553,10 @@ private:
     std::atomic<uint64_t>  dataQueueHead      {0};       // next slot for producers (CAS)
     std::atomic<uint64_t>  dataQueueTail      {0};       // next slot for consumer
 
-    // Spectra data — atomic for lock-free access from multiple producer
-    // threads (zmqData, plUdp) and the EPICS readback thread.
+    // Spectra data — atomic for lock-free access from:
+    // - producer thread plUdp
+    // - consumer the EPICS readback thread.
     // Flat-allocated: mcaData[element * SPECTRUM_SIZE + bin]
-   //std::atomic<uint32_t> *mcaData;     // [numElements * SPECTRUM_SIZE]
-   //std::atomic<uint32_t> *tdcData;     // [numElements * TDC_SIZE]
-   //std::atomic<uint32_t> *countRates;  // [numElements]
-   //std::atomic<uint64_t> *totalCounts; // [numElements]
-
     std::unique_ptr<std::atomic<uint32_t>[]> mcaData;
     std::unique_ptr<std::atomic<uint32_t>[]> tdcData;
     std::unique_ptr<std::atomic<uint32_t>[]> countRates;

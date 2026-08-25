@@ -108,10 +108,6 @@ void GermaniumDetector::allocateDataArrays()
     size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
     size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
 
-    //mcaData    = new std::atomic<uint32_t>[mcaTotal];
-    //tdcData    = new std::atomic<uint32_t>[tdcTotal];
-    //countRates = new std::atomic<uint32_t>[numElements];
-    //totalCounts= new std::atomic<uint64_t>[numElements];
     mcaData    = std::make_unique<std::atomic<uint32_t>[]>(mcaTotal);
     tdcData    = std::make_unique<std::atomic<uint32_t>[]>(tdcTotal);
     countRates = std::make_unique<std::atomic<uint32_t>[]>(numElements);
@@ -129,7 +125,6 @@ void GermaniumDetector::allocateDataArrays()
     evttot.store(0, std::memory_order_relaxed);
 
     // Allocate lock-free block queue
-    //dataQueue = new DataBlock[DATA_QUEUE_CAPACITY];
     dataQueue = std::make_unique<DataBlock[]>(DATA_QUEUE_CAPACITY);
     for (int i = 0; i < DATA_QUEUE_CAPACITY; i++)
         dataQueue[i].state.store(DATA_BLOCK_FREE, std::memory_order_relaxed);
@@ -554,11 +549,11 @@ bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
 //===========================================================================//
 
 /*
- * Enqueue raw data into the lock-free MPSC block queue.
+ * Enqueue raw data into the lock-free SPMC block queue.
  *
- * Producers (zmqDataThread / plUdpDataThread) claim a slot via CAS on
- * dataQueueHead, memcpy the payload, then publish with release-store on
- * the per-block state flag.  No mutex is touched on the hot path.
+ * Producers (plUdpDataThread) claim a slot via CAS on dataQueueHead, memcpy
+ * the payload, then publish with release-store on the per-block state flag.
+ * No mutex is touched on the hot path.
  */
 void GermaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
 {
