@@ -34,6 +34,7 @@
 #include "ADDriver.h"
 #include "GermaniumDetectorTypes.hpp"
 #include "EpicsPoller.hpp"
+#include "LockFreeBroadcastSPMC.hpp"
 #include "Zmq.hpp"
 #include <zmq.h>
 
@@ -354,18 +355,21 @@ public:
     bool initializeUdpRegisterSocket();
     void closeUdpRegisterSocket();
     void plUdpDataThread();
-    void dataProcessingThread();
+    void dataProcessThread();
+    void spectraSynchronizeThread();
     void dataWriteThread();
     void udpWatchdogThread();
 
    //static void zmqDataThreadC(void *pPvt);
     static void plUdpDataThreadC(void *pPvt);
-    static void dataProcessingThreadC(void *pPvt);
+    static void dataProcessThreadC(void *pPvt);
+    static void spectraSynchronizeThreadC(void *pPvt);
     static void dataWriteThreadC(void *pPvt);
     static void udpWatchdogThreadC(void *pPvt);
 
     // Event processing
-    void processPhotonEvent(int element, int energy, int tdValue);
+    //void processPhotonEvent(int element, int energy, int tdValue);
+    void calcSpectra( uint32_t* words, size_t numWords );
     void clearSpectra();
 
     //---------------------------------------------------------------------//
@@ -521,7 +525,7 @@ private:
     //---------------------------------------------------------------------//
     // UDP data related
     //---------------------------------------------------------------------//
-
+    bool udpInit();
     // UDP data socket (raw events from FPGA)
     int  plUdpSocket {-1 };
     bool plUdpInitialized {false};
@@ -540,38 +544,39 @@ private:
     std::string         currentFilename;
     std::atomic<size_t> totalBytesWritten    {0};
     std::atomic<int>    totalFilesWritten    {0};
+    std::atomic<bool>   flushWriteBuffer     {false};
 
-    epicsThreadId     plUdpDataThreadId      {nullptr};
-    epicsThreadId     udpWatchdogThreadId    {nullptr};
-    epicsThreadId     dataProcessingThreadId {nullptr};
-    epicsThreadId     dataWriteThreadId      {nullptr};
+    epicsThreadId     plUdpDataThreadId          {nullptr};
+    epicsThreadId     udpWatchdogThreadId        {nullptr};
+    epicsThreadId     dataProcessThreadId        {nullptr};
+    epicsThreadId     spectraSynchronizeThreadId {nullptr};
+    epicsThreadId     dataWriteThreadId          {nullptr};
 
-    // Lock-free MPSC data queue (producers: zmqData + plUdp; consumer: dataWrite)
-    //DataBlock             *dataQueue          {nullptr}; // heap array [DATA_QUEUE_CAPACITY]
-    std::unique_ptr<DataBlock[]> dataQueue; // heap array [DATA_QUEUE_CAPACITY]
-    epicsEventId           dataWriteAvailable {nullptr};
-    std::atomic<uint64_t>  dataQueueHead      {0};       // next slot for producers (CAS)
-    std::atomic<uint64_t>  dataQueueTail      {0};       // next slot for consumer
+    // Lock-free SPMC data queue
+    // - Producer: plUdpDataThread
+    // - Consumers: dataProcessThread, dataWriteThread
+    std::unique_ptr<LockFreeBroadcastSPMC<DataBlock, DATA_QUEUE_CAPACITY, 2>> dataQueue; // heap array [DATA_QUEUE_CAPACITY]
+
+    // The two SPMC consumers wait on events to read data from the queue
+    std::array<epicsEvent, 2> udpDataAvailableEvent {epicsEventEmpty, epicsEventEmpty};
+
+    epicsEvent udpWatchdogEvent {epicsEventEmpty};
 
     // Spectra data — atomic for lock-free access from:
-    // - producer thread plUdp
-    // - consumer the EPICS readback thread.
-    // Flat-allocated: mcaData[element * SPECTRUM_SIZE + bin]
+    // - producer: dataProcessThread
+    // - consumer: spectraSynchronizeThread
     std::unique_ptr<std::atomic<uint32_t>[]> mcaData;
     std::unique_ptr<std::atomic<uint32_t>[]> tdcData;
     std::unique_ptr<std::atomic<uint32_t>[]> countRates;
     std::unique_ptr<std::atomic<uint64_t>[]> totalCounts;
 
-    epicsEventId      dataAvailable {nullptr};
-    epicsEventId      udpWatchdogEvent {nullptr};
-
     void        createDataDirectory();
     std::string generateFilename(int segmentNumber);
     bool        openNewDataFile();
     void        closeCurrentDataFile();
-    bool        writeDataToFile(const uint8_t* data, size_t dataSize);
-    void        addDataToWriteBuffer(const uint8_t* data, size_t dataSize);
-    void        flushWriteBuffer();
+    bool        writeDataToFile(const DataBlock* block);
+    void        addDataToBuffer(const uint8_t* data, size_t dataSize);
+    //void        flushWriteBuffer();
     bool        getConfiguredUdpAddress(std::string& address);
     void        runUdpInitialization();
     void        runUdpWatchdogProbe();
@@ -627,31 +632,30 @@ private:
 
 
     static constexpr PollInfo pollInfo[] =
-        { { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_RATE,         POLLING_SLOW, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_CNT,          POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_MODE,         POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_PIPE_DELAY,       POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_RDOUT_ENB,        POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::SIM_EVT_SEL,           POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_MODE,            POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::TRIG,                  POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::EVENT_TIME_CNTR,       POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_LO,         POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_HI,         POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::UDP_IP_ADDR,           POLLING_REGULAR, POLLING_FAST }
-
+        { { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_RATE,       POLLING_SLOW, POLLING_FAST    }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_CNT,        POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::CALPULSE_MODE,       POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_PIPE_DELAY,     POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::MARS_RDOUT_ENB,      POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::SIM_EVT_SEL,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_MODE,          POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::TRIG,                POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::EVENT_TIME_CNTR,     POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_LO,       POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::COUNT_TIME_HI,       POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::REG_READ,      GermaniumProtocol::Register::UDP_IP_ADDR,         POLLING_REGULAR, POLLING_FAST }
         , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_1, POLLING_REGULAR, POLLING_FAST }
         , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_2, POLLING_REGULAR, POLLING_FAST }
         , { GermaniumProtocol::Command::I2C_TEMP_READ, GermaniumProtocol::TemperatureSelector::TMP100_3, POLLING_REGULAR, POLLING_FAST }
 
-        , { GermaniumProtocol::Command::XADC_READ,     0,                     POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::XADC_READ,     0,                                                POLLING_REGULAR, POLLING_FAST }
 
-        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_VOLTAGE,         POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_CURRENT,         POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER1_CURRENT,         POLLING_REGULAR, POLLING_FAST }
-        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER2_CURRENT,         POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_VOLTAGE,        POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::HV_CURRENT,        POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER1_CURRENT,  POLLING_REGULAR, POLLING_FAST }
+        , { GermaniumProtocol::Command::I2C_ADC_READ,  GermaniumProtocol::AdcChannel::PELTIER2_CURRENT,  POLLING_REGULAR, POLLING_FAST }
 
-        , { GermaniumProtocol::Command::HEARTBEAT,     0,                     POLLING_REGULAR, POLLING_REGULAR }
+        , { GermaniumProtocol::Command::HEARTBEAT,     0,                                                POLLING_REGULAR, POLLING_REGULAR }
         };
     bool createPoller();
 

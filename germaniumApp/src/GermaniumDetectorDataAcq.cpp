@@ -16,7 +16,6 @@
 
 //===========================================================================//
 
-#include "GermaniumDetector.hpp"
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -28,7 +27,131 @@
 #include <cstdio>
 #include <chrono>
 #include <thread>
-//#include <print>
+#include <iostream>
+
+#include "GermaniumDetector.hpp"
+#include "LockFreeBroadcastSPMC.hpp"
+
+using Clock = std::chrono::steady_clock;
+
+//===========================================================================//
+
+namespace {
+    constexpr float DATA_THREAD_WAIT_FOR_DATA_TIMEOUT = 0.02f; // 10 - 50 ms
+
+    constexpr size_t DATA_PROC_THREAD_INDEX  = 0;
+    constexpr size_t DATA_WRITE_THREAD_INDEX = 1;
+
+    constexpr std::chrono::milliseconds DATA_THREAD_WAIT_FOR_EOF_TIMEOUT = std::chrono::milliseconds(500);  // 500 ms
+    //constexpr std::chrono::milliseconds DATA_THREAD_IDLE_TIMEOUT = std::chrono::milliseconds(500);  // 500 ms
+    
+    enum class QueueConsumerThreadState
+    {
+        IDLE,
+        START,
+        RUNNING,
+        FLUSH
+    };
+}
+
+//===========================================================================//
+
+bool GermaniumDetector::udpInit()
+{
+    allocateDataArrays();
+
+    if (!initializePlUdpSocket())
+    {
+        std::cerr << "[" << __func__ << "]: failed to initialize PL UDP socket\n";
+        return false;
+    }
+    
+    //------------------------------------------------------------------//
+
+    spectraSynchronizeThreadId = epicsThreadCreate( "GermaniumDataSync"
+                                                  , epicsThreadPriorityMedium
+                                                  , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                                  , spectraSynchronizeThreadC
+                                                  , this
+                                                  );
+    if (!spectraSynchronizeThreadId)
+    {
+        std::cerr << "[" << __func__ << "]: failed to create data synchronizing thread\n";
+        return false;
+    }
+    std::cerr << "[" << __func__ << "]: UDP data synchronizing thread started\n";
+    
+    //------------------------------------------------------------------//
+
+    dataProcessThreadId = epicsThreadCreate( "GermaniumDataProc"
+                                           , epicsThreadPriorityMedium
+                                           , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                           , dataProcessThreadC
+                                           , this
+                                           );
+    if (!dataProcessThreadId)
+    {
+        std::cerr << "[" << __func__ << "]: failed to create data processing thread\n";
+        return false;
+    }
+    std::cerr << "[" << __func__ << "]: UDP data processing thread started\n";
+    
+    //------------------------------------------------------------------//
+
+    dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
+                                         , epicsThreadPriorityMedium
+                                         , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                         , dataWriteThreadC
+                                         , this
+                                         );
+    if (!dataWriteThreadId)
+    {
+        std::cerr << "[" << __func__ << "]: failed to create UDP data write thread\n";
+        return false;
+    }
+    std::cerr << "[" << __func__ << "]: UDP data write thread started\n";
+    
+    //------------------------------------------------------------------//
+
+    plUdpDataThreadId = epicsThreadCreate( "GermaniumPlUdp"
+                                         , epicsThreadPriorityHigh
+                                         , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                         , plUdpDataThreadC
+                                         , this
+                                         );
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: PL UDP data thread started\n"
+             , __func__
+             );
+    if (!plUdpDataThreadId)
+    {
+        std::cerr << "[" << __func__ << "]: failed to create PL UDP data thread\n";
+        return false;
+    }
+    std::cerr << "[" << __func__ << "]: PL UDP data thread started\n";
+
+    //------------------------------------------------------------------//
+
+    udpWatchdogThreadId = epicsThreadCreate( "GermaniumUdpWatch"
+                                           , epicsThreadPriorityMedium
+                                           , epicsThreadGetStackSize(epicsThreadStackMedium)
+                                           , udpWatchdogThreadC
+                                           , this
+                                           );
+    if (!udpWatchdogThreadId)
+    {
+        std::cerr << "[" << __func__ << "]: failed to create UDP watchdog thread\n";
+        return false;
+    }
+    std::cerr << "[" << __func__ << "]: UDP watchdog thread started\n";
+
+    //------------------------------------------------------------------//
+
+    requestUdpReinitialization();
+
+    return true;
+}
 
 //===========================================================================//
 
@@ -44,7 +167,7 @@ bool GermaniumDetector::initializePlUdpSocket()
         asynPrint( pasynUserSelf
                  , ASYN_TRACE_ERROR
                  , "%s: failed to create PL UDP socket: %s\n"
-                 , portName
+                 , __func__
                  , strerror(errno)
                  );
         return false;
@@ -68,7 +191,7 @@ bool GermaniumDetector::initializePlUdpSocket()
         asynPrint( pasynUserSelf
                  , ASYN_TRACE_ERROR
                  , "%s: failed to bind PL UDP socket to port %d: %s\n"
-                 , portName
+                 , __func__
                  , PL_UDP_DATA_PORT
                  , strerror(errno)
                  );
@@ -81,7 +204,7 @@ bool GermaniumDetector::initializePlUdpSocket()
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: PL UDP socket bound to port %d\n"
-             , portName
+             , __func__
              , PL_UDP_DATA_PORT
              );
     return true;
@@ -103,6 +226,9 @@ void GermaniumDetector::closePlUdpSocket()
 
 void GermaniumDetector::allocateDataArrays()
 {
+    // Allocate lock-free block queue
+    dataQueue = std::make_unique<LockFreeBroadcastSPMC<DataBlock, DATA_QUEUE_CAPACITY, 2>>();
+
     // Flat atomic arrays — safe for concurrent access from multiple
     // producer threads (zmqData, plUdp) and the EPICS read thread.
     size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
@@ -113,27 +239,18 @@ void GermaniumDetector::allocateDataArrays()
     countRates = std::make_unique<std::atomic<uint32_t>[]>(numElements);
     totalCounts= std::make_unique<std::atomic<uint64_t>[]>(numElements);
 
-    for (size_t i = 0; i < mcaTotal; i++)
-        mcaData[i].store(0, std::memory_order_relaxed);
-    for (size_t i = 0; i < tdcTotal; i++)
-        tdcData[i].store(0, std::memory_order_relaxed);
-    for (int i = 0; i < numElements; i++)
-    {
-        countRates[i].store(0, std::memory_order_relaxed);
-        totalCounts[i].store(0, std::memory_order_relaxed);
-    }
-    evttot.store(0, std::memory_order_relaxed);
+    clearSpectra();
 
-    // Allocate lock-free block queue
-    dataQueue = std::make_unique<DataBlock[]>(DATA_QUEUE_CAPACITY);
-    for (int i = 0; i < DATA_QUEUE_CAPACITY; i++)
-        dataQueue[i].state.store(DATA_BLOCK_FREE, std::memory_order_relaxed);
-
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW, "%s: allocated data arrays for %d elements\n", portName, numElements);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: allocated data arrays for %d elements\n"
+             , __func__
+             , numElements
+             );
 }
 
 //===========================================================================//
-
+/*
 void GermaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
 {
     if (element < 0 || element >= numElements) return;
@@ -146,7 +263,7 @@ void GermaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
     totalCounts[element].fetch_add(1, std::memory_order_relaxed);
     evttot.fetch_add(1, std::memory_order_relaxed);
 }
-
+*/
 //===========================================================================//
 
 void GermaniumDetector::clearSpectra()
@@ -189,7 +306,6 @@ void GermaniumDetector::plUdpDataThread()
              , portName
              );
 
-    uint8_t recvBuf[UDP_BUFFER_SIZE];
     struct sockaddr_in senderAddr;
     socklen_t addrLen = sizeof(senderAddr);
 
@@ -205,69 +321,301 @@ void GermaniumDetector::plUdpDataThread()
         int result = select(plUdpSocket + 1, &readfds, nullptr, nullptr, &timeout);
         if (result <= 0) continue;
 
+        DataBlock* block = nullptr;
+
+        for (int spins = 0; ; spins++)
+        {
+            block = dataQueue->pushRequest();
+            if (block) break;
+
+            if (spins < 10)
+            {
+                std::this_thread::yield();
+            }
+            else
+            {
+                epicsThreadSleepQuantum();
+            }
+        }
+
         ssize_t bytesReceived = recvfrom( plUdpSocket
-                                        , recvBuf
-                                        , sizeof(recvBuf)
+                                        , block->data
+                                        , DATA_BLOCK_SIZE
                                         , 0
                                         , (struct sockaddr*)&senderAddr
                                         , &addrLen
                                         );
-        if (bytesReceived <= 0) continue;
-
-        if (!acquisitionRunning.load()) continue;
-
-        // Parse packet as big-endian 32-bit words
-        size_t numWords = bytesReceived / sizeof(uint32_t);
-        uint32_t *words = reinterpret_cast<uint32_t*>(recvBuf);
-
-        // Process event data words (skip headers, detect SOF/EOF markers)
-        for (size_t i = 0; i + 1 < numWords; i += 2)
+        if (bytesReceived <= 0) 
         {
-            uint32_t w1 = ntohl(words[i]);
-            uint32_t w2 = ntohl(words[i + 1]);
-
-            // Skip markers
-            if (w1 == SOF_MARKER || w1 == EOF_MARKER) continue;
-            if (w2 == SOF_MARKER || w2 == EOF_MARKER) continue;
-
-            // Only process if w2 looks like a timestamp (bit 31 set)
-            if (!(w2 & 0x80000000)) continue;
-
-            int chip = (w1 >> 27) & 0xF;
-            int chan  = (w1 >> 22) & 0x1F;
-            int td   = (w1 >> 12) & 0x3FF;
-            int pd   = w1 & 0xFFF;
-
-            int element = chip * 32 + chan;
-            if (element >= 0 && element < numElements)
-                processPhotonEvent(element, pd, td);
+            dataQueue->pushCancelRequest();
+            continue;
         }
+        
+        block->size = static_cast<size_t>(bytesReceived);
+        dataQueue->push();
 
-        // Add raw data to write buffer
-        addDataToWriteBuffer(recvBuf, bytesReceived);
-        epicsEventSignal(dataAvailable);
+        // Notify consumers for available data
+        for ( auto& evt : udpDataAvailableEvent)
+            evt.trigger();
     }
 
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: PL UDP data thread stopped\n"
-             , portName
+             , __func__
              );
 }
 
 //===========================================================================//
 
-void GermaniumDetector::dataProcessingThreadC(void *pPvt)
+void GermaniumDetector::dataProcessThreadC(void *pPvt)
 {
-    static_cast<GermaniumDetector*>(pPvt)->dataProcessingThread();
+    static_cast<GermaniumDetector*>(pPvt)->dataProcessThread();
 }
 
-void GermaniumDetector::dataProcessingThread()
+void GermaniumDetector::dataProcessThread()
 {
+    QueueConsumerThreadState threadState = QueueConsumerThreadState::IDLE;
+    Clock::time_point lastPacketTime;
+
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: Data processing thread started\n"
-             , portName
+             , __func__
+             );
+
+    while ( threadsRunning.load() )
+    {
+        switch( threadState )
+        {
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::IDLE:
+            {
+                for (int spins = 0; spins < 100; spins++)
+                {
+                    if (acquisitionRunning.load())
+                    {
+                        threadState = QueueConsumerThreadState::START;
+                        break;
+                    }
+
+                    if (spins < 10)
+                    {
+                        std::this_thread::yield();
+                    }
+                    else
+                    {
+                        epicsThreadSleepQuantum();
+                    }
+                }
+                break;
+            }
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::START:
+            {
+                udpDataAvailableEvent[DATA_PROC_THREAD_INDEX].wait(
+                                        DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
+                                        );
+                auto dataBlock = dataQueue->popRequest(DATA_PROC_THREAD_INDEX);
+                if ( dataBlock )
+                {
+                    if ( dataBlock->size > 4 )
+                    {
+                        // Parse packet as big-endian 32-bit words
+                        size_t numWords = dataBlock->size / sizeof(uint32_t) - 4;
+                        uint32_t *words = reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(dataBlock->data)) + 4;
+
+                        calcSpectra( words, numWords );
+
+                        //// Process event data words (skip headers, detect SOF/EOF markers)
+                        //for (size_t i = 4; i + 1 < numWords; i += 2)
+                        //{
+                        //    uint32_t w1 = ntohl(words[i]);
+                        //    uint32_t w2 = ntohl(words[i + 1]);
+
+                        //    calcSpectra(w1, w2);
+                        //}
+                        threadState = QueueConsumerThreadState::RUNNING;
+                    }
+                    dataQueue->pop(DATA_PROC_THREAD_INDEX);
+                }
+                break;
+            }
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::RUNNING:
+            {
+                bool queueNotEmpty = true;
+                udpDataAvailableEvent[DATA_PROC_THREAD_INDEX].wait(
+                                        DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
+                                        );
+
+                // Loop to drain all available data blocks in the queue
+                while ( threadState == QueueConsumerThreadState::RUNNING )
+                {
+                    auto dataBlock = dataQueue->popRequest(DATA_PROC_THREAD_INDEX);
+                    if ( dataBlock  )
+                    {
+                        if ( dataBlock->size > 4 )
+                        {
+                            // Parse packet as big-endian 32-bit words
+                            size_t numWords = dataBlock->size / sizeof(uint32_t) - 2;
+                            uint32_t *words = reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(dataBlock->data)) + 2;
+
+                            calcSpectra( words, numWords );
+                            //// Process event data words (skip headers, detect SOF/EOF markers)
+                            //for (size_t i = 2; i + 1 < numWords; i += 2)
+                            //{
+                            //    uint32_t w1 = ntohl(words[i]);
+                            //    uint32_t w2 = ntohl(words[i + 1]);
+                            //    calcSpectra(w1, w2);
+                            //}
+                        }
+
+                        // Pop the processed data block from the queue
+                        queueNotEmpty = dataQueue->pop(DATA_PROC_THREAD_INDEX);
+                                        
+                        if ( !acquisitionRunning.load() )
+                        {
+                            threadState = QueueConsumerThreadState::FLUSH;
+                            lastPacketTime = Clock::now();
+                        }
+                        
+                        if ( !queueNotEmpty)
+                        {
+                            break; // no more data in the queue
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+               }
+                break;
+            }
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::FLUSH:
+            {
+                while ( threadState == QueueConsumerThreadState::FLUSH )
+                {
+                    udpDataAvailableEvent[DATA_PROC_THREAD_INDEX].wait(
+                                            DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
+                                            );
+
+                    auto dataBlock = dataQueue->popRequest(DATA_PROC_THREAD_INDEX);
+                    if ( dataBlock )
+                    {
+                        if ( dataBlock->size > 4)
+                        {
+                            // Parse packet as big-endian 32-bit words
+                            size_t numWords = dataBlock->size / sizeof(uint32_t) - 2;
+                            uint32_t *words = reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(dataBlock->data)) + 2;
+
+                            if (words[numWords-1] == EOF_MARKER)
+                            {
+                                numWords -=2;
+                                threadState = QueueConsumerThreadState::IDLE;
+                            }
+
+                            calcSpectra( words, numWords );
+
+                            //// Process event data words (skip headers, detect SOF/EOF markers)
+                            //for (size_t i = 2; i + 1 < numWords; i += 2)
+                            //{
+                            //    uint32_t w1 = ntohl(words[i]);
+                            //    uint32_t w2 = ntohl(words[i + 1]);
+
+                            //    // Skip markers
+                            //    if ( w2 != EOF_MARKER )
+                            //    {
+                            //        calcSpectra(w1, w2);
+                            //    }
+                            //    else
+                            //    {
+                            //        threadState = QueueConsumerThreadState::IDLE;
+                            //    }
+                            //}
+
+                            lastPacketTime = Clock::now();
+                        }
+
+                        // Pop the processed data block from the queue
+                        if (!dataQueue->pop(DATA_PROC_THREAD_INDEX))
+                        {
+                            break; // no more data in the queue
+                        }
+                    }
+
+                    if ( (Clock::now() - lastPacketTime ) > DATA_THREAD_WAIT_FOR_EOF_TIMEOUT )
+                    {
+                        threadState = QueueConsumerThreadState::IDLE;
+                    }
+                }
+
+                break;
+            }
+            //----------------------------------------------------//
+            default:
+            {
+                asynPrint( pasynUserSelf
+                         , ASYN_TRACE_ERROR
+                         , "%s: Unknown consumer thread state\n"
+                         , __func__
+                         );
+                threadState = QueueConsumerThreadState::IDLE;
+                break;
+            }
+            //----------------------------------------------------//
+        }
+    }
+
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: data processing thread stopped\n"
+             , __func__
+             );
+}
+
+//===========================================================================//
+
+void GermaniumDetector::calcSpectra( uint32_t* words, size_t numWords )
+{
+    for (size_t i = 0; i + 1 < numWords; i += 2)
+    {
+        uint32_t w1 = ntohl(words[i]);
+
+        // w2 might be used here but is to be implemented
+        //uint32_t w2 = ntohl(words[i + 1]);
+
+        int chip = (w1 >> 27) & 0xF;
+        int chan  = (w1 >> 22) & 0x1F;
+        int td   = (w1 >> 12) & 0x3FF;
+        int pd   = w1 & 0xFFF;
+
+        int element = chip * 32 + chan;
+        if (element >= 0 && element < numElements)
+        {
+            mcaData[element * SPECTRUM_SIZE + pd].fetch_add(1, std::memory_order_relaxed);
+            tdcData[element * TDC_SIZE + td].fetch_add(1, std::memory_order_relaxed);
+            countRates[element].fetch_add(1, std::memory_order_relaxed);
+            totalCounts[element].fetch_add(1, std::memory_order_relaxed);
+            evttot.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+}
+
+//===========================================================================//
+
+void GermaniumDetector::spectraSynchronizeThreadC(void *pPvt)
+{
+    static_cast<GermaniumDetector*>(pPvt)->spectraSynchronizeThread();
+}
+
+void GermaniumDetector::spectraSynchronizeThread()
+{
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: Spectra synchronizing thread started\n"
+             , __func__
              );
 
     int arrayCounter = 0;
@@ -275,7 +623,8 @@ void GermaniumDetector::dataProcessingThread()
 
     while ( threadsRunning.load() )
     {
-        epicsEventWaitWithTimeout(dataAvailable, 1.0);
+        // Synchronize every 1 second
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
         const bool running = acquisitionRunning.load();
         setIntegerParam(GermaniumSS, running ? 1 : 0);
@@ -349,7 +698,7 @@ void GermaniumDetector::dataProcessingThread()
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: Data processing thread stopped\n"
-             , portName
+             , __func__
              );
 }
 
@@ -362,22 +711,157 @@ void GermaniumDetector::dataWriteThreadC(void *pPvt)
 
 void GermaniumDetector::dataWriteThread()
 {
+    QueueConsumerThreadState threadState = QueueConsumerThreadState::IDLE;
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: Data write thread started\n"
-             , portName
+             , __func__
              );
 
+    Clock::time_point lastPacketTime = Clock::now();
+    
     while ( threadsRunning.load() )
     {
-        epicsEventWaitWithTimeout(dataWriteAvailable, 1.0);
-        flushWriteBuffer();
+        
+        switch(threadState)
+        {
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::IDLE:
+            {
+                for (int spins = 0; spins < 100; spins++)
+                {
+                    if (acquisitionRunning.load())
+                    {
+                        threadState = QueueConsumerThreadState::RUNNING;
+                        lastPacketTime = Clock::now();
+                        break;
+                    }
+
+                    if (spins < 10)
+                    {
+                        std::this_thread::yield();
+                    }
+                    else
+                    {
+                        epicsThreadSleepQuantum();
+                    }
+                }
+                break;
+            }
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::RUNNING:
+            {
+                udpDataAvailableEvent[DATA_WRITE_THREAD_INDEX].wait(
+                                        DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
+                                        );
+
+                while ( threadState == QueueConsumerThreadState::RUNNING )
+                {
+                    while ( auto dataBlock = dataQueue->popRequest(DATA_WRITE_THREAD_INDEX) )
+                    {
+                        if (dataBlock->size < 8)
+                        {
+                            dataQueue->pop(DATA_WRITE_THREAD_INDEX);
+                            continue;
+                        }
+
+                        if ( !writeDataToFile( dataBlock ) )
+                        {
+                            std::cerr << __func__
+                                      << ": failed to write data to file\n";
+                        }
+                        
+                        if ( !acquisitionRunning.load() )
+                        {
+                            threadState = QueueConsumerThreadState::FLUSH;
+                        }
+
+                        // Pop the processed data block from the queue.
+                        // Continue with the next if more data in the queue.
+                        if ( !dataQueue->pop(DATA_WRITE_THREAD_INDEX) )
+                        {
+                            asynPrint( pasynUserSelf
+                                    , ASYN_TRACE_FLOW
+                                    , "%s: no more data in the queue\n"
+                                    , __func__
+                                    );
+                        }
+                    }
+                }
+                break;
+            }
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::FLUSH:
+            {
+                udpDataAvailableEvent[DATA_WRITE_THREAD_INDEX].wait(
+                                        DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
+                                        );
+
+                while ( threadState == QueueConsumerThreadState::FLUSH )
+                {
+                    while ( auto dataBlock = dataQueue->popRequest(DATA_WRITE_THREAD_INDEX) )
+                    {
+                        if (dataBlock->size < 8)
+                        {
+                            dataQueue->pop(DATA_WRITE_THREAD_INDEX);
+                            continue;
+                        }
+
+                        if ( !writeDataToFile( dataBlock ) )
+                        {
+                            std::cerr << __func__
+                                      << ": failed to write data to file\n";
+                        }
+                        const size_t numWords = dataBlock->size / sizeof(uint32_t);
+                        const uint32_t *words = reinterpret_cast<const uint32_t*>(dataBlock->data);
+
+                        uint32_t w = ntohl(words[numWords - 1]);
+                        if ( w == EOF_MARKER )
+                        {
+                            threadState = QueueConsumerThreadState::IDLE;
+                            closeCurrentDataFile();
+                        }
+
+                        // Pop the processed data block from the queue.
+                        // Continue with the next if more data in the queue.
+                        if ( !dataQueue->pop(DATA_WRITE_THREAD_INDEX) )
+                        {
+                            asynPrint( pasynUserSelf
+                                    , ASYN_TRACE_FLOW
+                                    , "%s: no more data in the queue\n"
+                                    , __func__
+                                    );
+                        }
+                        lastPacketTime = Clock::now();
+                    }
+                    auto now = Clock::now();
+                    if ( (now - lastPacketTime ) > DATA_THREAD_WAIT_FOR_EOF_TIMEOUT)
+                    {
+                        threadState = QueueConsumerThreadState::IDLE;
+                        closeCurrentDataFile();
+                    }
+                }
+                break;
+            }
+            //----------------------------------------------------//
+            default:
+            {
+                asynPrint( pasynUserSelf
+                         , ASYN_TRACE_ERROR
+                         , "%s: Unknown consumer thread state\n"
+                         , __func__
+                         );
+                threadState = QueueConsumerThreadState::IDLE;
+                break;
+            }
+            //----------------------------------------------------//
+        }
     }
 
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: Data write thread stopped\n"
-             , portName
+             , __func__
              );
 }
 
@@ -388,12 +872,12 @@ void GermaniumDetector::startDataAcquisition()
     if (acquisitionRunning.load()) return;
 
     clearSpectra();
-    currentSegmentNumber.store(0);;
+    currentSegmentNumber.store(0);
     totalBytesWritten.store(0);
     totalFilesWritten.store(0);
 
     createDataDirectory();
-    //fileWritingEnabled = true;
+    closeCurrentDataFile();  // In case a previous data file is still open due to loss of last packet
     setAcquisitionRunning(true);
 
     // Start hardware acquisition via ZMQ register write
@@ -404,7 +888,7 @@ void GermaniumDetector::startDataAcquisition()
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: acquisition started\n"
-             , portName
+             , __func__
              );
 }
 
@@ -416,17 +900,15 @@ void GermaniumDetector::stopDataAcquisition()
 
     zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::TRIG, 0);
     setAcquisitionRunning(false);
-    //fileWritingEnabled = false;
 
-    flushWriteBuffer();
-    closeCurrentDataFile();
+    //flushWriteBuffer();
 
     setIntegerParam(GermaniumCNT, 0);
     callParamCallbacks();
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
              , "%s: acquisition stopped. %zu bytes in %d files\n"
-             , portName
+             , __func__
              , totalBytesWritten.load()
              , totalFilesWritten.load()
              );
@@ -446,14 +928,14 @@ void GermaniumDetector::createDataDirectory()
             asynPrint( pasynUserSelf
                      , ASYN_TRACE_FLOW
                      , "%s: created directory %s\n"
-                     , portName
+                     , __func__
                      , dirPath
                      );
         else
             asynPrint( pasynUserSelf
                      , ASYN_TRACE_ERROR
                      , "%s: failed to create directory %s: %s\n"
-                     , portName
+                     , __func__
                      , dirPath
                      , strerror(errno)
                      );
@@ -492,7 +974,7 @@ bool GermaniumDetector::openNewDataFile()
         asynPrint( pasynUserSelf
                  , ASYN_TRACE_ERROR
                  , "%s: failed to open %s: %s\n"
-                 , portName
+                 , __func__
                  , filename.c_str()
                  , strerror(errno)
                  );
@@ -520,9 +1002,10 @@ void GermaniumDetector::closeCurrentDataFile()
 
 //===========================================================================//
 
-bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
+bool GermaniumDetector::writeDataToFile( const DataBlock* block )
 {
-    if (!udpDataFileWriteEnable.load() || !data || dataSize == 0) return false;
+    size_t dataSize = block->size;
+    if (!udpDataFileWriteEnable.load()) return false;
 
     int maxSizeMB;
     getIntegerParam(GermaniumFSIZE, &maxSizeMB);
@@ -539,79 +1022,34 @@ bool GermaniumDetector::writeDataToFile(const uint8_t* data, size_t dataSize)
         if (!openNewDataFile()) return false;
     }
 
-    ssize_t written = write(fileHandle, data, dataSize);
-    if (written != static_cast<ssize_t>(dataSize)) return false;
+    ssize_t written = write(fileHandle, block->data, dataSize);
+
+    /*
+    // Last few data blocks in the queue, look for EOF
+    if (flushWriteBuffer.load())
+    {
+        const size_t numWords = block->size / sizeof(uint32_t);
+        const uint32_t *words = reinterpret_cast<const uint32_t*>(block->data);
+        if (words[numWords-1] == EOF_MARKER)
+        {
+            closeCurrentDataFile();
+        }
+    }
+    */
+
+    if (written != static_cast<ssize_t>(dataSize))
+    {
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "%s: failed to write data to file: %s\n"
+                 , __func__
+                 , strerror(errno)
+                 );
+        return false;
+    }
 
     currentFileSize.fetch_add(dataSize, std::memory_order_relaxed);
     return true;
-}
-
-//===========================================================================//
-
-/*
- * Enqueue raw data into the lock-free SPMC block queue.
- *
- * Producers (plUdpDataThread) claim a slot via CAS on dataQueueHead, memcpy
- * the payload, then publish with release-store on the per-block state flag.
- * No mutex is touched on the hot path.
- */
-void GermaniumDetector::addDataToWriteBuffer(const uint8_t* data, size_t dataSize)
-{
-    if (!data || dataSize == 0 || dataSize > DATA_BLOCK_SIZE) return;
-
-    // CAS loop to claim the next slot
-    uint64_t head = dataQueueHead.load(std::memory_order_relaxed);
-    for (;;)
-    {
-        uint64_t tail = dataQueueTail.load(std::memory_order_acquire);
-        if (head - tail >= static_cast<uint64_t>(DATA_QUEUE_CAPACITY))
-            return;  // queue full — drop this chunk
-
-        if (dataQueueHead.compare_exchange_weak( head, head + 1
-                                               , std::memory_order_acq_rel
-                                               , std::memory_order_relaxed))
-            break;
-    }
-
-    // We now own slot `head`
-    DataBlock &block = dataQueue[head & DATA_QUEUE_MASK];
-    memcpy(block.data, data, dataSize);
-    block.size = static_cast<uint32_t>(dataSize);
-    block.state.store(DATA_BLOCK_READY, std::memory_order_release);
-
-    epicsEventSignal(dataWriteAvailable);
-}
-
-//===========================================================================//
-
-/*
- * Drain the lock-free queue from the consumer side (dataWriteThread).
- *
- * Reads contiguously from dataQueueTail while blocks are in READY state.
- * A block stuck in CLAIMED means a producer hasn't finished its memcpy
- * yet — we stop and retry on the next wakeup to preserve ordering.
- */
-void GermaniumDetector::flushWriteBuffer()
-{
-    uint64_t tail = dataQueueTail.load(std::memory_order_relaxed);
-    uint64_t head = dataQueueHead.load(std::memory_order_acquire);
-
-    while (tail < head)
-    {
-        DataBlock &block = dataQueue[tail & DATA_QUEUE_MASK];
-
-        if (block.state.load(std::memory_order_acquire) != DATA_BLOCK_READY)
-            break;  // producer still writing — preserve ordering
-
-        if ( udpDataFileWriteEnable.load() && block.data && block.size )
-        {
-            writeDataToFile(block.data, block.size);
-        }
-        block.state.store(DATA_BLOCK_FREE, std::memory_order_release);
-        ++tail;
-    }
-
-    dataQueueTail.store(tail, std::memory_order_release);
 }
 
 //===========================================================================//

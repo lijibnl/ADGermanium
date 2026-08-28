@@ -135,65 +135,12 @@ GermaniumDetector::GermaniumDetector( const char *portName
 
     //---------------------------------------------------------------------//
 
-    // UDP data proeceesing related initialization
-    dataWriteAvailable = epicsEventCreate(epicsEventEmpty);
-    dataAvailable      = epicsEventCreate(epicsEventEmpty);
-    udpWatchdogEvent   = epicsEventCreate(epicsEventEmpty);
-
-    dataProcessingThreadId = epicsThreadCreate( "GermaniumDataProc"
-                                              , epicsThreadPriorityMedium
-                                              , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                              , dataProcessingThreadC
-                                              , this
-                                              );
-    if (!dataProcessingThreadId)
+    // UDP related initialization
+    if (!udpInit())
     {
-        std::cerr << "[" << __func__ << "]: failed to create data processing thread\n";
-        return;
+        std::cerr << "[" << __func__ << "]: failed to initialize UDP\n";
     }
-    std::cerr << "[" << __func__ << "]: ZMQ data processing threads started\n";
-
-    dataWriteThreadId = epicsThreadCreate( "GermaniumDataWrite"
-                                         , epicsThreadPriorityMedium
-                                         , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                         , dataWriteThreadC
-                                         , this
-                                         );
-    if (!dataWriteThreadId)
-    {
-        std::cerr << "[" << __func__ << "]: failed to create UDP data write thread\n";
-        return;
-    }
-    std::cerr << "[" << __func__ << "]: UDP data write thread started\n";
-
-    // Initialize PL UDP socket for raw data reception
-    if (initializePlUdpSocket())
-    {
-        plUdpDataThreadId = epicsThreadCreate( "GermaniumPlUdp"
-                                             , epicsThreadPriorityHigh
-                                             , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                             , plUdpDataThreadC
-                                             , this
-                                             );
-        asynPrint( pasynUserSelf
-                 , ASYN_TRACE_FLOW
-                 , "%s: PL UDP data thread started\n"
-                 , portName
-                 );
-    }
-
-    udpWatchdogThreadId = epicsThreadCreate( "GermaniumUdpWatch"
-                                           , epicsThreadPriorityMedium
-                                           , epicsThreadGetStackSize(epicsThreadStackMedium)
-                                           , udpWatchdogThreadC
-                                           , this
-                                           );
-    if (!udpWatchdogThreadId)
-    {
-        std::cerr << "[" << __func__ << "]: failed to create UDP watchdog thread\n";
-        return;
-    }
-    requestUdpReinitialization();
+    
 
     //---------------------------------------------------------------------//
 
@@ -220,39 +167,10 @@ GermaniumDetector::~GermaniumDetector()
     acquisitionRunning.store(false);
     udpInitRequested.store(false);
     udpDataFileWriteEnable.store(false);
-    if (udpWatchdogEvent)
-        epicsEventSignal(udpWatchdogEvent);
 
     closeCurrentDataFile();
     closePlUdpSocket();
     closeUdpRegisterSocket();
-
-    //delete[] dataQueue;
-    //dataQueue = nullptr;
-    //delete[] mcaData;
-    //mcaData = nullptr;
-    //delete[] tdcData;
-    //tdcData = nullptr;
-    //delete[] countRates;
-    //countRates = nullptr;
-    //delete[] totalCounts;
-    //totalCounts = nullptr;
-
-    if (dataWriteAvailable)
-    {
-        epicsEventDestroy(dataWriteAvailable);
-        dataWriteAvailable = nullptr;
-    }
-    if (dataAvailable)
-    {
-        epicsEventDestroy(dataAvailable);
-        dataAvailable = nullptr;
-    }
-    if (udpWatchdogEvent)
-    {
-        epicsEventDestroy(udpWatchdogEvent);
-        udpWatchdogEvent = nullptr;
-    }
 
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW

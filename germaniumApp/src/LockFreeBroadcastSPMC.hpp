@@ -15,10 +15,15 @@ class LockFreeBroadcastSPMC
 public:
     LockFreeBroadcastSPMC();
 
-    bool enqueue( const T& item);
+    void reset();
 
-    const T* front( size_t consumerIndex ) const;
-    void pop( size_t consumerIndex );
+    T* pushRequest();
+    void pushCancelRequest();
+    bool push();
+
+    const T* popRequest( size_t consumerIndex );
+    void popCancelRequest( size_t consumerIndex );
+    bool pop( size_t consumerIndex );
 
 private:
     T buffer_[Capacity];
@@ -29,6 +34,9 @@ private:
 
     alignas(64) AlignedAtomicHead head_[ConsumerCount];
     alignas(64) std::atomic<size_t> tail_;
+
+    std::atomic<bool> pushRequested, pushed;
+    std::atomic<bool> popRequested[ConsumerCount], popped[ConsumerCount];
 
 };
 

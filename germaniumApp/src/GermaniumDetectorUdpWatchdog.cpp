@@ -51,8 +51,8 @@ void GermaniumDetector::setAcquisitionRunning(bool running)
     if (poller)
         poller->setFast(running);
 
-    if (previous != running && udpWatchdogEvent)
-        epicsEventSignal(udpWatchdogEvent);
+    if (previous != running )
+        udpWatchdogEvent.wait(UDP_WATCHDOG_TICK_SEC);
 }
 
 //===========================================================================//
@@ -60,8 +60,7 @@ void GermaniumDetector::setAcquisitionRunning(bool running)
 void GermaniumDetector::requestUdpReinitialization()
 {
     udpInitRequested.store(true);
-    if (udpWatchdogEvent)
-        epicsEventSignal(udpWatchdogEvent);
+    udpWatchdogEvent.wait(UDP_WATCHDOG_TICK_SEC);
 }
 
 //===========================================================================//
@@ -162,7 +161,7 @@ void GermaniumDetector::udpWatchdogThread()
 
     while (threadsRunning.load())
     {
-        epicsEventWaitWithTimeout(udpWatchdogEvent, UDP_WATCHDOG_TICK_SEC);
+        udpWatchdogEvent.wait(UDP_WATCHDOG_TICK_SEC);
 
         if (udpInitRequested.exchange(false))
         {

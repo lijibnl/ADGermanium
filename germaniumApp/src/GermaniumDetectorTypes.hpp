@@ -50,15 +50,11 @@ static constexpr int    DATA_QUEUE_BITS     = 7;                        // log2(
 static constexpr int    DATA_QUEUE_CAPACITY = 1 << DATA_QUEUE_BITS;     // 128 blocks ≈ 8 MB
 static constexpr int    DATA_QUEUE_MASK     = DATA_QUEUE_CAPACITY - 1;
 
-static constexpr uint32_t DATA_BLOCK_FREE    = 0;
-static constexpr uint32_t DATA_BLOCK_CLAIMED = 1;
-static constexpr uint32_t DATA_BLOCK_READY   = 2;
 
 struct DataBlock
 {
-    std::atomic<uint32_t> state;   // FREE → CLAIMED → READY → FREE
-    uint32_t              size;    // actual payload bytes
-    uint8_t               data[DATA_BLOCK_SIZE];
+    uint32_t  size;    // actual payload bytes
+    uint8_t   data[DATA_BLOCK_SIZE];
 };
 
 
