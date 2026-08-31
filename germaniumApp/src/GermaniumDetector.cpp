@@ -485,8 +485,8 @@ bool GermaniumDetector::createPoller()
                                                         , [this, info](){ this->zmqTx(info.opCode, info.addr, 0); }
                                                         )
                        );
-        std::cout << "Poller: " << GermaniumProtocol::commandName(info.opCode) << ", "
-                  << GermaniumProtocol::registerName(info.addr) << "\n";
+//        std::cout << "Poller: " << GermaniumProtocol::commandName(info.opCode) << ", "
+//                  << GermaniumProtocol::registerName(info.addr) << "\n";
     }
     poller->setRunning(true);
 

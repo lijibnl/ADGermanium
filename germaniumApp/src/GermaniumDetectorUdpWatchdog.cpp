@@ -89,12 +89,19 @@ bool GermaniumDetector::initializeUdpRegisterSocket()
 
     if (bind(udpRegisterSocket, reinterpret_cast<sockaddr*>(&bindAddr), sizeof(bindAddr)) < 0)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: failed to bind UDP register socket to port %u: %s\n",
-                  __func__, GIGE_REGISTER_RX_PORT, strerror(errno));
+        std::cerr << __func__
+                  << ": failed to bind UDP register socket to port "
+                  <<  GIGE_REGISTER_RX_PORT
+                  << " for error "
+                  << strerror(errno)
+                  << "\n";
         closeUdpRegisterSocket();
         return false;
     }
+    std::cerr << __func__
+              << ": bound UDP register socket to port "
+              <<  GIGE_REGISTER_RX_PORT
+              << "\n";
 
     udpRegisterInitialized = true;
     return true;
@@ -275,9 +282,10 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
                           reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: UDP register write send failed: %s\n",
-                  __func__, strerror(errno));
+        std::cerr << __func__
+                  << ": UDP register write send failed: "
+                  << strerror(errno)
+                  << "\n";
         return false;
     }
 
@@ -332,9 +340,10 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
                           reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: UDP register read send failed: %s\n",
-                  __func__, strerror(errno));
+        std::cerr << __func__
+                  << ": UDP register read send failed: "
+                  << strerror(errno)
+                  << "\n";
         return false;
     }
 

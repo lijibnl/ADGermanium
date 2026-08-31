@@ -201,12 +201,10 @@ bool GermaniumDetector::initializePlUdpSocket()
     }
 
     plUdpInitialized = true;
-    asynPrint( pasynUserSelf
-             , ASYN_TRACE_FLOW
-             , "%s: PL UDP socket bound to port %d\n"
-             , __func__
-             , PL_UDP_DATA_PORT
-             );
+    std::cerr << __func__
+              << ": PL UDP data socket bound to port "
+              << PL_UDP_DATA_PORT
+              << "\n";
     return true;
 }
 
@@ -241,29 +239,13 @@ void GermaniumDetector::allocateDataArrays()
 
     clearSpectra();
 
-    asynPrint( pasynUserSelf
-             , ASYN_TRACE_FLOW
-             , "%s: allocated data arrays for %d elements\n"
-             , __func__
-             , numElements
-             );
+    std::cerr << __func__
+              << ": allocated data arrays for "
+              << numElements
+              << " elements\n"
+              ;
 }
 
-//===========================================================================//
-/*
-void GermaniumDetector::processPhotonEvent(int element, int energy, int tdValue)
-{
-    if (element < 0 || element >= numElements) return;
-    if (energy < 0 || energy >= SPECTRUM_SIZE) return;
-    if (tdValue < 0 || tdValue >= TDC_SIZE) return;
-
-    mcaData[element * SPECTRUM_SIZE + energy].fetch_add(1, std::memory_order_relaxed);
-    tdcData[element * TDC_SIZE + tdValue].fetch_add(1, std::memory_order_relaxed);
-    countRates[element].fetch_add(1, std::memory_order_relaxed);
-    totalCounts[element].fetch_add(1, std::memory_order_relaxed);
-    evttot.fetch_add(1, std::memory_order_relaxed);
-}
-*/
 //===========================================================================//
 
 void GermaniumDetector::clearSpectra()
