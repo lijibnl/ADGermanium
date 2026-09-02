@@ -339,7 +339,6 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
                                         uint32_t addr,
                                         uint32_t& value)
 {
-    std::println("[{}]: read UDP register {}", __func__, addr);
     value = 0;
     if (!initializeUdpRegisterSocket())
         return false;

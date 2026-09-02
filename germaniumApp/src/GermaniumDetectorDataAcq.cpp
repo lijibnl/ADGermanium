@@ -345,7 +345,7 @@ void GermaniumDetector::plUdpDataThread()
             continue;
         }
 
-        std::println("[{}]: {} bytes received", __func__, bytesReceived);
+        //std::println("[{}]: {} bytes received", __func__, bytesReceived);
         
         block->size = static_cast<size_t>(bytesReceived);
         dataQueue->push();
@@ -456,7 +456,7 @@ void GermaniumDetector::dataProcessThread()
                     {
                         if ( dataBlock->size > 4 )
                         {
-                            std::println("[{}]: got data. Calculating spectra...", __func__);
+                            //std::println("[{}]: got data. Calculating spectra...", __func__);
                             // Parse packet as big-endian 32-bit words
                             size_t numWords = dataBlock->size / sizeof(uint32_t) - 2;
                             uint32_t *words = reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(dataBlock->data)) + 2;
@@ -550,30 +550,30 @@ void GermaniumDetector::dataProcessThread()
 
                 publishSpectra();
 
-                uint64_t totalMca = 0;
-                size_t nonzeroBins = 0;
-                size_t firstNonzero = 0;
-                uint32_t firstValue = 0;
+                //uint64_t totalMca = 0;
+                //size_t nonzeroBins = 0;
+                //size_t firstNonzero = 0;
+                //uint32_t firstValue = 0;
 
-                const size_t totalBins = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-                for (size_t i = 0; i < totalBins; i++)
-                {
-                    uint32_t bin = mcaData[i].load(std::memory_order_relaxed);
-                    totalMca += bin;
-                    if (bin != 0)
-                    {
-                        if (nonzeroBins == 0)
-                        {
-                            firstNonzero = i;
-                            firstValue = bin;
-                        }
-                        nonzeroBins++;
-                        std::println(" mcaData[{}] = {}", i, bin);
-                    }
-                }
+                //const size_t totalBins = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+                //for (size_t i = 0; i < totalBins; i++)
+                //{
+                //    uint32_t bin = mcaData[i].load(std::memory_order_relaxed);
+                //    totalMca += bin;
+                //    if (bin != 0)
+                //    {
+                //        if (nonzeroBins == 0)
+                //        {
+                //            firstNonzero = i;
+                //            firstValue = bin;
+                //        }
+                //        nonzeroBins++;
+                //        std::println(" mcaData[{}] = {}", i, bin);
+                //    }
+                //}
 
-                std::println("[{}]: MCA total={}, nonzeroBins={}, firstNonzero={}, firstValue={}",
-                            __func__, totalMca, nonzeroBins, firstNonzero, firstValue);
+                //std::println("[{}]: MCA total={}, nonzeroBins={}, firstNonzero={}, firstValue={}",
+                //            __func__, totalMca, nonzeroBins, firstNonzero, firstValue);
                 break;
             }
             //----------------------------------------------------//
@@ -632,7 +632,7 @@ void GermaniumDetector::calcSpectra( uint32_t* words, size_t numWords )
             }
         }
     }
-    std::println("[{}]: numEvents = {}, numValidEvents = {}", __func__, numEvents, numValidEvents);
+    //std::println("[{}]: numEvents = {}, numValidEvents = {}", __func__, numEvents, numValidEvents);
 }
 
 void GermaniumDetector::publishSpectra()
@@ -903,7 +903,7 @@ void GermaniumDetector::dataWriteThread()
                             continue;
                         }
                         
-                        std::println("[{}]: got data", __func__);
+                        //std::println("[{}]: got data", __func__);
 
                         if ( !writeDataToFile( dataBlock ) )
                         {

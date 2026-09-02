@@ -1,97 +1,51 @@
 - cmd: ZMQ_CMD_REG_READ
-  addresses:
-    - address: MARS_CALPULSE
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: CALPULSE_RATE
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: CALPULSE_CNT
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: CALPULSE_MODE
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: MARS_PIPE_DELAY
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: MARS_RDOUT_ENB
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: SIM_EVT_SEL
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: COUNT_MODE
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: TRIG
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: EVENT_TIME_CNTR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: COUNT_TIME_LO
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: COUNT_TIME_HI
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: UDP_IP_ADDR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - MARS_CALPULSE
+      - CALPULSE_RATE
+      - CALPULSE_CNT
+      - CALPULSE_MODE
+      - MARS_PIPE_DELAY
+      - MARS_RDOUT_ENB
+      - SIM_EVT_SEL
+      - COUNT_MODE
+      - TRIG
+      - EVENT_TIME_CNTR
+      - COUNT_TIME_LO
+      - COUNT_TIME_HI
+      - UDP_IP_ADDR
 
 - cmd: ZMQ_CMD_I2C_TEMP_READ
-  addresses:
-    - address: TEMPERATURE1_SELECTOR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: TEMPERATURE2_SELECTOR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: TEMPERATURE3_SELECTOR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - TEMPERATURE1_SELECTOR
+      - TEMPERATURE2_SELECTOR
+      - TEMPERATURE3_SELECTOR
 
 - cmd: ZMQ_CMD_XADC_READ
-  addresses:
-    - address: 0
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - 0
 
 - cmd: ZMQ_CMD_I2C_ADC_READ
-  addresses:
-    - address: ADC_CH_HV_RBV
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: ADC_CH_HV_CUR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: ADC_CH_P1_CUR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
-
-    - address: ADC_CH_P2_CUR
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - ADC_CH_HV_RBV
+      - ADC_CH_HV_CUR
+      - ADC_CH_P1_CUR
+      - ADC_CH_P2_CUR
 
 - cmd: ZMQ_CMD_HEARTBEAT
-  addresses:
-    - address: 0
-      slow-rate: POLLING_DIVIDER_1HZ
-      fast-rate: POLLING_DIVIDER_10HZ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - 0
