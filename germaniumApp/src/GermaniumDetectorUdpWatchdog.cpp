@@ -20,14 +20,13 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <print>
 
 //===========================================================================//
 
 namespace {
 
 constexpr uint32_t GIGE_KEY = 0xdeadbeef;
-constexpr uint32_t GIGE_REGISTER_OKAY = 0x4f6b6179;
-constexpr uint32_t GIGE_REGISTER_FAIL = 0x4661696c;
 
 constexpr uint16_t GIGE_REGISTER_WRITE_TX_PORT = 0x7D00;
 constexpr uint16_t GIGE_REGISTER_READ_TX_PORT  = 0x7D01;
@@ -71,11 +70,13 @@ bool GermaniumDetector::initializeUdpRegisterSocket()
         return true;
 
     udpRegisterSocket = socket(AF_INET, SOCK_DGRAM, 0);
+    std::print( "[{}]: create UDP register socket {}: {}\n"
+              , __func__
+              , (udpRegisterSocket<0) ? "failed" : "successful"
+              , strerror(errno)
+              );
     if (udpRegisterSocket < 0)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: failed to create UDP register socket: %s\n",
-                  __func__, strerror(errno));
         return false;
     }
 
@@ -224,9 +225,12 @@ void GermaniumDetector::runUdpInitialization()
     }
 
     bool writeOk = udpRegisterWrite(targetAddress, UDP_CONTROL_REGISTER, UDP_ENABLE_VALUE);
+    //std::print("{}: PL UDP register write {}\n", __func__, (writeOk ? "successful" : "failed"));
 
     uint32_t value = 0;
     bool readOk = udpRegisterRead(targetAddress, UDP_CONTROL_REGISTER, value);
+    //std::print("{}: PL UDP register read {}\n", __func__, ( readOk ? "successful" : "failed" ));
+
     bool reachable = writeOk && readOk && (value == UDP_ENABLE_VALUE);
 
     setUdpReachable(reachable);
@@ -282,12 +286,15 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
                           reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
-        std::cerr << __func__
-                  << ": UDP register write send failed: "
-                  << strerror(errno)
-                  << "\n";
+        std::println("{}: UDP register write send failed: {}", __func__, strerror(errno));
         return false;
     }
+    //std::println( "{}: UDP register write send successful. GIGE_KEY = {}, addr = {}, value = {}"
+    //            , __func__
+    //            , GIGE_KEY
+    //            , addr
+    //            , value
+    //            );    
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -299,18 +306,31 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
 
     int ret = select(udpRegisterSocket + 1, &fds, nullptr, nullptr, &timeout);
     if (ret <= 0)
+    {
+        std::println( "[{}]: select() failed: {}"
+                    , __func__
+                    , ( ret== 0 ) ? "timeout" : strerror(errno)
+                    );
         return false;
+    }
 
     uint32_t reply[3] {};
     sockaddr_in src {};
     socklen_t srcLen = sizeof(src);
     ssize_t received = recvfrom(udpRegisterSocket, reply, sizeof(reply), 0,
                                 reinterpret_cast<sockaddr*>(&src), &srcLen);
-    if (received < static_cast<ssize_t>(2 * sizeof(uint32_t)))
+    if (received < static_cast<ssize_t>(3 * sizeof(uint32_t)))
+    {
+        std::print( "[{}]: recvfrom() failed", __func__ );
         return false;
+    }
 
-    uint32_t status = ntohl(reply[1]);
-    return status == GIGE_REGISTER_OKAY;
+    uint32_t replyAddr = ntohl(reply[0]);
+    uint32_t returnedValue = ntohl(reply[1]);
+    uint32_t status = reply[2];
+    //std::print("{}: received addr = {}, value = {}, status = {}\n", __func__, replyAddr, returnedValue, status);
+
+    return replyAddr == addr && returnedValue == value && status == 1;
 }
 
 //===========================================================================//
@@ -319,6 +339,7 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
                                         uint32_t addr,
                                         uint32_t& value)
 {
+    std::println("[{}]: read UDP register {}", __func__, addr);
     value = 0;
     if (!initializeUdpRegisterSocket())
         return false;
@@ -340,10 +361,7 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
                           reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
-        std::cerr << __func__
-                  << ": UDP register read send failed: "
-                  << strerror(errno)
-                  << "\n";
+        std::print("{}: UDP register read send failed: {}\n", __func__, strerror(errno));
         return false;
     }
 
@@ -357,20 +375,37 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
 
     int ret = select(udpRegisterSocket + 1, &fds, nullptr, nullptr, &timeout);
     if (ret <= 0)
+    {
+        std::print("{}: failed to select UDP register socket\n", __func__);
         return false;
+    }
 
     uint32_t reply[3] {};
     sockaddr_in src {};
     socklen_t srcLen = sizeof(src);
     ssize_t received = recvfrom(udpRegisterSocket, reply, sizeof(reply), 0,
                                 reinterpret_cast<sockaddr*>(&src), &srcLen);
-    if (received < static_cast<ssize_t>(2 * sizeof(uint32_t)))
+    //std::println("[{}]: {} bytes received", __func__, received );
+    if (received < static_cast<ssize_t>(3 * sizeof(uint32_t)))
+    {
+        std::println("{}: failed to receive response", __func__);
         return false;
+    }
 
-    if (ntohl(reply[1]) == GIGE_REGISTER_FAIL && ((ntohl(reply[0]) >> 24) == 0xff))
+    uint32_t replyAddr = ntohl(reply[0]);
+    if (replyAddr != addr)
+    {
+        std::println("{}: unexpected UDP register read address: {}", __func__, replyAddr);
         return false;
+    }
 
-    value = ntohl(reply[1]);
+    //for(int i=0; i<3; i++)
+    //    std::println( "[{}]: reply[{}] = {}"
+    //                , __func__
+    //                , i
+    //                , reply[i]
+    //                );
+    value = reply[2];
     return true;
 }
 

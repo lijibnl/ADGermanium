@@ -674,7 +674,7 @@ asynStatus GermaniumDetector::writeFloat64(asynUser *pasynUser, epicsFloat64 val
     if (function == GermaniumTP)
     {
         // Time preset in seconds → FPGA COUNT_TIME registers (25 MHz clock)
-        uint64_t ticks = static_cast<uint64_t>(value * 25.0e6);
+        uint64_t ticks = static_cast<uint64_t>(value * ACQUIRE_TIMER_FREQUENCY);
         zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::COUNT_TIME_LO, static_cast<uint32_t>(ticks & 0xFFFFFFFF));
         status = zmqTx(GermaniumProtocol::Command::REG_WRITE, GermaniumProtocol::Register::COUNT_TIME_HI, static_cast<uint32_t>(ticks >> 32));
     }

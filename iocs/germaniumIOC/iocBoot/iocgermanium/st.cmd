@@ -31,7 +31,7 @@ dbLoadRecords("$(ASYN)/db/asynRecord.db", "P=$(PREFIX),R=asyn1,PORT=$(PORT),ADDR
 ##=====================================================##
 
 # Load areaDetector plugins and records
-#< ad_plugins.cmd
+< ad_plugins.cmd
 
 ##=====================================================##
 
@@ -52,12 +52,23 @@ iocInit
 ##=====================================================##
 
 dbl > pv.list
-dbl
+#dbl
 
 ##=====================================================##
 
-dbpf $(PREFIX)asyn1.TMSK 0x3f
-dbpf $(PREFIX)asyn1.TIOM 0x7
-dbpf $(PREFIX)asyn1.TINM 0xf
+#dbpf $(PREFIX)asyn1.TMSK 0x3f
+#dbpf $(PREFIX)asyn1.TIOM 0x7
+#dbpf $(PREFIX)asyn1.TINM 0xf
 
 dbpf $(PREFIX)IPAddress $(ZYNQ_DATA_IP)
+
+# Enable NDArrays
+dbpf $(PREFIX)MCA1:EnableCallbacks 1
+dbpf $(PREFIX)MCA1:ArrayCallbacks 1
+dbpf $(PREFIX)MCA1:Acquire 1
+dbpf $(PREFIX)TDC1:EnableCallbacks 1
+dbpf $(PREFIX)TDC1:ArrayCallbacks 1
+dbpf $(PREFIX)TDC1:Acquire 1
+
+< test.cmd
+

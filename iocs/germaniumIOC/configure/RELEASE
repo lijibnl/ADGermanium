@@ -1,8 +1,12 @@
 
-SUPPORT     = /usr/lib/epics
-ADCORE      = $(SUPPORT)
-EPICS_BASE  = $(SUPPORT)
-ADGERMANIUM = /epics/modules/ADGermanium
+ASYN        = /epics/modules/asyn
+ADCORE      = /epics/modules/ADCore
+BUSY        = /epics/modules/busy
+CALC        = /epics/modules/calc
+SSCAN       = /epics/modules/sscan
+AUTOSAVE    = /epics/modules/autosave
+EPICS_BASE  = /epics/base
+ADGERMANIUM = /data/prj/germanium/ADGermanium
 
 #include $(EPICS_BASE)/configure/CONFIG_BASE
 

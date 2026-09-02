@@ -344,6 +344,9 @@ void GermaniumDetector::createGermaniumParameters()
 
 void GermaniumDetector::setGermaniumInitialValues()
 {
+    setIntegerParam(NDArrayCallbacks, 1);
+    setIntegerParam(NDArrayCounter,   0);
+
     setIntegerParam(GermaniumEXSIZE, SPECTRUM_SIZE);
     setIntegerParam(GermaniumEYSIZE, numElements);
     setIntegerParam(GermaniumTXSIZE, TDC_SIZE);

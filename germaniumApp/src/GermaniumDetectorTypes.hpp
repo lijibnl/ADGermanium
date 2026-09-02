@@ -36,7 +36,7 @@
 #define TDC_SIZE 1024
 
 // Buffer sizes
-#define UDP_BUFFER_SIZE 65536
+//#define UDP_BUFFER_SIZE 65536
 
 //===========================================================================//
 
@@ -56,12 +56,5 @@ struct DataBlock
     uint32_t  size;    // actual payload bytes
     uint8_t   data[DATA_BLOCK_SIZE];
 };
-
-
-//===========================================================================//
-
-// PL UDP data markers
-#define SOF_MARKER  0xFEEDFACE
-#define EOF_MARKER  0xDECAFBAD
 
 //===========================================================================//

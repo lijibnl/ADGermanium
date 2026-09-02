@@ -24,6 +24,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <cstring>
+#include <print>
 #include <cstdio>
 #include <chrono>
 #include <thread>
@@ -31,6 +32,15 @@
 
 #include "GermaniumDetector.hpp"
 #include "LockFreeBroadcastSPMC.hpp"
+
+
+//===========================================================================//
+
+// PL UDP data markers
+#define SOF_MARKER  0xFEEDFACE
+#define EOF_MARKER  0xDECAFBAD
+
+//===========================================================================//
 
 using Clock = std::chrono::steady_clock;
 
@@ -42,6 +52,7 @@ namespace {
     constexpr size_t DATA_PROC_THREAD_INDEX  = 0;
     constexpr size_t DATA_WRITE_THREAD_INDEX = 1;
 
+
     constexpr std::chrono::milliseconds DATA_THREAD_WAIT_FOR_EOF_TIMEOUT = std::chrono::milliseconds(500);  // 500 ms
     //constexpr std::chrono::milliseconds DATA_THREAD_IDLE_TIMEOUT = std::chrono::milliseconds(500);  // 500 ms
     
@@ -50,7 +61,8 @@ namespace {
         IDLE,
         START,
         RUNNING,
-        FLUSH
+        FLUSH,
+        FINISH
     };
 }
 
@@ -332,6 +344,8 @@ void GermaniumDetector::plUdpDataThread()
             dataQueue->pushCancelRequest();
             continue;
         }
+
+        std::println("[{}]: {} bytes received", __func__, bytesReceived);
         
         block->size = static_cast<size_t>(bytesReceived);
         dataQueue->push();
@@ -373,6 +387,7 @@ void GermaniumDetector::dataProcessThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::IDLE:
             {
+                //std::println("[{}]: in IDLE state", __func__);
                 for (int spins = 0; spins < 100; spins++)
                 {
                     if (acquisitionRunning.load())
@@ -395,6 +410,7 @@ void GermaniumDetector::dataProcessThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::START:
             {
+                //std::println("[{}]: in START state", __func__);
                 udpDataAvailableEvent[DATA_PROC_THREAD_INDEX].wait(
                                         DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
                                         );
@@ -426,6 +442,7 @@ void GermaniumDetector::dataProcessThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::RUNNING:
             {
+                //std::println("[{}]: in RUNNING state", __func__);
                 bool queueNotEmpty = true;
                 udpDataAvailableEvent[DATA_PROC_THREAD_INDEX].wait(
                                         DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
@@ -439,6 +456,7 @@ void GermaniumDetector::dataProcessThread()
                     {
                         if ( dataBlock->size > 4 )
                         {
+                            std::println("[{}]: got data. Calculating spectra...", __func__);
                             // Parse packet as big-endian 32-bit words
                             size_t numWords = dataBlock->size / sizeof(uint32_t) - 2;
                             uint32_t *words = reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(dataBlock->data)) + 2;
@@ -469,6 +487,11 @@ void GermaniumDetector::dataProcessThread()
                     }
                     else
                     {
+                        if (!acquisitionRunning.load())
+                        {
+                            threadState = QueueConsumerThreadState::FLUSH;
+                            lastPacketTime = Clock::now();
+                        }
                         break;
                     }
                }
@@ -477,6 +500,7 @@ void GermaniumDetector::dataProcessThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::FLUSH:
             {
+                //std::println("[{}]: in FLUSH state", __func__);
                 while ( threadState == QueueConsumerThreadState::FLUSH )
                 {
                     udpDataAvailableEvent[DATA_PROC_THREAD_INDEX].wait(
@@ -495,27 +519,10 @@ void GermaniumDetector::dataProcessThread()
                             if (words[numWords-1] == EOF_MARKER)
                             {
                                 numWords -=2;
-                                threadState = QueueConsumerThreadState::IDLE;
+                                threadState = QueueConsumerThreadState::FINISH;
                             }
 
                             calcSpectra( words, numWords );
-
-                            //// Process event data words (skip headers, detect SOF/EOF markers)
-                            //for (size_t i = 2; i + 1 < numWords; i += 2)
-                            //{
-                            //    uint32_t w1 = ntohl(words[i]);
-                            //    uint32_t w2 = ntohl(words[i + 1]);
-
-                            //    // Skip markers
-                            //    if ( w2 != EOF_MARKER )
-                            //    {
-                            //        calcSpectra(w1, w2);
-                            //    }
-                            //    else
-                            //    {
-                            //        threadState = QueueConsumerThreadState::IDLE;
-                            //    }
-                            //}
 
                             lastPacketTime = Clock::now();
                         }
@@ -529,10 +536,44 @@ void GermaniumDetector::dataProcessThread()
 
                     if ( (Clock::now() - lastPacketTime ) > DATA_THREAD_WAIT_FOR_EOF_TIMEOUT )
                     {
-                        threadState = QueueConsumerThreadState::IDLE;
+                        threadState = QueueConsumerThreadState::FINISH;
                     }
                 }
 
+                break;
+            }
+            //----------------------------------------------------//
+            case QueueConsumerThreadState::FINISH:
+            {
+                std::println("[{}]: finishing data processing.", __func__);
+                threadState = QueueConsumerThreadState::IDLE;
+
+                publishSpectra();
+
+                uint64_t totalMca = 0;
+                size_t nonzeroBins = 0;
+                size_t firstNonzero = 0;
+                uint32_t firstValue = 0;
+
+                const size_t totalBins = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+                for (size_t i = 0; i < totalBins; i++)
+                {
+                    uint32_t bin = mcaData[i].load(std::memory_order_relaxed);
+                    totalMca += bin;
+                    if (bin != 0)
+                    {
+                        if (nonzeroBins == 0)
+                        {
+                            firstNonzero = i;
+                            firstValue = bin;
+                        }
+                        nonzeroBins++;
+                        std::println(" mcaData[{}] = {}", i, bin);
+                    }
+                }
+
+                std::println("[{}]: MCA total={}, nonzeroBins={}, firstNonzero={}, firstValue={}",
+                            __func__, totalMca, nonzeroBins, firstNonzero, firstValue);
                 break;
             }
             //----------------------------------------------------//
@@ -561,6 +602,9 @@ void GermaniumDetector::dataProcessThread()
 
 void GermaniumDetector::calcSpectra( uint32_t* words, size_t numWords )
 {
+    static uint32_t numEvents = 0;
+    static uint32_t numValidEvents = 0;
+
     for (size_t i = 0; i + 1 < numWords; i += 2)
     {
         uint32_t w1 = ntohl(words[i]);
@@ -581,11 +625,110 @@ void GermaniumDetector::calcSpectra( uint32_t* words, size_t numWords )
             countRates[element].fetch_add(1, std::memory_order_relaxed);
             totalCounts[element].fetch_add(1, std::memory_order_relaxed);
             evttot.fetch_add(1, std::memory_order_relaxed);
+            numEvents++;
+            if (pd > 0) // example condition for a valid event
+            {
+                numValidEvents++;
+            }
         }
     }
+    std::println("[{}]: numEvents = {}, numValidEvents = {}", __func__, numEvents, numValidEvents);
+}
+
+void GermaniumDetector::publishSpectra()
+{
+    this->lock();
+
+    const size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+    const size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
+    const size_t intensityTotal = static_cast<size_t>(numElements);
+
+    std::vector<epicsInt32> mcaBuffer(mcaTotal);
+    std::vector<epicsInt32> tdcBuffer(tdcTotal);
+    std::vector<epicsInt32> intensityBuffer(intensityTotal);
+
+    for (size_t i = 0; i < mcaTotal; i++)
+        mcaBuffer[i] = static_cast<epicsInt32>(mcaData[i].load(std::memory_order_relaxed));
+
+    for (size_t i = 0; i < tdcTotal; i++)
+        tdcBuffer[i] = static_cast<epicsInt32>(tdcData[i].load(std::memory_order_relaxed));
+
+    for (size_t i = 0; i < intensityTotal; i++)
+        intensityBuffer[i] = static_cast<epicsInt32>(countRates[i].load(std::memory_order_relaxed));
+
+    doCallbacksInt32Array(mcaBuffer.data(), mcaTotal, GermaniumMCA, 0);
+    doCallbacksInt32Array(tdcBuffer.data(), tdcTotal, GermaniumTDC, 0);
+    doCallbacksInt32Array(intensityBuffer.data(), intensityTotal, GermaniumINTENS, 0);
+
+    int arrayCallbacks = 0;
+    getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
+    if (!arrayCallbacks)
+    {
+        callParamCallbacks();
+        this->unlock();
+        return;
+    }
+
+    int colorMode = NDColorModeMono;
+
+    size_t mcaDims[2] = {
+        static_cast<size_t>(SPECTRUM_SIZE),
+        static_cast<size_t>(numElements)
+    };
+
+    NDArray *pMCA = this->pNDArrayPool->alloc(2, mcaDims, NDInt32, 0, nullptr);
+    if (pMCA)
+    {
+        auto *pDest = static_cast<epicsInt32*>(pMCA->pData);
+        std::copy(mcaBuffer.begin(), mcaBuffer.end(), pDest);
+
+        pMCA->uniqueId = arrayCounter;
+        updateTimeStamp(&pMCA->epicsTS);
+        pMCA->timeStamp = pMCA->epicsTS.secPastEpoch
+                         + pMCA->epicsTS.nsec * 1e-9;
+        pMCA->pAttributeList->add("ColorMode", "Color mode", NDAttrInt32, &colorMode);
+
+        this->unlock();
+        doCallbacksGenericPointer(pMCA, NDArrayData, 0);
+        this->lock();
+
+        pMCA->release();
+    }
+
+    size_t tdcDims[2] = {
+        static_cast<size_t>(TDC_SIZE),
+        static_cast<size_t>(numElements)
+    };
+
+    NDArray *pTDC = this->pNDArrayPool->alloc(2, tdcDims, NDInt32, 0, nullptr);
+    if (pTDC)
+    {
+        auto *pDest = static_cast<epicsInt32*>(pTDC->pData);
+        std::copy(tdcBuffer.begin(), tdcBuffer.end(), pDest);
+
+        pTDC->uniqueId = arrayCounter;
+        updateTimeStamp(&pTDC->epicsTS);
+        pTDC->timeStamp = pTDC->epicsTS.secPastEpoch
+                         + pTDC->epicsTS.nsec * 1e-9;
+        pTDC->pAttributeList->add("ColorMode", "Color mode", NDAttrInt32, &colorMode);
+
+        this->unlock();
+        doCallbacksGenericPointer(pTDC, NDArrayData, 1);
+        this->lock();
+
+        pTDC->release();
+    }
+
+    arrayCounter++;
+    setIntegerParam(NDArrayCounter, arrayCounter);
+    callParamCallbacks();
+
+    this->unlock();
 }
 
 //===========================================================================//
+
+
 
 void GermaniumDetector::spectraSynchronizeThreadC(void *pPvt)
 {
@@ -593,6 +736,16 @@ void GermaniumDetector::spectraSynchronizeThreadC(void *pPvt)
 }
 
 void GermaniumDetector::spectraSynchronizeThread()
+{
+    while (threadsRunning.load())
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        setIntegerParam(GermaniumSS, acquisitionRunning.load() ? 1 : 0);
+        publishSpectra();
+    }
+}
+/*
 {
     asynPrint( pasynUserSelf
              , ASYN_TRACE_FLOW
@@ -683,6 +836,7 @@ void GermaniumDetector::spectraSynchronizeThread()
              , __func__
              );
 }
+*/
 
 //===========================================================================//
 
@@ -710,6 +864,7 @@ void GermaniumDetector::dataWriteThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::IDLE:
             {
+                //std::println("[{}]: in IDLE state", __func__);
                 for (int spins = 0; spins < 100; spins++)
                 {
                     if (acquisitionRunning.load())
@@ -733,6 +888,7 @@ void GermaniumDetector::dataWriteThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::RUNNING:
             {
+                //std::println("[{}]: in RUNNING state", __func__);
                 udpDataAvailableEvent[DATA_WRITE_THREAD_INDEX].wait(
                                         DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
                                         );
@@ -746,6 +902,8 @@ void GermaniumDetector::dataWriteThread()
                             dataQueue->pop(DATA_WRITE_THREAD_INDEX);
                             continue;
                         }
+                        
+                        std::println("[{}]: got data", __func__);
 
                         if ( !writeDataToFile( dataBlock ) )
                         {
@@ -769,12 +927,22 @@ void GermaniumDetector::dataWriteThread()
                                     );
                         }
                     }
+                    if (!acquisitionRunning.load())
+                    {
+                        threadState = QueueConsumerThreadState::FLUSH;
+                        lastPacketTime = Clock::now();
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 break;
             }
             //----------------------------------------------------//
             case QueueConsumerThreadState::FLUSH:
             {
+                //std::println("[{}]: in FLUSH state", __func__);
                 udpDataAvailableEvent[DATA_WRITE_THREAD_INDEX].wait(
                                         DATA_THREAD_WAIT_FOR_DATA_TIMEOUT
                                         );

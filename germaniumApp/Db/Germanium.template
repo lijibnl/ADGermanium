@@ -59,7 +59,7 @@ record(bo, "$(P)$(R)Acquire") {
 
 record(bi, "$(P)$(R)Acquire_RBV") {
     field(DTYP, "asynInt32")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_CNT")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_CNT_RBV")
     field(SCAN, "I/O Intr")
     field(ZNAM, "Done")
     field(ONAM, "Acquiring")

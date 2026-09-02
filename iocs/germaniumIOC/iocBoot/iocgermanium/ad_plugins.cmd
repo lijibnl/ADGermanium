@@ -6,6 +6,7 @@ epicsEnvSet("NCHANS", "2048")
 epicsEnvSet("CBUFFS", "500")
 epicsEnvSet("EPICS_DB_INCLUDE_PATH", "$(ADCORE)/db")
 
+
 # NDStdArrays: waveform access to array data via CA/PVA
 # MCA array plugin (addr 0) — NELEMENTS = 4096 * NELM
 NDStdArraysConfigure("MCA1", $(QSIZE), 0, "$(PORT)", 0, 0)

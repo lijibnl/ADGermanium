@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <print>
 #include <algorithm>
 #include <iostream>
 #include <arpa/inet.h>
@@ -481,7 +482,7 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             setIntegerParam(GermaniumMODE, value ? 1 : 0);
             break;
         case GermaniumProtocol::Register::EVENT_TIME_CNTR:
-            setDoubleParam(GermaniumT, static_cast<double>(value) / 25.0e6);
+            setDoubleParam(GermaniumT, static_cast<double>(value) / ACQUIRE_TIMER_FREQUENCY);
             break;
         case GermaniumProtocol::Register::COUNT_TIME_LO:
             count_time_lo = value;
@@ -491,7 +492,7 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             count_time_hi = value;
             double count_time = static_cast<double>( ( static_cast<uint64_t>(count_time_hi ) << 32)
                                                      | count_time_lo );
-            setDoubleParam(GermaniumTP, count_time);
+            setDoubleParam(GermaniumTP, count_time / ACQUIRE_TIMER_FREQUENCY);
             break;
         }
         case GermaniumProtocol::Register::UDP_IP_ADDR:
