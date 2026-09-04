@@ -1,0 +1,3053 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Saved on 2026-09-04 14:04:41 by liji-->
+<display version="2.0.0">
+  <name>Germanium</name>
+  <width>1330</width>
+  <height>1150</height>
+  <actions>
+  </actions>
+  <widget type="rectangle" version="2.0.0">
+    <name>Rectangle</name>
+    <width>1330</width>
+    <height>1150</height>
+    <line_width>1</line_width>
+    <line_color>
+      <color name="Header_Background" red="77" green="77" blue="77">
+      </color>
+    </line_color>
+    <transparent>true</transparent>
+  </widget>
+  <widget type="tabs" version="2.0.0">
+    <name>Tabbed Container_2</name>
+    <tabs>
+      <tab>
+        <name>Main</name>
+        <children>
+          <widget type="rectangle" version="2.0.0">
+            <name>Rectangle_18</name>
+            <x>960</x>
+            <y>370</y>
+            <width>270</width>
+            <height>240</height>
+            <line_width>1</line_width>
+            <line_color>
+              <color red="0" green="0" blue="0">
+              </color>
+            </line_color>
+            <transparent>true</transparent>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)</tooltip>
+          </widget>
+          <widget type="rectangle" version="2.0.0">
+            <name>Rectangle_15</name>
+            <x>960</x>
+            <y>48</y>
+            <width>270</width>
+            <height>279</height>
+            <line_width>1</line_width>
+            <line_color>
+              <color red="0" green="0" blue="0">
+              </color>
+            </line_color>
+            <transparent>true</transparent>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)</tooltip>
+          </widget>
+          <widget type="image" version="2.0.0">
+            <name>Spectra_2</name>
+            <pv_name>$(Sys)$(Dev)MCA</pv_name>
+            <x>28</x>
+            <y>16</y>
+            <width>897</width>
+            <height>483</height>
+            <background_color>
+              <color name="Transparent" red="255" green="255" blue="255" alpha="0">
+              </color>
+            </background_color>
+            <show_toolbar>true</show_toolbar>
+            <color_map>
+              <name>JET</name>
+            </color_map>
+            <color_bar>
+              <visible>false</visible>
+              <bar_size>40</bar_size>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </color_bar>
+            <x_axis>
+              <visible>true</visible>
+              <title>Energy</title>
+              <minimum>0.0</minimum>
+              <maximum>4095.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </x_axis>
+            <y_axis>
+              <visible>true</visible>
+              <title>Channel Number</title>
+              <minimum>$(NELM)</minimum>
+              <maximum>0.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </y_axis>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <data_width>4096</data_width>
+            <data_height>$(NELM)</data_height>
+            <unsigned>true</unsigned>
+            <log_scale>true</log_scale>
+            <maximum>2000.0</maximum>
+            <x_pv>$(Sys)$(Dev)CURSX</x_pv>
+            <y_pv>$(Sys)$(Dev)CURSY</y_pv>
+            <cursor_crosshair>true</cursor_crosshair>
+          </widget>
+          <widget type="xyplot" version="3.0.0">
+            <name>XY Graph_3</name>
+            <x>519</x>
+            <y>517</y>
+            <title>$(Sys)$(Dev)Intensity</title>
+            <title_font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </title_font>
+            <show_toolbar>true</show_toolbar>
+            <show_legend>false</show_legend>
+            <actions>
+            </actions>
+            <x_axis>
+              <title>Detector number</title>
+              <autoscale>false</autoscale>
+              <log_scale>false</log_scale>
+              <minimum>0.0</minimum>
+              <maximum>$(NELM)</maximum>
+              <show_grid>true</show_grid>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+              <visible>true</visible>
+            </x_axis>
+            <y_axes>
+              <y_axis>
+                <title>Events</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <on_right>false</on_right>
+                <visible>true</visible>
+                <color>
+                  <color name="Text" red="0" green="0" blue="0">
+                  </color>
+                </color>
+              </y_axis>
+            </y_axes>
+            <traces>
+              <trace>
+                <name>$(traces[0].y_pv)</name>
+                <x_pv></x_pv>
+                <y_pv>$(Sys)$(Dev)Intensity</y_pv>
+                <err_pv></err_pv>
+                <axis>0</axis>
+                <trace_type>1</trace_type>
+                <color>
+                  <color red="21" green="21" blue="196">
+                  </color>
+                </color>
+                <line_width>1</line_width>
+                <line_style>0</line_style>
+                <point_type>0</point_type>
+                <point_size>4</point_size>
+                <visible>true</visible>
+              </trace>
+            </traces>
+          </widget>
+          <widget type="xyplot" version="3.0.0">
+            <name>XY Graph_4</name>
+            <x>49</x>
+            <y>517</y>
+            <title>$(Sys)$(Dev)Spectrum</title>
+            <title_font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </title_font>
+            <show_toolbar>true</show_toolbar>
+            <show_legend>false</show_legend>
+            <actions>
+            </actions>
+            <x_axis>
+              <title>Energy (keV)</title>
+              <autoscale>true</autoscale>
+              <log_scale>false</log_scale>
+              <minimum>0.0</minimum>
+              <maximum>0.0</maximum>
+              <show_grid>true</show_grid>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+              <visible>true</visible>
+            </x_axis>
+            <y_axes>
+              <y_axis>
+                <title>Intensity</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <on_right>false</on_right>
+                <visible>true</visible>
+                <color>
+                  <color name="Text" red="0" green="0" blue="0">
+                  </color>
+                </color>
+              </y_axis>
+            </y_axes>
+            <traces>
+              <trace>
+                <name>$(traces[0].y_pv)</name>
+                <x_pv>$(Sys)$(Dev)SpectrumX</x_pv>
+                <y_pv>$(Sys)$(Dev)Spectrum</y_pv>
+                <err_pv></err_pv>
+                <axis>0</axis>
+                <trace_type>1</trace_type>
+                <color>
+                  <color red="21" green="21" blue="196">
+                  </color>
+                </color>
+                <line_width>1</line_width>
+                <line_style>0</line_style>
+                <point_type>0</point_type>
+                <point_size>4</point_size>
+                <visible>true</visible>
+              </trace>
+            </traces>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Gain_2</name>
+            <pv_name>$(Sys)$(Dev)Gain</pv_name>
+            <x>1087</x>
+            <y>69</y>
+            <width>110</width>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Shaping time_2</name>
+            <pv_name>$(Sys)$(Dev)ShapingTime</pv_name>
+            <x>1087</x>
+            <y>134</y>
+            <width>110</width>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_37</name>
+            <text>Gain (FS)</text>
+            <x>988</x>
+            <y>79</y>
+            <width>80</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_38</name>
+            <text>Shaping time</text>
+            <x>988</x>
+            <y>144</y>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_11</name>
+            <pv_name>$(Sys)$(Dev)CountMode</pv_name>
+            <x>1087</x>
+            <y>199</y>
+            <width>110</width>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_12</name>
+            <pv_name>$(Sys)$(Dev)AutoCount</pv_name>
+            <x>1087</x>
+            <y>264</y>
+            <width>110</width>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_40</name>
+            <text>Mode</text>
+            <x>988</x>
+            <y>209</y>
+            <width>80</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_43</name>
+            <text>Single/Auto</text>
+            <x>988</x>
+            <y>274</y>
+            <width>93</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_44</name>
+            <text>Count time</text>
+            <x>988</x>
+            <y>391</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textentry" version="3.0.0">
+            <name>Count time_2</name>
+            <pv_name>$(Sys)$(Dev)AcquireTime</pv_name>
+            <x>1084</x>
+            <y>391</y>
+            <width>110</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <precision>0</precision>
+            <horizontal_alignment>1</horizontal_alignment>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textupdate" version="2.0.0">
+            <name>Text Update_36</name>
+            <pv_name>$(Sys)$(Dev)RunNumber_RBV</pv_name>
+            <x>1084</x>
+            <y>564</y>
+            <width>110</width>
+            <height>25</height>
+            <foreground_color>
+              <color red="32" green="74" blue="135">
+              </color>
+            </foreground_color>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <transparent>true</transparent>
+            <horizontal_alignment>1</horizontal_alignment>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_45</name>
+            <text>Run No.</text>
+            <x>988</x>
+            <y>539</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textentry" version="3.0.0">
+            <name>Text Input_6</name>
+            <pv_name>$(Sys)$(Dev)RunNumber</pv_name>
+            <x>1084</x>
+            <y>539</y>
+            <width>110</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_46</name>
+            <text>Auto time</text>
+            <x>988</x>
+            <y>499</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textentry" version="3.0.0">
+            <name>Auto time_2</name>
+            <pv_name>$(Sys)$(Dev)AcquireTime1</pv_name>
+            <x>1084</x>
+            <y>499</y>
+            <width>110</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="progressbar" version="2.0.0">
+            <name>Couting Progress</name>
+            <pv_name>$(Sys)$(Dev)ElapsedTime</pv_name>
+            <x>989</x>
+            <y>448</y>
+            <width>200</width>
+            <height>36</height>
+            <rules>
+              <rule name="Max" prop_id="maximum" out_exp="true">
+                <exp bool_exp="true">
+                  <expression>pv0</expression>
+                </exp>
+                <pv_name>$(Sys)$(Dev)AcquireTime</pv_name>
+              </rule>
+            </rules>
+            <limits_from_pv>false</limits_from_pv>
+          </widget>
+          <widget type="textupdate" version="2.0.0">
+            <name>Text Update_33</name>
+            <pv_name>$(Sys)$(Dev)ElapsedTime</pv_name>
+            <x>1085</x>
+            <y>418</y>
+            <width>110</width>
+            <height>25</height>
+            <foreground_color>
+              <color red="32" green="74" blue="135">
+              </color>
+            </foreground_color>
+            <precision>0</precision>
+            <horizontal_alignment>1</horizontal_alignment>
+            <vertical_alignment>1</vertical_alignment>
+          </widget>
+          <widget type="rectangle" version="2.0.0">
+            <name>Rectangle_13</name>
+            <x>960</x>
+            <y>653</y>
+            <width>270</width>
+            <height>122</height>
+            <line_width>1</line_width>
+            <line_color>
+              <color red="0" green="0" blue="0">
+              </color>
+            </line_color>
+            <transparent>true</transparent>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)</tooltip>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_13</name>
+            <pv_name>$(Sys)$(Dev)MonitorMode</pv_name>
+            <x>1087</x>
+            <y>673</y>
+            <width>110</width>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_49</name>
+            <text>Monitor fn.</text>
+            <x>991</x>
+            <y>673</y>
+            <width>80</width>
+            <height>40</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="spinner" version="2.0.0">
+            <name>Spinner_5</name>
+            <pv_name>$(Sys)$(Dev)MonitorChannel</pv_name>
+            <x>1087</x>
+            <y>731</y>
+            <width>110</width>
+            <height>25</height>
+            <format>0</format>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <vertical_alignment>1</vertical_alignment>
+            <actions>
+            </actions>
+            <minimum>-1.7976931348623157E308</minimum>
+            <maximum>1.7976931348623157E308</maximum>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_65</name>
+            <text>Channel</text>
+            <x>991</x>
+            <y>731</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textupdate" version="2.0.0">
+            <name>Text Update_47</name>
+            <pv_name>='$(Sys)$(Dev)ElapsedTime'/'$(Sys)$(Dev)AcquireTime'*100</pv_name>
+            <x>1058</x>
+            <y>457</y>
+            <width>40</width>
+            <transparent>true</transparent>
+            <precision>0</precision>
+            <show_units>false</show_units>
+            <horizontal_alignment>2</horizontal_alignment>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_73</name>
+            <text>%</text>
+            <x>1098</x>
+            <y>457</y>
+            <width>20</width>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>Calibration</name>
+        <children>
+          <widget type="textentry" version="3.0.0">
+            <name>Text Input</name>
+            <pv_name>$(Sys)$(Dev)CALF</pv_name>
+            <x>938</x>
+            <y>44</y>
+            <width>270</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>2</horizontal_alignment>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="action_button" version="3.0.0">
+            <name>Action Button</name>
+            <actions>
+              <action type="command">
+                <description>Execute Command</description>
+                <command>/home/peter/css_scripts/testEnable/bin/linux-x86_64//./loadcals</command>
+              </action>
+            </actions>
+            <text>Load</text>
+            <x>1108</x>
+            <y>6</y>
+            <height>32</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <tooltip>$(actions)</tooltip>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_1</name>
+            <text>Multi-fire suppression</text>
+            <x>939</x>
+            <y>91</y>
+            <width>140</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button</name>
+            <pv_name>$(Sys)$(Dev)MultiFire</pv_name>
+            <x>1108</x>
+            <y>86</y>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_1</name>
+            <pv_name>$(Sys)$(Dev)SimEventSel</pv_name>
+            <x>1108</x>
+            <y>131</y>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_2</name>
+            <text>Leakage/Pulse</text>
+            <x>939</x>
+            <y>136</y>
+            <width>140</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_3</name>
+            <text>Internal leak current</text>
+            <x>939</x>
+            <y>181</y>
+            <width>140</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_2</name>
+            <pv_name>$(Sys)$(Dev)LeakageCurrent</pv_name>
+            <x>1108</x>
+            <y>176</y>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_3</name>
+            <pv_name>$(Sys)$(Dev)PileupReject</pv_name>
+            <x>1108</x>
+            <y>221</y>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_4</name>
+            <text>Pileup rejection</text>
+            <x>939</x>
+            <y>226</y>
+            <width>140</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="array" version="2.0.0">
+            <name>Array_6</name>
+            <pv_name>$(Sys)$(Dev)Threshold</pv_name>
+            <x>1088</x>
+            <y>422</y>
+            <width>130</width>
+            <height>380</height>
+            <rules>
+              <rule name="Height Rule" prop_id="height" out_exp="false">
+                <exp bool_exp="pv0==192">
+                  <value>200</value>
+                </exp>
+                <exp bool_exp="pv0==384">
+                  <value>380</value>
+                </exp>
+                <pv_name>$(Sys)$(Dev)NELM</pv_name>
+              </rule>
+            </rules>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Entry_6</name>
+              <width>110</width>
+              <height>30</height>
+              <background_color>
+                <color name="Background" red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <precision>0</precision>
+              <horizontal_alignment>1</horizontal_alignment>
+            </widget>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label</name>
+            <text>Calibration file</text>
+            <x>939</x>
+            <y>13</y>
+            <width>140</width>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="group" version="3.0.0">
+            <name>HV Bias</name>
+            <x>929</x>
+            <y>279</y>
+            <width>289</width>
+            <height>125</height>
+            <transparent>true</transparent>
+            <widget type="label" version="2.0.0">
+              <name>Label_18</name>
+              <text>Voltage</text>
+              <x>20</x>
+              <y>7</y>
+              <width>58</width>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_11</name>
+              <pv_name>$(Sys)$(Dev)HighVoltage</pv_name>
+              <x>85</x>
+              <y>7</y>
+              <width>140</width>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_11</name>
+              <pv_name>$(Sys)$(Dev)HighVoltage_RBV</pv_name>
+              <x>85</x>
+              <y>32</y>
+              <width>140</width>
+              <height>25</height>
+              <foreground_color>
+                <color red="32" green="74" blue="135">
+                </color>
+              </foreground_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_12</name>
+              <pv_name>$(Sys)$(Dev)HighVoltageCurrent</pv_name>
+              <x>85</x>
+              <y>63</y>
+              <width>140</width>
+              <foreground_color>
+                <color red="32" green="74" blue="135">
+                </color>
+              </foreground_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_19</name>
+              <text>Current</text>
+              <x>20</x>
+              <y>63</y>
+              <width>80</width>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+          </widget>
+          <widget type="image" version="2.0.0">
+            <name>Spectra_4</name>
+            <pv_name>$(Sys)$(Dev)MCA</pv_name>
+            <x>30</x>
+            <y>26</y>
+            <width>877</width>
+            <height>390</height>
+            <background_color>
+              <color name="Transparent" red="255" green="255" blue="255" alpha="0">
+              </color>
+            </background_color>
+            <color_map>
+              <name>JET</name>
+            </color_map>
+            <color_bar>
+              <visible>false</visible>
+              <bar_size>40</bar_size>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </color_bar>
+            <x_axis>
+              <visible>true</visible>
+              <title>Energy</title>
+              <minimum>0.0</minimum>
+              <maximum>4095.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </x_axis>
+            <y_axis>
+              <visible>true</visible>
+              <title>Channel Number</title>
+              <minimum>$(NELM)</minimum>
+              <maximum>0.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </y_axis>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <data_width>4096</data_width>
+            <data_height>$(NELM)</data_height>
+            <unsigned>true</unsigned>
+            <log_scale>true</log_scale>
+            <maximum>2000.0</maximum>
+            <x_pv>$(Sys)$(Dev)CURSX</x_pv>
+            <y_pv>$(Sys)$(Dev)CURSY</y_pv>
+            <cursor_crosshair>true</cursor_crosshair>
+          </widget>
+          <widget type="image" version="2.0.0">
+            <name>Time spectra</name>
+            <pv_name>$(Sys)$(Dev)TDC</pv_name>
+            <x>30</x>
+            <y>429</y>
+            <width>877</width>
+            <height>390</height>
+            <background_color>
+              <color name="Transparent" red="255" green="255" blue="255" alpha="0">
+              </color>
+            </background_color>
+            <color_map>
+              <name>JET</name>
+            </color_map>
+            <color_bar>
+              <visible>false</visible>
+              <bar_size>40</bar_size>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </color_bar>
+            <x_axis>
+              <visible>true</visible>
+              <title>Time</title>
+              <minimum>0.0</minimum>
+              <maximum>1023.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </x_axis>
+            <y_axis>
+              <visible>true</visible>
+              <title>Channel Number</title>
+              <minimum>$(NELM)</minimum>
+              <maximum>0.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </y_axis>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <data_width>1024</data_width>
+            <data_height>$(NELM)</data_height>
+            <unsigned>true</unsigned>
+            <log_scale>true</log_scale>
+            <maximum>500000.0</maximum>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_21</name>
+            <text>Threshold</text>
+            <x>1101</x>
+            <y>404</y>
+            <width>110</width>
+            <font>
+              <font family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <horizontal_alignment>1</horizontal_alignment>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="group" version="3.0.0">
+            <name>ADC Skews</name>
+            <x>925</x>
+            <y>424</y>
+            <width>160</width>
+            <height>210</height>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_9</name>
+              <pv_name>$(Sys)$(Dev)Adc2ClkSkew</pv_name>
+              <x>12</x>
+              <y>144</y>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_86</name>
+              <text>ADC2</text>
+              <x>16</x>
+              <y>121</y>
+              <width>90</width>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_13</name>
+              <pv_name>$(Sys)$(Dev)Adc1ClkSkew</pv_name>
+              <x>12</x>
+              <y>87</y>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_87</name>
+              <text>ADC1</text>
+              <x>16</x>
+              <y>64</y>
+              <width>90</width>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_14</name>
+              <pv_name>$(Sys)$(Dev)Adc0ClkSkew</pv_name>
+              <x>12</x>
+              <y>29</y>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_88</name>
+              <text>ADC0</text>
+              <x>16</x>
+              <y>6</y>
+              <width>90</width>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+          </widget>
+          <widget type="group" version="3.0.0">
+            <name>Delays</name>
+            <x>925</x>
+            <y>634</y>
+            <width>160</width>
+            <height>170</height>
+            <font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </font>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_12</name>
+              <pv_name>$(Sys)$(Dev)ReadoutDelay</pv_name>
+              <x>14</x>
+              <y>99</y>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_28</name>
+              <text>Readout Delay</text>
+              <x>14</x>
+              <y>76</y>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_10</name>
+              <pv_name>$(Sys)$(Dev)PipelineDelay</pv_name>
+              <x>12</x>
+              <y>35</y>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_27</name>
+              <text>Pipeline Delay</text>
+              <x>12</x>
+              <y>12</y>
+              <width>94</width>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>Test &amp; UDP</name>
+        <children>
+          <widget type="group" version="3.0.0">
+            <name>UDP</name>
+            <x>528</x>
+            <y>454</y>
+            <width>707</width>
+            <height>80</height>
+            <transparent>true</transparent>
+            <widget type="label" version="2.0.0">
+              <name>Label_74</name>
+              <text>IP address (UDP)</text>
+              <x>23</x>
+              <y>10</y>
+              <width>120</width>
+              <height>25</height>
+              <vertical_alignment>1</vertical_alignment>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_59</name>
+              <pv_name>$(Sys)$(Dev)IPAddress_RBV</pv_name>
+              <x>308</x>
+              <y>10</y>
+              <width>134</width>
+              <height>25</height>
+              <foreground_color>
+                <color red="32" green="74" blue="135">
+                </color>
+              </foreground_color>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <transparent>true</transparent>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_20</name>
+              <pv_name>$(Sys)$(Dev)IPAddress</pv_name>
+              <x>155</x>
+              <y>10</y>
+              <width>134</width>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>1</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_41</name>
+              <text>Active</text>
+              <x>541</x>
+              <y>10</y>
+              <width>50</width>
+              <height>25</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="led" version="2.0.0">
+              <name>LED_4</name>
+              <pv_name>$(Sys)$(Dev)UDPReachable_RBV</pv_name>
+              <bit>0</bit>
+              <x>611</x>
+              <y>10</y>
+              <width>24</width>
+              <height>25</height>
+              <off_color>
+                <color name="Major" red="255" green="0" blue="0">
+                </color>
+              </off_color>
+              <font>
+                <font name="Header 3" family="Liberation Sans" style="BOLD" size="16.0">
+                </font>
+              </font>
+              <foreground_color>
+                <color red="192" green="192" blue="192">
+                </color>
+              </foreground_color>
+              <line_color>
+                <color red="150" green="150" blue="150">
+                </color>
+              </line_color>
+              <square>true</square>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+            </widget>
+          </widget>
+          <widget type="rectangle" version="2.0.0">
+            <name>Rectangle_14</name>
+            <x>871</x>
+            <y>39</y>
+            <width>360</width>
+            <height>397</height>
+            <line_width>1</line_width>
+            <line_color>
+              <color red="0" green="0" blue="0">
+              </color>
+            </line_color>
+            <transparent>true</transparent>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+          </widget>
+          <widget type="group" version="3.0.0">
+            <name>Test Pulses</name>
+            <x>530</x>
+            <y>30</y>
+            <width>340</width>
+            <height>210</height>
+            <transparent>true</transparent>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_19</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)TsenSel</pv_name>
+                  <value>1</value>
+                </action>
+              </actions>
+              <text>Enable</text>
+              <x>11</x>
+              <y>26</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_20</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)TsenAll</pv_name>
+                  <value>1</value>
+                </action>
+              </actions>
+              <text>Enable All</text>
+              <x>11</x>
+              <y>96</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_23</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)TsenSel</pv_name>
+                  <value>0</value>
+                </action>
+              </actions>
+              <text>Disable</text>
+              <x>171</x>
+              <y>26</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_24</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)TsenAll</pv_name>
+                  <value>0</value>
+                </action>
+              </actions>
+              <text>Disable All</text>
+              <x>171</x>
+              <y>96</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+          </widget>
+          <widget type="group" version="3.0.0">
+            <name>Channels</name>
+            <x>530</x>
+            <y>234</y>
+            <width>340</width>
+            <height>210</height>
+            <transparent>true</transparent>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_15</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)ChenSel</pv_name>
+                  <value>1</value>
+                </action>
+              </actions>
+              <text>Enable</text>
+              <x>11</x>
+              <y>23</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_16</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)ChenSel</pv_name>
+                  <value>1</value>
+                </action>
+              </actions>
+              <text>Enable All</text>
+              <x>11</x>
+              <y>93</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_17</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)ChenSel</pv_name>
+                  <value>0</value>
+                </action>
+              </actions>
+              <text>Disable</text>
+              <x>171</x>
+              <y>23</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+            <widget type="action_button" version="3.0.0">
+              <name>Action Button_18</name>
+              <actions>
+                <action type="write_pv">
+                  <description>WritePV</description>
+                  <pv_name>$(Sys)$(Dev)ChenSel</pv_name>
+                  <value>0</value>
+                </action>
+              </actions>
+              <text>Disable All</text>
+              <x>171</x>
+              <y>93</y>
+              <width>120</width>
+              <height>50</height>
+              <background_color>
+                <color red="240" green="240" blue="240">
+                </color>
+              </background_color>
+              <tooltip>$(actions)</tooltip>
+            </widget>
+          </widget>
+          <widget type="xyplot" version="3.0.0">
+            <name>Spectrum</name>
+            <x>19</x>
+            <y>50</y>
+            <width>487</width>
+            <height>756</height>
+            <title>Spectrum</title>
+            <title_font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </title_font>
+            <show_toolbar>true</show_toolbar>
+            <show_legend>false</show_legend>
+            <actions>
+            </actions>
+            <x_axis>
+              <title>Energy (keV)</title>
+              <autoscale>true</autoscale>
+              <log_scale>false</log_scale>
+              <minimum>0.0</minimum>
+              <maximum>0.0</maximum>
+              <show_grid>true</show_grid>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+              <visible>true</visible>
+            </x_axis>
+            <y_axes>
+              <y_axis>
+                <title>Intensity</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <on_right>false</on_right>
+                <visible>true</visible>
+                <color>
+                  <color name="Text" red="0" green="0" blue="0">
+                  </color>
+                </color>
+              </y_axis>
+            </y_axes>
+            <traces>
+              <trace>
+                <name>$(traces[0].y_pv)</name>
+                <x_pv>$(Sys)$(Dev)SpectrumX</x_pv>
+                <y_pv>$(Sys)$(Dev)Spectrum</y_pv>
+                <err_pv></err_pv>
+                <axis>0</axis>
+                <trace_type>1</trace_type>
+                <color>
+                  <color red="21" green="21" blue="196">
+                  </color>
+                </color>
+                <line_width>1</line_width>
+                <line_style>0</line_style>
+                <point_type>0</point_type>
+                <point_size>4</point_size>
+                <visible>true</visible>
+              </trace>
+            </traces>
+          </widget>
+          <widget type="group" version="3.0.0">
+            <name>File Writer</name>
+            <x>528</x>
+            <y>544</y>
+            <width>708</width>
+            <height>210</height>
+            <transparent>true</transparent>
+            <widget type="label" version="2.0.0">
+              <name>Label_35</name>
+              <text>Filesize</text>
+              <x>431</x>
+              <y>10</y>
+              <width>50</width>
+              <height>25</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_7</name>
+              <pv_name>$(Sys)$(Dev)FileSize</pv_name>
+              <x>481</x>
+              <y>10</y>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_30</name>
+              <pv_name>$(Sys)$(Dev)Filesize</pv_name>
+              <x>581</x>
+              <y>10</y>
+              <height>25</height>
+              <foreground_color>
+                <color red="32" green="74" blue="135">
+                </color>
+              </foreground_color>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <transparent>true</transparent>
+              <horizontal_alignment>1</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_64</name>
+              <text>FIlepath</text>
+              <x>2</x>
+              <y>61</y>
+              <width>164</width>
+              <height>25</height>
+              <vertical_alignment>1</vertical_alignment>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_8</name>
+              <pv_name>$(Sys)$(Dev)FilePath</pv_name>
+              <x>131</x>
+              <y>61</y>
+              <width>540</width>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>2</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textupdate" version="2.0.0">
+              <name>Text Update_32</name>
+              <pv_name>$(Sys)$(Dev)FilePath</pv_name>
+              <x>131</x>
+              <y>91</y>
+              <width>540</width>
+              <height>25</height>
+              <foreground_color>
+                <color red="32" green="74" blue="135" alpha="254">
+                </color>
+              </foreground_color>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <transparent>true</transparent>
+              <horizontal_alignment>2</horizontal_alignment>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_79</name>
+              <text>Data File Write</text>
+              <x>2</x>
+              <y>10</y>
+              <width>140</width>
+              <height>25</height>
+              <vertical_alignment>1</vertical_alignment>
+              <wrap_words>false</wrap_words>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="bool_button" version="2.0.0">
+              <name>Boolean Button</name>
+              <pv_name>$(Sys)$(Dev)UDPDataFileWriteEnable</pv_name>
+              <x>130</x>
+              <y>10</y>
+              <width>140</width>
+              <off_label>Disabled</off_label>
+              <on_label>Enabled</on_label>
+            </widget>
+            <widget type="label" version="2.0.0">
+              <name>Label_66</name>
+              <text>FIlename</text>
+              <x>2</x>
+              <y>122</y>
+              <width>164</width>
+              <height>25</height>
+              <vertical_alignment>1</vertical_alignment>
+              <actions>
+              </actions>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+            <widget type="textentry" version="3.0.0">
+              <name>Text Input_15</name>
+              <pv_name>$(Sys)$(Dev)FileName</pv_name>
+              <x>131</x>
+              <y>122</y>
+              <width>540</width>
+              <height>25</height>
+              <background_color>
+                <color red="255" green="255" blue="255">
+                </color>
+              </background_color>
+              <horizontal_alignment>2</horizontal_alignment>
+              <actions>
+              </actions>
+              <border_alarm_sensitive>false</border_alarm_sensitive>
+              <border_color>
+                <color red="0" green="128" blue="255">
+                </color>
+              </border_color>
+            </widget>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_20</name>
+            <pv_name>$(Sys)$(Dev)TDCSlope</pv_name>
+            <x>1039</x>
+            <y>48</y>
+            <width>160</width>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_93</name>
+            <text>TDC slope</text>
+            <x>901</x>
+            <y>53</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textentry" version="3.0.0">
+            <name>Text Input_28</name>
+            <pv_name>$(Sys)$(Dev)TestPulseAmplitude</pv_name>
+            <x>1039</x>
+            <y>248</y>
+            <width>134</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textentry" version="3.0.0">
+            <name>Text Input_29</name>
+            <pv_name>$(Sys)$(Dev)TestPulseFrequency</pv_name>
+            <x>1039</x>
+            <y>288</y>
+            <width>134</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_94</name>
+            <text>Test pulse Amp.</text>
+            <x>901</x>
+            <y>248</y>
+            <width>110</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_95</name>
+            <text>Test Pulse Freq.</text>
+            <x>901</x>
+            <y>288</y>
+            <width>110</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_21</name>
+            <pv_name>$(Sys)$(Dev)TDCMode</pv_name>
+            <x>1039</x>
+            <y>98</y>
+            <width>160</width>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_96</name>
+            <text>TDC mode</text>
+            <x>901</x>
+            <y>103</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="textentry" version="3.0.0">
+            <name>Text Input_30</name>
+            <pv_name>$(Sys)$(Dev)TestPulseCount</pv_name>
+            <x>1039</x>
+            <y>328</y>
+            <width>134</width>
+            <height>25</height>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_97</name>
+            <text>Test pulse count</text>
+            <x>901</x>
+            <y>328</y>
+            <width>110</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_98</name>
+            <text>Channel</text>
+            <x>901</x>
+            <y>368</y>
+            <width>80</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_99</name>
+            <text>Test pulse enable</text>
+            <x>901</x>
+            <y>153</y>
+            <width>118</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_22</name>
+            <pv_name>$(Sys)$(Dev)TestPulseEnable</pv_name>
+            <x>1039</x>
+            <y>148</y>
+            <width>160</width>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_23</name>
+            <pv_name>$(Sys)$(Dev)Polarity</pv_name>
+            <x>1039</x>
+            <y>198</y>
+            <width>160</width>
+            <height>35</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_100</name>
+            <text>Input polarity</text>
+            <x>901</x>
+            <y>203</y>
+            <width>105</width>
+            <height>25</height>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="spinner" version="2.0.0">
+            <name>Spinner_7</name>
+            <pv_name>$(Sys)$(Dev)MonitorChannel</pv_name>
+            <x>1039</x>
+            <y>368</y>
+            <width>160</width>
+            <height>25</height>
+            <format>0</format>
+            <precision>0</precision>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <horizontal_alignment>1</horizontal_alignment>
+            <vertical_alignment>1</vertical_alignment>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <minimum>-1.7976931348623157E308</minimum>
+            <maximum>1.7976931348623157E308</maximum>
+          </widget>
+          <widget type="textupdate" version="2.0.0">
+            <name>Text Update_63</name>
+            <pv_name>$(Sys)$(Dev)MonitorChannel</pv_name>
+            <x>1039</x>
+            <y>398</y>
+            <width>134</width>
+            <height>25</height>
+            <foreground_color>
+              <color red="32" green="74" blue="135">
+              </color>
+            </foreground_color>
+            <background_color>
+              <color red="255" green="255" blue="255">
+              </color>
+            </background_color>
+            <transparent>true</transparent>
+            <horizontal_alignment>1</horizontal_alignment>
+            <vertical_alignment>1</vertical_alignment>
+            <wrap_words>false</wrap_words>
+            <actions>
+            </actions>
+            <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="combo" version="2.0.0">
+            <name>Menu Button_14</name>
+            <pv_name>$(Sys)$(Dev)LogLevel</pv_name>
+            <x>679</x>
+            <y>764</y>
+            <width>110</width>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+          </widget>
+          <widget type="label" version="2.0.0">
+            <name>Label_77</name>
+            <text>ZMQ log level</text>
+            <x>539</x>
+            <y>764</y>
+            <width>105</width>
+            <height>40</height>
+            <vertical_alignment>1</vertical_alignment>
+            <actions>
+            </actions>
+            <border_color>
+              <color red="0" green="128" blue="255">
+              </color>
+            </border_color>
+          </widget>
+          <widget type="action_button" version="3.0.0">
+            <name>Action Button_1</name>
+            <actions>
+              <action type="open_display">
+                <description>Open Display</description>
+                <file>../../../adl/asynRecord.bob</file>
+                <macros>
+                  <P>$(Sys)$(Dev)</P>
+                  <R>asyn1</R>
+                </macros>
+                <target>tab</target>
+              </action>
+            </actions>
+            <text>asyn</text>
+            <x>883</x>
+            <y>764</y>
+            <width>110</width>
+            <height>40</height>
+            <tooltip>$(actions)</tooltip>
+          </widget>
+          <widget type="action_button" version="3.0.0">
+            <name>Action Button_2</name>
+            <actions>
+              <action type="open_display">
+                <description>Open Display</description>
+                <file>../../../ADet/R3-11/ADCore/R3-11/commonPlugins.opi</file>
+                <macros>
+                  <P>$(Sys)$(Dev)MCA1:</P>
+                </macros>
+                <target>tab</target>
+              </action>
+            </actions>
+            <text>ND MCA</text>
+            <x>1106</x>
+            <y>764</y>
+            <height>40</height>
+            <background_color>
+              <color red="240" green="240" blue="240">
+              </color>
+            </background_color>
+            <tooltip>$(actions)</tooltip>
+          </widget>
+        </children>
+      </tab>
+      <tab>
+        <name>Results</name>
+        <children>
+          <widget type="image" version="2.0.0">
+            <name>Spectra_3</name>
+            <pv_name>$(Sys)$(Dev)MCA</pv_name>
+            <x>28</x>
+            <y>26</y>
+            <width>800</width>
+            <height>390</height>
+            <background_color>
+              <color name="Transparent" red="255" green="255" blue="255" alpha="0">
+              </color>
+            </background_color>
+            <show_toolbar>true</show_toolbar>
+            <color_map>
+              <name>JET</name>
+            </color_map>
+            <color_bar>
+              <visible>false</visible>
+              <bar_size>40</bar_size>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </color_bar>
+            <x_axis>
+              <visible>true</visible>
+              <title>Energy</title>
+              <minimum>0.0</minimum>
+              <maximum>4095.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </x_axis>
+            <y_axis>
+              <visible>true</visible>
+              <title>Channel Number</title>
+              <minimum>$(NELM)</minimum>
+              <maximum>0.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </y_axis>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <data_width>4096</data_width>
+            <data_height>$(NELM)</data_height>
+            <unsigned>true</unsigned>
+            <log_scale>true</log_scale>
+            <maximum>2000.0</maximum>
+            <x_pv>$(Sys)$(Dev)CURSX</x_pv>
+            <y_pv>$(Sys)$(Dev)CURSY</y_pv>
+            <cursor_crosshair>true</cursor_crosshair>
+          </widget>
+          <widget type="image" version="2.0.0">
+            <name>Time spectra_1</name>
+            <pv_name>$(Sys)$(Dev)TDC</pv_name>
+            <x>28</x>
+            <y>425</y>
+            <width>800</width>
+            <height>390</height>
+            <background_color>
+              <color name="Transparent" red="255" green="255" blue="255" alpha="0">
+              </color>
+            </background_color>
+            <color_map>
+              <name>JET</name>
+            </color_map>
+            <color_bar>
+              <visible>false</visible>
+              <bar_size>40</bar_size>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </color_bar>
+            <x_axis>
+              <visible>true</visible>
+              <title>Time</title>
+              <minimum>0.0</minimum>
+              <maximum>1023.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </x_axis>
+            <y_axis>
+              <visible>true</visible>
+              <title>Channel Number</title>
+              <minimum>$(NELM)</minimum>
+              <maximum>0.0</maximum>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+            </y_axis>
+            <actions>
+            </actions>
+            <border_alarm_sensitive>false</border_alarm_sensitive>
+            <data_width>1024</data_width>
+            <data_height>$(NELM)</data_height>
+            <unsigned>true</unsigned>
+            <log_scale>true</log_scale>
+            <maximum>500000.0</maximum>
+          </widget>
+          <widget type="xyplot" version="3.0.0">
+            <name>XY Graph_5</name>
+            <x>848</x>
+            <y>26</y>
+            <height>390</height>
+            <title>$(Sys)$(Dev)Spectrum</title>
+            <title_font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </title_font>
+            <show_toolbar>true</show_toolbar>
+            <show_legend>false</show_legend>
+            <actions>
+            </actions>
+            <x_axis>
+              <title>Energy (keV)</title>
+              <autoscale>true</autoscale>
+              <log_scale>false</log_scale>
+              <minimum>0.0</minimum>
+              <maximum>0.0</maximum>
+              <show_grid>true</show_grid>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+              <visible>true</visible>
+            </x_axis>
+            <y_axes>
+              <y_axis>
+                <title>Intensity</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <on_right>false</on_right>
+                <visible>true</visible>
+                <color>
+                  <color name="Text" red="0" green="0" blue="0">
+                  </color>
+                </color>
+              </y_axis>
+            </y_axes>
+            <traces>
+              <trace>
+                <name>$(traces[0].y_pv)</name>
+                <x_pv>$(Sys)$(Dev)SpectrumX</x_pv>
+                <y_pv>$(Sys)$(Dev)Spectrum</y_pv>
+                <err_pv></err_pv>
+                <axis>0</axis>
+                <trace_type>1</trace_type>
+                <color>
+                  <color red="21" green="21" blue="196">
+                  </color>
+                </color>
+                <line_width>1</line_width>
+                <line_style>0</line_style>
+                <point_type>0</point_type>
+                <point_size>4</point_size>
+                <visible>true</visible>
+              </trace>
+            </traces>
+          </widget>
+          <widget type="xyplot" version="3.0.0">
+            <name>XY Graph_6</name>
+            <x>848</x>
+            <y>425</y>
+            <height>390</height>
+            <title>$(Sys)$(Dev)Intensity</title>
+            <title_font>
+              <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+              </font>
+            </title_font>
+            <show_toolbar>true</show_toolbar>
+            <show_legend>false</show_legend>
+            <actions>
+            </actions>
+            <x_axis>
+              <title>Detector number</title>
+              <autoscale>false</autoscale>
+              <log_scale>false</log_scale>
+              <minimum>0.0</minimum>
+              <maximum>$(NELM)</maximum>
+              <show_grid>true</show_grid>
+              <title_font>
+                <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                </font>
+              </title_font>
+              <scale_font>
+                <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                </font>
+              </scale_font>
+              <visible>true</visible>
+            </x_axis>
+            <y_axes>
+              <y_axis>
+                <title>Events</title>
+                <autoscale>true</autoscale>
+                <log_scale>false</log_scale>
+                <minimum>0.0</minimum>
+                <maximum>100.0</maximum>
+                <show_grid>true</show_grid>
+                <title_font>
+                  <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+                  </font>
+                </title_font>
+                <scale_font>
+                  <font name="Default" family="Liberation Sans" style="REGULAR" size="14.0">
+                  </font>
+                </scale_font>
+                <on_right>false</on_right>
+                <visible>true</visible>
+                <color>
+                  <color name="Text" red="0" green="0" blue="0">
+                  </color>
+                </color>
+              </y_axis>
+            </y_axes>
+            <traces>
+              <trace>
+                <name>$(traces[0].y_pv)</name>
+                <x_pv></x_pv>
+                <y_pv>$(Sys)$(Dev)Intensity</y_pv>
+                <err_pv></err_pv>
+                <axis>0</axis>
+                <trace_type>1</trace_type>
+                <color>
+                  <color red="21" green="21" blue="196">
+                  </color>
+                </color>
+                <line_width>1</line_width>
+                <line_style>0</line_style>
+                <point_type>0</point_type>
+                <point_size>4</point_size>
+                <visible>true</visible>
+              </trace>
+            </traces>
+          </widget>
+        </children>
+      </tab>
+    </tabs>
+    <x>22</x>
+    <y>75</y>
+    <width>1260</width>
+    <height>850</height>
+    <active_tab>2</active_tab>
+    <tab_height>10</tab_height>
+    <actions>
+    </actions>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label_20</name>
+    <text>$(Sys)$(Dev)</text>
+    <x>40</x>
+    <y>15</y>
+    <width>1226</width>
+    <height>60</height>
+    <font>
+      <font family="Liberation Sans" style="BOLD" size="48.0">
+      </font>
+    </font>
+    <horizontal_alignment>1</horizontal_alignment>
+    <vertical_alignment>1</vertical_alignment>
+    <actions>
+    </actions>
+    <border_color>
+      <color red="0" green="128" blue="255">
+      </color>
+    </border_color>
+  </widget>
+  <widget type="group" version="3.0.0">
+    <name>STATUS</name>
+    <x>22</x>
+    <y>943</y>
+    <width>1038</width>
+    <height>177</height>
+    <font>
+      <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+      </font>
+    </font>
+    <background_color>
+      <color name="Read_Background" red="240" green="240" blue="240">
+      </color>
+    </background_color>
+    <widget type="group" version="3.0.0">
+      <name>UDP</name>
+      <x>832</x>
+      <y>16</y>
+      <width>151</width>
+      <height>105</height>
+      <font>
+        <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+        </font>
+      </font>
+      <transparent>true</transparent>
+      <widget type="label" version="2.0.0">
+        <name>Label_80</name>
+        <text>Active</text>
+        <x>5</x>
+        <y>8</y>
+        <width>50</width>
+        <height>19</height>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="led" version="2.0.0">
+        <name>LED_7</name>
+        <pv_name>$(Sys)$(Dev)UDPReachable_RBV</pv_name>
+        <bit>0</bit>
+        <x>17</x>
+        <y>40</y>
+        <width>24</width>
+        <off_color>
+          <color name="Major" red="255" green="0" blue="0">
+          </color>
+        </off_color>
+        <font>
+          <font name="Header 3" family="Liberation Sans" style="BOLD" size="16.0">
+          </font>
+        </font>
+        <foreground_color>
+          <color red="192" green="192" blue="192">
+          </color>
+        </foreground_color>
+        <line_color>
+          <color red="150" green="150" blue="150">
+          </color>
+        </line_color>
+        <square>true</square>
+        <actions>
+        </actions>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="led" version="2.0.0">
+        <name>LED_8</name>
+        <pv_name>$(Sys)$(Dev)UDPDataFileWriteEnable</pv_name>
+        <bit>0</bit>
+        <x>77</x>
+        <y>40</y>
+        <width>24</width>
+        <off_color>
+          <color name="Major" red="255" green="0" blue="0">
+          </color>
+        </off_color>
+        <font>
+          <font name="Header 3" family="Liberation Sans" style="BOLD" size="16.0">
+          </font>
+        </font>
+        <foreground_color>
+          <color red="192" green="192" blue="192">
+          </color>
+        </foreground_color>
+        <line_color>
+          <color red="150" green="150" blue="150">
+          </color>
+        </line_color>
+        <square>true</square>
+        <actions>
+        </actions>
+        <border_alarm_sensitive>false</border_alarm_sensitive>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <name>Label_82</name>
+        <text>File</text>
+        <x>67</x>
+        <y>8</y>
+        <width>43</width>
+        <height>19</height>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+    </widget>
+    <widget type="group" version="3.0.0">
+      <name>HV Bias</name>
+      <x>532</x>
+      <y>16</y>
+      <height>105</height>
+      <font>
+        <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+        </font>
+      </font>
+      <transparent>true</transparent>
+      <widget type="textupdate" version="2.0.0">
+        <name>Text Update_46</name>
+        <pv_name>$(Sys)$(Dev)HighVoltage_RBV</pv_name>
+        <x>12</x>
+        <y>40</y>
+        <height>25</height>
+        <foreground_color>
+          <color red="32" green="74" blue="135">
+          </color>
+        </foreground_color>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="textupdate" version="2.0.0">
+        <name>Text Update_48</name>
+        <pv_name>$(Sys)$(Dev)HighVoltageCurrent</pv_name>
+        <x>132</x>
+        <y>40</y>
+        <width>120</width>
+        <height>25</height>
+        <foreground_color>
+          <color red="32" green="74" blue="135">
+          </color>
+        </foreground_color>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <name>Label_75</name>
+        <text>Voltage</text>
+        <x>12</x>
+        <y>16</y>
+        <height>25</height>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <name>Label_76</name>
+        <text>Current</text>
+        <x>132</x>
+        <y>8</y>
+        <width>120</width>
+        <height>25</height>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+    </widget>
+    <widget type="group" version="3.0.0">
+      <name>Temperature</name>
+      <x>10</x>
+      <y>16</y>
+      <width>521</width>
+      <height>105</height>
+      <font>
+        <font name="Default Bold" family="Liberation Sans" style="BOLD" size="14.0">
+        </font>
+      </font>
+      <transparent>true</transparent>
+      <widget type="textupdate" version="2.0.0">
+        <name>Text Update_42</name>
+        <pv_name>$(Sys)$(Dev)Temperature1</pv_name>
+        <x>2</x>
+        <y>40</y>
+        <height>25</height>
+        <foreground_color>
+          <color red="32" green="74" blue="135" alpha="254">
+          </color>
+        </foreground_color>
+        <background_color>
+          <color red="255" green="255" blue="255">
+          </color>
+        </background_color>
+        <transparent>true</transparent>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="textupdate" version="2.0.0">
+        <name>Text Update_43</name>
+        <pv_name>$(Sys)$(Dev)Temperature2</pv_name>
+        <x>131</x>
+        <y>40</y>
+        <height>25</height>
+        <foreground_color>
+          <color red="32" green="74" blue="135" alpha="254">
+          </color>
+        </foreground_color>
+        <background_color>
+          <color red="255" green="255" blue="255">
+          </color>
+        </background_color>
+        <transparent>true</transparent>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="textupdate" version="2.0.0">
+        <name>Text Update_44</name>
+        <pv_name>$(Sys)$(Dev)Temperature3</pv_name>
+        <x>261</x>
+        <y>40</y>
+        <height>25</height>
+        <foreground_color>
+          <color red="32" green="74" blue="135" alpha="254">
+          </color>
+        </foreground_color>
+        <background_color>
+          <color red="255" green="255" blue="255">
+          </color>
+        </background_color>
+        <transparent>true</transparent>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="textupdate" version="2.0.0">
+        <name>Text Update_45</name>
+        <pv_name>$(Sys)$(Dev)ZynqTemperature</pv_name>
+        <x>381</x>
+        <y>40</y>
+        <height>25</height>
+        <foreground_color>
+          <color red="32" green="74" blue="135" alpha="254">
+          </color>
+        </foreground_color>
+        <background_color>
+          <color red="255" green="255" blue="255">
+          </color>
+        </background_color>
+        <transparent>true</transparent>
+        <precision>2</precision>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+      <widget type="label" version="2.0.0">
+        <name>Label_70</name>
+        <text>CPU</text>
+        <x>381</x>
+        <y>8</y>
+        <height>25</height>
+        <horizontal_alignment>1</horizontal_alignment>
+        <vertical_alignment>1</vertical_alignment>
+        <wrap_words>false</wrap_words>
+        <actions>
+        </actions>
+        <border_color>
+          <color red="0" green="128" blue="255">
+          </color>
+        </border_color>
+      </widget>
+    </widget>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Action Button_21</name>
+    <actions execute_as_one="true">
+      <action type="write_pv">
+        <description>WritePV</description>
+        <pv_name>$(Sys)$(Dev)Acquire</pv_name>
+        <value>0</value>
+      </action>
+    </actions>
+    <pv_name>$(Sys)$(Dev)Acquire</pv_name>
+    <text>STOP</text>
+    <x>1110</x>
+    <y>950</y>
+    <width>180</width>
+    <height>159</height>
+    <background_color>
+      <color name="STOP" red="255" green="0" blue="0">
+      </color>
+    </background_color>
+    <rules>
+      <rule name="Rule" prop_id="visible" out_exp="false">
+        <exp bool_exp="pv0==1">
+          <value>true</value>
+        </exp>
+        <exp bool_exp="pv0==0">
+          <value>false</value>
+        </exp>
+        <pv_name>$(Sys)$(Dev)Acquire</pv_name>
+      </rule>
+    </rules>
+  </widget>
+  <widget type="action_button" version="3.0.0">
+    <name>Action Button_22</name>
+    <actions execute_as_one="true">
+      <action type="write_pv">
+        <description>WritePV</description>
+        <pv_name>$(Sys)$(Dev)Acquire</pv_name>
+        <value>1</value>
+      </action>
+    </actions>
+    <text>COUNT</text>
+    <x>1110</x>
+    <y>950</y>
+    <width>180</width>
+    <height>160</height>
+    <background_color>
+      <color name="OK" red="0" green="255" blue="0">
+      </color>
+    </background_color>
+    <rules>
+      <rule name="Visibility" prop_id="visible" out_exp="false">
+        <exp bool_exp="pv0==1">
+          <value>false</value>
+        </exp>
+        <exp bool_exp="pv0==0">
+          <value>true</value>
+        </exp>
+        <pv_name>$(Sys)$(Dev)Acquire_RBV</pv_name>
+      </rule>
+    </rules>
+    <tooltip>$(actions)</tooltip>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>Text Update_53</name>
+    <pv_name>$(Sys)$(Dev)FirmwareVersion</pv_name>
+    <x>1180</x>
+    <y>50</y>
+    <width>110</width>
+    <height>25</height>
+    <foreground_color>
+      <color red="32" green="74" blue="135">
+      </color>
+    </foreground_color>
+    <background_color>
+      <color red="255" green="255" blue="255">
+      </color>
+    </background_color>
+    <transparent>true</transparent>
+    <vertical_alignment>1</vertical_alignment>
+    <wrap_words>false</wrap_words>
+    <actions>
+    </actions>
+    <border_color>
+      <color red="0" green="128" blue="255">
+      </color>
+    </border_color>
+  </widget>
+  <widget type="textupdate" version="2.0.0">
+    <name>Text Update_54</name>
+    <pv_name>$(Sys)$(Dev)DetectorModel</pv_name>
+    <x>1180</x>
+    <y>15</y>
+    <width>110</width>
+    <height>25</height>
+    <foreground_color>
+      <color red="32" green="74" blue="135">
+      </color>
+    </foreground_color>
+    <background_color>
+      <color red="255" green="255" blue="255">
+      </color>
+    </background_color>
+    <transparent>true</transparent>
+    <vertical_alignment>1</vertical_alignment>
+    <wrap_words>false</wrap_words>
+    <actions>
+    </actions>
+    <border_color>
+      <color red="0" green="128" blue="255">
+      </color>
+    </border_color>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label_101</name>
+    <text>Detector Model:</text>
+    <x>1045</x>
+    <y>15</y>
+    <width>125</width>
+    <height>25</height>
+    <vertical_alignment>1</vertical_alignment>
+    <wrap_words>false</wrap_words>
+    <actions>
+    </actions>
+    <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+    <border_color>
+      <color red="0" green="128" blue="255">
+      </color>
+    </border_color>
+  </widget>
+  <widget type="label" version="2.0.0">
+    <name>Label_102</name>
+    <text>Firmware version:</text>
+    <x>1045</x>
+    <y>50</y>
+    <width>125</width>
+    <height>25</height>
+    <vertical_alignment>1</vertical_alignment>
+    <wrap_words>false</wrap_words>
+    <actions>
+    </actions>
+    <tooltip>$(pv_name)
+$(pv_value)
+$(actions)</tooltip>
+    <border_color>
+      <color red="0" green="128" blue="255">
+      </color>
+    </border_color>
+  </widget>
+</display>
