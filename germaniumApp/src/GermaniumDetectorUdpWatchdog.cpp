@@ -20,7 +20,6 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <print>
 
 //===========================================================================//
 
@@ -70,13 +69,15 @@ bool GermaniumDetector::initializeUdpRegisterSocket()
         return true;
 
     udpRegisterSocket = socket(AF_INET, SOCK_DGRAM, 0);
-    std::print( "[{}]: create UDP register socket {}: {}\n"
-              , __func__
-              , (udpRegisterSocket<0) ? "failed" : "successful"
-              , strerror(errno)
-              );
+
     if (udpRegisterSocket < 0)
     {
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: failed to create UDP register socket: %s\n"
+                 , __func__
+                 , strerror(errno)
+                 );
         return false;
     }
 
@@ -90,12 +91,13 @@ bool GermaniumDetector::initializeUdpRegisterSocket()
 
     if (bind(udpRegisterSocket, reinterpret_cast<sockaddr*>(&bindAddr), sizeof(bindAddr)) < 0)
     {
-        std::cerr << __func__
-                  << ": failed to bind UDP register socket to port "
-                  <<  GIGE_REGISTER_RX_PORT
-                  << " for error "
-                  << strerror(errno)
-                  << "\n";
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: failed to bind UDP register socket to port %x, error: %s\n"
+                 , __func__
+                 , GIGE_REGISTER_RX_PORT
+                 , strerror(errno)
+                 );
         closeUdpRegisterSocket();
         return false;
     }
@@ -132,9 +134,12 @@ bool GermaniumDetector::getConfiguredUdpAddress(std::string& address)
     in_addr addr {};
     if (inet_pton(AF_INET, buf, &addr) != 1)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: no valid configured PL UDP IP address ('%s')\n",
-                  __func__, buf);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: no valid configured PL UDP IP address ('%s')\n"
+                 , __func__
+                 , buf
+                 );
         return false;
     }
 
@@ -161,8 +166,11 @@ void GermaniumDetector::udpWatchdogThreadC(void *pPvt)
 
 void GermaniumDetector::udpWatchdogThread()
 {
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW,
-              "[%s]: UDP watchdog thread started\n", __func__);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "[%s]: UDP watchdog thread started\n"
+             , __func__
+             );
 
     double idleElapsed = 0.0;
     double reinitRetryElapsed = UDP_REINIT_RETRY_PERIOD_SEC;
@@ -200,8 +208,11 @@ void GermaniumDetector::udpWatchdogThread()
         }
     }
 
-    asynPrint(pasynUserSelf, ASYN_TRACE_FLOW,
-              "[%s]: UDP watchdog thread stopped\n", __func__);
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "[%s]: UDP watchdog thread stopped\n"
+             , __func__
+             );
 }
 
 //===========================================================================//
@@ -237,9 +248,14 @@ void GermaniumDetector::runUdpInitialization()
 
     if (!reachable)
     {
-        asynPrint(pasynUserSelf, ASYN_TRACE_ERROR,
-                  "[%s]: PL UDP initialization failed (write=%d read=%d value=0x%08X)\n",
-                  __func__, writeOk ? 1 : 0, readOk ? 1 : 0, value);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: PL UDP initialization failed (write=%d read=%d value=0x%08X)\n"
+                 , __func__
+                 , writeOk ? 1 : 0
+                 , readOk ? 1 : 0
+                 , value
+                 );
     }
 }
 
@@ -286,15 +302,22 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
                           reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
-        std::println("{}: UDP register write send failed: {}", __func__, strerror(errno));
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: UDP register write send failed: %s\n"
+                 , __func__
+                 , strerror(errno)
+                 );
         return false;
     }
-    //std::println( "{}: UDP register write send successful. GIGE_KEY = {}, addr = {}, value = {}"
-    //            , __func__
-    //            , GIGE_KEY
-    //            , addr
-    //            , value
-    //            );    
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "[%s]: UDP register write send successful. GIGE_KEY = %x, addr = %x, value = %x\n"
+             , __func__
+             , GIGE_KEY
+             , addr
+             , value
+             );    
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -307,10 +330,12 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
     int ret = select(udpRegisterSocket + 1, &fds, nullptr, nullptr, &timeout);
     if (ret <= 0)
     {
-        std::println( "[{}]: select() failed: {}"
-                    , __func__
-                    , ( ret== 0 ) ? "timeout" : strerror(errno)
-                    );
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: select() failed: %s\n"
+                 , __func__
+                 , ( ret== 0 ) ? "timeout" : strerror(errno)
+                 );
         return false;
     }
 
@@ -321,7 +346,11 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
                                 reinterpret_cast<sockaddr*>(&src), &srcLen);
     if (received < static_cast<ssize_t>(3 * sizeof(uint32_t)))
     {
-        std::print( "[{}]: recvfrom() failed", __func__ );
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: recvfrom() failed\n"
+                 , __func__
+                 );
         return false;
     }
 
@@ -330,7 +359,7 @@ bool GermaniumDetector::udpRegisterWrite(const std::string& targetAddress,
     uint32_t status = reply[2];
     //std::print("{}: received addr = {}, value = {}, status = {}\n", __func__, replyAddr, returnedValue, status);
 
-    return replyAddr == addr && returnedValue == value && status == 1;
+    return (replyAddr == addr) && (returnedValue == value) && (status == 1);
 }
 
 //===========================================================================//
@@ -360,9 +389,22 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
                           reinterpret_cast<sockaddr*>(&dest), sizeof(dest));
     if (sent != static_cast<ssize_t>(sizeof(msg)))
     {
-        std::print("{}: UDP register read send failed: {}\n", __func__, strerror(errno));
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: UDP register read send failed: %s\n"
+                 , __func__
+                 , strerror(errno)
+                 );
         return false;
     }
+    
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "[%s]: UDP register read succeeded. msg[0] = %x, msg[1] = %x\n"
+             , __func__
+             , msg[0]
+             , msg[1]
+             );
 
     fd_set fds;
     FD_ZERO(&fds);
@@ -375,35 +417,47 @@ bool GermaniumDetector::udpRegisterRead(const std::string& targetAddress,
     int ret = select(udpRegisterSocket + 1, &fds, nullptr, nullptr, &timeout);
     if (ret <= 0)
     {
-        std::print("{}: failed to select UDP register socket\n", __func__);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: select() failed: %s\n"
+                 , __func__
+                  , (ret==0) ? "timeout" : strerror(errno)
+                 );
         return false;
     }
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "[%s]: select() succeeded\n"
+             , __func__
+             );
 
     uint32_t reply[3] {};
     sockaddr_in src {};
     socklen_t srcLen = sizeof(src);
     ssize_t received = recvfrom(udpRegisterSocket, reply, sizeof(reply), 0,
                                 reinterpret_cast<sockaddr*>(&src), &srcLen);
-    //std::println("[{}]: {} bytes received", __func__, received );
     if (received < static_cast<ssize_t>(3 * sizeof(uint32_t)))
     {
-        std::println("{}: failed to receive response", __func__);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: recvfrom() failed\n"
+                 , __func__
+                 );
         return false;
     }
 
     uint32_t replyAddr = ntohl(reply[0]);
     if (replyAddr != addr)
     {
-        std::println("{}: unexpected UDP register read address: {}", __func__, replyAddr);
+        asynPrint( pasynUserSelf
+                 , ASYN_TRACE_ERROR
+                 , "[%s]: unexpected UDP register read address: %x\n"
+                 , __func__
+                 , replyAddr
+                 );
         return false;
     }
 
-    //for(int i=0; i<3; i++)
-    //    std::println( "[{}]: reply[{}] = {}"
-    //                , __func__
-    //                , i
-    //                , reply[i]
-    //                );
     value = reply[2];
     return true;
 }

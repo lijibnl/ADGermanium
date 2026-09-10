@@ -639,12 +639,25 @@ void GermaniumDetector::publishSpectra()
 {
     this->lock();
 
+    int monch, chip;
+    getIntegerParam( GermaniumMONCH, &monch );
+    getIntegerParam( GermaniumCHIP, &chip );
+
+    int element = chip * 32 + monch;
+    if (element <0 ) element = 0;
+    if (element >= numElements) element = numElements-1;
+
+    
     const size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
     const size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
+    const size_t spectrumTotal = SPECTRUM_SIZE;
+    const size_t spectrumOffset = static_cast<size_t>(element) * SPECTRUM_SIZE;
     const size_t intensityTotal = static_cast<size_t>(numElements);
 
     std::vector<epicsInt32> mcaBuffer(mcaTotal);
     std::vector<epicsInt32> tdcBuffer(tdcTotal);
+    std::vector<epicsInt32> spectrumBuffer(spectrumTotal);
+    std::vector<epicsFloat64> spectrumXBuffer(spectrumTotal);
     std::vector<epicsInt32> intensityBuffer(intensityTotal);
 
     for (size_t i = 0; i < mcaTotal; i++)
@@ -653,11 +666,19 @@ void GermaniumDetector::publishSpectra()
     for (size_t i = 0; i < tdcTotal; i++)
         tdcBuffer[i] = static_cast<epicsInt32>(tdcData[i].load(std::memory_order_relaxed));
 
+    for (size_t i = 0; i < spectrumTotal; i++)
+        spectrumBuffer[i] = static_cast<epicsInt32>(mcaData[spectrumOffset + i].load(std::memory_order_relaxed));
+
+    for (size_t i = 0; i < spectrumTotal; i++)
+        spectrumXBuffer[i] = static_cast<epicsFloat64>(i) * 0.1;
+
     for (size_t i = 0; i < intensityTotal; i++)
         intensityBuffer[i] = static_cast<epicsInt32>(countRates[i].load(std::memory_order_relaxed));
 
     doCallbacksInt32Array(mcaBuffer.data(), mcaTotal, GermaniumMCA, 0);
     doCallbacksInt32Array(tdcBuffer.data(), tdcTotal, GermaniumTDC, 0);
+    doCallbacksInt32Array(spectrumBuffer.data(), spectrumTotal, GermaniumSPCT, 0);
+    doCallbacksFloat64Array(spectrumXBuffer.data(), spectrumTotal, GermaniumSPCTX, 0);
     doCallbacksInt32Array(intensityBuffer.data(), intensityTotal, GermaniumINTENS, 0);
 
     int arrayCallbacks = 0;

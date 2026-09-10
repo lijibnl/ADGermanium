@@ -1,0 +1,15 @@
+
+ASYN        = /epics/modules/asyn
+ADCORE      = /epics/modules/ADCore
+BUSY        = /epics/modules/busy
+CALC        = /epics/modules/calc
+SSCAN       = /epics/modules/sscan
+AUTOSAVE    = /epics/modules/autosave
+EPICS_BASE  = /epics/base
+ADGERMANIUM = /data/prj/germanium/ADGermanium
+
+#include $(EPICS_BASE)/configure/CONFIG_BASE
+
+-include $(TOP)/../../../configure/RELEASE_PRODS_INCLUDE
+-include $(TOP)/RELEASE.local
+-include $(TOP)/configure/RELEASE.local

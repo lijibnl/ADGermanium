@@ -475,6 +475,7 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
             break;
         case GermaniumProtocol::Register::TRIG:
+            setIntegerParam(GermaniumCNT, static_cast<int>(value));
             setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
             setAcquisitionRunning(value != 0);
             break;

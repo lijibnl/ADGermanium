@@ -46,8 +46,8 @@
 // fetch-add / CAS; per-block state flags ensure correct ordering.
 
 static constexpr size_t DATA_BLOCK_SIZE     = 1024;                     // max payload per block
-static constexpr int    DATA_QUEUE_BITS     = 7;                        // log2(capacity)
-static constexpr int    DATA_QUEUE_CAPACITY = 1 << DATA_QUEUE_BITS;     // 128 blocks ≈ 8 MB
+static constexpr int    DATA_QUEUE_BITS     = 10;                       // log2(capacity)
+static constexpr int    DATA_QUEUE_CAPACITY = 1 << DATA_QUEUE_BITS;     // 1024 blocks ≈ 64 MB
 static constexpr int    DATA_QUEUE_MASK     = DATA_QUEUE_CAPACITY - 1;
 
 

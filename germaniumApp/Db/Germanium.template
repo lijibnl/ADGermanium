@@ -88,7 +88,7 @@ record(ao, "$(P)$(R)AcquireTime") {
 
 record(ai, "$(P)$(R)AcquireTime_RBV") {
     field(DTYP, "asynFloat64")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TP")
+    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_TP_RBV")
     field(SCAN, "I/O Intr")
     field(EGU,  "s")
     field(PREC, "3")
@@ -117,14 +117,24 @@ record(longin, "$(P)$(R)RunNumber_RBV") {
     field(DESC, "Run number readback")
 }
 
-record(ai, "$(P)$(R)ElapsedTime") {
-    field(DTYP, "asynFloat64")
-    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_T")
-    field(SCAN, "I/O Intr")
-    field(EGU,  "s")
-    field(PREC, "1")
-    field(DESC, "Elapsed acquisition time")
+#record(ai, "$(P)$(R)ElapsedTime") {
+#    field(DTYP, "asynFloat64")
+#    field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_T")
+#    field(SCAN, "I/O Intr")
+#    field(EGU,  "s")
+#    field(PREC, "1")
+#    field(DESC, "Elapsed acquisition time")
+#}
+record(calc, "$(P)$(R)ElapsedTime")
+{
+    field(INPA, "$(P)$(R)Acquire_RBV")
+    field(INPB, "$(P)$(R)AcquireTime")
+    field(INPC, "$(P)$(R)ElapsedTime")
+    field(CALC, "(A=0) ? 0 : ((C<B) ? (C+1) : B)")
+    field(FLNK, "$(P)$(R):TIME_LEFT")
+    field(SCAN, "1 second")
 }
+
 
 # =====================================================================
 # Hardware settings
@@ -466,7 +476,7 @@ record(waveform, "$(P)$(R)Threshold") {
     field(DTYP, "asynInt32ArrayOut")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_THRSH")
     field(FTVL, "LONG")
-    field(NELM, "12")
+    field(NELM, "$(NCHIP)")
     field(DESC, "Per-chip threshold")
 }
 
@@ -643,6 +653,10 @@ record(ao, "$(P)$(R)HighVoltage") {
     field(OUT,  "@asyn($(PORT),$(ADDR))GERMANIUM_HV")
     field(EGU,  "V")
     field(PREC, "1")
+    field(SCAN, "1 second")
+    field(OROC, "2")
+    field(HOPR, "200.0")
+    field(LOPR, "0.0")
     field(DESC, "High voltage setpoint")
 }
 

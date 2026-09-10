@@ -5,7 +5,7 @@
 # RELEASE - Location of external support modules
 
 SUPPORT    = /usr/lib/epics
-ADCORE     = $(SUPPORT)
+ADCORE     = /epics/modules/ADCore
 EPICS_BASE = $(SUPPORT)
 
 -include $(TOP)/../configure/RELEASE_LIBS_INCLUDE

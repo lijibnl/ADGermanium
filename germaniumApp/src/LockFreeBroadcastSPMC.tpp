@@ -1,6 +1,7 @@
 #include <atomic>
 #include <limits>
 #include <iostream>
+#include <print>
 
 //===========================================================================//
 
@@ -64,6 +65,7 @@ T* LockFreeBroadcastSPMC<T, Capacity, ConsumerCount>::pushRequest()
 
     if ((currentTail - min_head) >= Capacity)
     {
+        std::println("[{}]: buffer is full", __func__);
         return nullptr;
     }
 
