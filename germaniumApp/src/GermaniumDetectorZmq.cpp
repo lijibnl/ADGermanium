@@ -19,6 +19,7 @@
 
 //===========================================================================//
 
+#include <string>
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
@@ -454,8 +455,13 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
     switch( addr )
     {
         case GermaniumProtocol::Register::VERSIONREG:
-            setIntegerParam(GermaniumFVER, static_cast<int>(value));
+        {
+            uint32_t ver    = ( value & 0xff00 ) >> 8;
+            uint32_t subVer =   value & 0xff;
+            std::string s = std::to_string(ver) + '.' + std::to_string(subVer);
+            setStringParam(GermaniumFVER, s);
             break;
+        }
         case GermaniumProtocol::Register::DETECTOR_MODEL:
             setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             break;
@@ -493,7 +499,7 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             count_time_hi = value;
             double count_time = static_cast<double>( ( static_cast<uint64_t>(count_time_hi ) << 32)
                                                      | count_time_lo );
-            setDoubleParam(GermaniumTP, count_time / ACQUIRE_TIMER_FREQUENCY);
+            setDoubleParam(GermaniumTP_RBV, count_time / ACQUIRE_TIMER_FREQUENCY);
             break;
         }
         case GermaniumProtocol::Register::UDP_IP_ADDR:
@@ -537,8 +543,14 @@ void GermaniumDetector::processReplyRegWrite(uint32_t addr, uint32_t value)
             setIntegerParam(GermaniumDETMODEL, static_cast<int>(value));
             break;
         case GermaniumProtocol::Register::VERSIONREG:
-            setIntegerParam(GermaniumFVER, static_cast<int>(value));
+        {
+            uint32_t ver    = ( value & 0xff00 ) >> 8;
+            uint32_t subVer =   value & 0xff;
+            std::string s = std::to_string(ver) + '.' + std::to_string(subVer);
+            setStringParam(GermaniumFVER, s);
+            std::println("[{}]: value = {}, ver = {}, subVer = {}, s = {}", __func__, value, ver, subVer, s);
             break;
+        }
         default:
             break;
     }

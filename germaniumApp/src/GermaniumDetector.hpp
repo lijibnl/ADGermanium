@@ -89,6 +89,7 @@
 
 /* Time presets */
 #define GermaniumTpString           "GERMANIUM_TP"
+#define GermaniumTpRbvString        "GERMANIUM_TP_RBV"
 #define GermaniumTp1String          "GERMANIUM_TP1"
 #define GermaniumPr1String          "GERMANIUM_PR1"
 
@@ -371,6 +372,7 @@ public:
     //void processPhotonEvent(int element, int energy, int tdValue);
     void calcSpectra( uint32_t* words, size_t numWords );
     void publishSpectra();
+    void publishSpectraOnFinish();
     void clearSpectra();
 
     //---------------------------------------------------------------------//
@@ -415,7 +417,7 @@ protected:
     int GermaniumDLY, GermaniumDLY1;
 
     /* Time presets */
-    int GermaniumTP, GermaniumTP1, GermaniumPR1;
+    int GermaniumTP, GermaniumTP_RBV, GermaniumTP1, GermaniumPR1;
 
     /* State */
     int GermaniumSS, GermaniumUS, GermaniumT;

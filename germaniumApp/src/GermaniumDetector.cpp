@@ -228,9 +228,10 @@ void GermaniumDetector::createGermaniumParameters()
     createParam(GermaniumDly1String, asynParamFloat64, &GermaniumDLY1);
 
     /* Time presets */
-    createParam(GermaniumTpString,  asynParamFloat64, &GermaniumTP);
-    createParam(GermaniumTp1String, asynParamFloat64, &GermaniumTP1);
-    createParam(GermaniumPr1String, asynParamInt32,   &GermaniumPR1);
+    createParam(GermaniumTpString,     asynParamFloat64, &GermaniumTP);
+    createParam(GermaniumTpRbvString,  asynParamFloat64, &GermaniumTP_RBV);
+    createParam(GermaniumTp1String,    asynParamFloat64, &GermaniumTP1);
+    createParam(GermaniumPr1String,    asynParamInt32,   &GermaniumPR1);
 
     /* State */
     createParam(GermaniumSsString, asynParamInt32,   &GermaniumSS);
@@ -245,7 +246,7 @@ void GermaniumDetector::createGermaniumParameters()
     createParam(GermaniumRodelRbvString, asynParamInt32, &GermaniumRODEL_RBV);
 
     /* Hardware info */
-    createParam(GermaniumFverString, asynParamInt32, &GermaniumFVER);
+    createParam(GermaniumFverString, asynParamOctet, &GermaniumFVER);
     createParam(GermaniumCardString, asynParamInt32, &GermaniumCARD);
 
     /* Detector config */

@@ -357,8 +357,10 @@ record(ai, "$(P)$(R)ReadoutDelay_RBV") {
 # Hardware information
 # =====================================================================
 
-record(ai, "$(P)$(R)FirmwareVersion") {
-    field(DTYP, "asynInt32")
+#record(ai, "$(P)$(R)FirmwareVersion") {
+#    field(DTYP, "asynInt32")
+record(stringin, "$(P)$(R)FirmwareVersion") {
+    field(DTYP, "asynOctetRead")
     field(INP,  "@asyn($(PORT),$(ADDR))GERMANIUM_FVER")
     field(SCAN, "I/O Intr")
     field(DESC, "FPGA firmware version")
