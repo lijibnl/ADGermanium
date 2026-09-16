@@ -425,14 +425,6 @@ void GermaniumDetector::dataProcessThread()
 
                         calcSpectra( words, numWords );
 
-                        //// Process event data words (skip headers, detect SOF/EOF markers)
-                        //for (size_t i = 4; i + 1 < numWords; i += 2)
-                        //{
-                        //    uint32_t w1 = ntohl(words[i]);
-                        //    uint32_t w2 = ntohl(words[i + 1]);
-
-                        //    calcSpectra(w1, w2);
-                        //}
                         threadState = QueueConsumerThreadState::RUNNING;
                     }
                     dataQueue->pop(DATA_PROC_THREAD_INDEX);
@@ -456,19 +448,11 @@ void GermaniumDetector::dataProcessThread()
                     {
                         if ( dataBlock->size > 4 )
                         {
-                            //std::println("[{}]: got data. Calculating spectra...", __func__);
                             // Parse packet as big-endian 32-bit words
                             size_t numWords = dataBlock->size / sizeof(uint32_t) - 2;
                             uint32_t *words = reinterpret_cast<uint32_t*>(const_cast<uint8_t*>(dataBlock->data)) + 2;
 
                             calcSpectra( words, numWords );
-                            //// Process event data words (skip headers, detect SOF/EOF markers)
-                            //for (size_t i = 2; i + 1 < numWords; i += 2)
-                            //{
-                            //    uint32_t w1 = ntohl(words[i]);
-                            //    uint32_t w2 = ntohl(words[i + 1]);
-                            //    calcSpectra(w1, w2);
-                            //}
                         }
 
                         // Pop the processed data block from the queue
@@ -545,35 +529,8 @@ void GermaniumDetector::dataProcessThread()
             //----------------------------------------------------//
             case QueueConsumerThreadState::FINISH:
             {
-                std::println("[{}]: finishing data processing.", __func__);
                 threadState = QueueConsumerThreadState::IDLE;
-
                 publishSpectraOnFinish();
-
-                //uint64_t totalMca = 0;
-                //size_t nonzeroBins = 0;
-                //size_t firstNonzero = 0;
-                //uint32_t firstValue = 0;
-
-                //const size_t totalBins = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-                //for (size_t i = 0; i < totalBins; i++)
-                //{
-                //    uint32_t bin = mcaData[i].load(std::memory_order_relaxed);
-                //    totalMca += bin;
-                //    if (bin != 0)
-                //    {
-                //        if (nonzeroBins == 0)
-                //        {
-                //            firstNonzero = i;
-                //            firstValue = bin;
-                //        }
-                //        nonzeroBins++;
-                //        std::println(" mcaData[{}] = {}", i, bin);
-                //    }
-                //}
-
-                //std::println("[{}]: MCA total={}, nonzeroBins={}, firstNonzero={}, firstValue={}",
-                //            __func__, totalMca, nonzeroBins, firstNonzero, firstValue);
                 break;
             }
             //----------------------------------------------------//

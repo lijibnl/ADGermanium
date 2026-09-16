@@ -452,6 +452,8 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
     static uint32_t count_time_lo = 0;
     static uint32_t count_time_hi = 0;
 
+    static bool detectorAcquisitionRunning = false;
+
     switch( addr )
     {
         case GermaniumProtocol::Register::VERSIONREG:
@@ -481,9 +483,13 @@ void GermaniumDetector::processReplyRegRead( uint32_t addr, uint32_t value )
             setIntegerParam(GermaniumRODEL_RBV, static_cast<int>(value));
             break;
         case GermaniumProtocol::Register::TRIG:
+            if ( detectorAcquisitionRunning && value ==0 )
+                setAcquisitionRunning( false );
+            else if ( value == 1 )
+                setAcquisitionRunning( true );
+            detectorAcquisitionRunning = (value == 1);
             setIntegerParam(GermaniumCNT, static_cast<int>(value));
             setIntegerParam(GermaniumCNT_RBV, static_cast<int>(value));
-            setAcquisitionRunning(value != 0);
             break;
         case GermaniumProtocol::Register::COUNT_MODE:
             setIntegerParam(GermaniumMODE, value ? 1 : 0);

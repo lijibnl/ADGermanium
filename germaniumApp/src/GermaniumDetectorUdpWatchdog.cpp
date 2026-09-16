@@ -20,6 +20,7 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <print>
 
 //===========================================================================//
 
@@ -46,6 +47,7 @@ constexpr double UDP_REINIT_RETRY_PERIOD_SEC = 10.0;
 void GermaniumDetector::setAcquisitionRunning(bool running)
 {
     const bool previous = acquisitionRunning.exchange(running);
+
     if (poller)
         poller->setFast(running);
 

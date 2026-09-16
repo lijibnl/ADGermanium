@@ -504,7 +504,7 @@ private:
     // Acquisition state
     std::atomic<int> evttot {0};
 
-    std::atomic<bool> acquisitionRunning {false};
+    std::atomic<bool> acquisitionRunning {false};  // IOC sees acquisition running
 
     //---------------------------------------------------------------------//
     // ZMQ communication
