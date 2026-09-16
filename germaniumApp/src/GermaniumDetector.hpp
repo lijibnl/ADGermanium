@@ -371,8 +371,13 @@ public:
     // Event processing
     //void processPhotonEvent(int element, int energy, int tdValue);
     void calcSpectra( uint32_t* words, size_t numWords );
-    void publishSpectra();
-    void publishSpectraOnFinish();
+    void publishRawSpectra( std::vector<epicsInt32>& mcaBuffer
+                          , std::vector<epicsInt32>& tdcBuffer
+                          );
+    void publishSpectraNdArray( const std::vector<epicsInt32>& mcaBuffer
+                              , const std::vector<epicsInt32>& tdcBuffer
+                              );
+    void publishSpectra(bool finish);
     void clearSpectra();
 
     //---------------------------------------------------------------------//

@@ -530,7 +530,7 @@ void GermaniumDetector::dataProcessThread()
             case QueueConsumerThreadState::FINISH:
             {
                 threadState = QueueConsumerThreadState::IDLE;
-                publishSpectraOnFinish();
+                publishSpectra(true);
                 break;
             }
             //----------------------------------------------------//
@@ -592,7 +592,11 @@ void GermaniumDetector::calcSpectra( uint32_t* words, size_t numWords )
     //std::println("[{}]: numEvents = {}, numValidEvents = {}", __func__, numEvents, numValidEvents);
 }
 
-void GermaniumDetector::publishSpectra()
+//===========================================================================//
+
+void GermaniumDetector::publishRawSpectra( std::vector<epicsInt32>& mcaBuffer
+                                         , std::vector<epicsInt32>& tdcBuffer
+                                         )
 {
     this->lock();
 
@@ -603,16 +607,13 @@ void GermaniumDetector::publishSpectra()
     int element = chip * 32 + monch;
     if (element <0 ) element = 0;
     if (element >= numElements) element = numElements-1;
-
     
-    const size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-    const size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
+    const size_t mcaTotal = mcaBuffer.size();
+    const size_t tdcTotal = tdcBuffer.size();
     const size_t spectrumTotal = SPECTRUM_SIZE;
     const size_t spectrumOffset = static_cast<size_t>(element) * SPECTRUM_SIZE;
     const size_t intensityTotal = static_cast<size_t>(numElements);
 
-    std::vector<epicsInt32> mcaBuffer(mcaTotal);
-    std::vector<epicsInt32> tdcBuffer(tdcTotal);
     std::vector<epicsInt32> spectrumBuffer(spectrumTotal);
     std::vector<epicsFloat64> spectrumXBuffer(spectrumTotal);
     std::vector<epicsInt32> intensityBuffer(intensityTotal);
@@ -641,51 +642,13 @@ void GermaniumDetector::publishSpectra()
     this->unlock();
 }
 
-void GermaniumDetector::publishSpectraOnFinish()
+//===========================================================================//
+
+void GermaniumDetector::publishSpectraNdArray( const std::vector<epicsInt32>& mcaBuffer
+                                             , const std::vector<epicsInt32>& tdcBuffer
+                                             )
 {
     this->lock();
-
-    int monch, chip;
-    getIntegerParam( GermaniumMONCH, &monch );
-    getIntegerParam( GermaniumCHIP, &chip );
-
-    int element = chip * 32 + monch;
-    if (element <0 ) element = 0;
-    if (element >= numElements) element = numElements-1;
-
-    
-    const size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-    const size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
-    const size_t spectrumTotal = SPECTRUM_SIZE;
-    const size_t spectrumOffset = static_cast<size_t>(element) * SPECTRUM_SIZE;
-    const size_t intensityTotal = static_cast<size_t>(numElements);
-
-    std::vector<epicsInt32> mcaBuffer(mcaTotal);
-    std::vector<epicsInt32> tdcBuffer(tdcTotal);
-    std::vector<epicsInt32> spectrumBuffer(spectrumTotal);
-    std::vector<epicsFloat64> spectrumXBuffer(spectrumTotal);
-    std::vector<epicsInt32> intensityBuffer(intensityTotal);
-
-    for (size_t i = 0; i < mcaTotal; i++)
-        mcaBuffer[i] = static_cast<epicsInt32>(mcaData[i].load(std::memory_order_relaxed));
-
-    for (size_t i = 0; i < tdcTotal; i++)
-        tdcBuffer[i] = static_cast<epicsInt32>(tdcData[i].load(std::memory_order_relaxed));
-
-    for (size_t i = 0; i < spectrumTotal; i++)
-        spectrumBuffer[i] = static_cast<epicsInt32>(mcaData[spectrumOffset + i].load(std::memory_order_relaxed));
-
-    for (size_t i = 0; i < spectrumTotal; i++)
-        spectrumXBuffer[i] = static_cast<epicsFloat64>(i) * 0.1;
-
-    for (size_t i = 0; i < intensityTotal; i++)
-        intensityBuffer[i] = static_cast<epicsInt32>(countRates[i].load(std::memory_order_relaxed));
-
-    doCallbacksInt32Array(mcaBuffer.data(), mcaTotal, GermaniumMCA, 0);
-    doCallbacksInt32Array(tdcBuffer.data(), tdcTotal, GermaniumTDC, 0);
-    doCallbacksInt32Array(spectrumBuffer.data(), spectrumTotal, GermaniumSPCT, 0);
-    doCallbacksFloat64Array(spectrumXBuffer.data(), spectrumTotal, GermaniumSPCTX, 0);
-    doCallbacksInt32Array(intensityBuffer.data(), intensityTotal, GermaniumINTENS, 0);
 
     int arrayCallbacks = 0;
     getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
@@ -755,12 +718,28 @@ void GermaniumDetector::publishSpectraOnFinish()
 
 //===========================================================================//
 
+void GermaniumDetector::publishSpectra( bool finish )
+{
+    const size_t mcaTotal = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
+    const size_t tdcTotal = static_cast<size_t>(numElements) * TDC_SIZE;
 
+    std::vector<epicsInt32> mcaBuffer(mcaTotal);
+    std::vector<epicsInt32> tdcBuffer(tdcTotal);
+
+    publishRawSpectra( mcaBuffer, tdcBuffer );
+
+    if (finish)
+        publishSpectraNdArray( mcaBuffer, tdcBuffer );
+}
+
+//===========================================================================//
 
 void GermaniumDetector::spectraSynchronizeThreadC(void *pPvt)
 {
     static_cast<GermaniumDetector*>(pPvt)->spectraSynchronizeThread();
 }
+
+//===========================================================================//
 
 void GermaniumDetector::spectraSynchronizeThread()
 {
@@ -769,101 +748,9 @@ void GermaniumDetector::spectraSynchronizeThread()
         std::this_thread::sleep_for(std::chrono::seconds(1));
 
         setIntegerParam(GermaniumSS, acquisitionRunning.load() ? 1 : 0);
-        publishSpectra();
+        publishSpectra( false );
     }
 }
-/*
-{
-    asynPrint( pasynUserSelf
-             , ASYN_TRACE_FLOW
-             , "%s: Spectra synchronizing thread started\n"
-             , __func__
-             );
-
-    int arrayCounter = 0;
-    int colorMode = NDColorModeMono;
-
-    while ( threadsRunning.load() )
-    {
-        // Synchronize every 1 second
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-
-        const bool running = acquisitionRunning.load();
-        setIntegerParam(GermaniumSS, running ? 1 : 0);
-        callParamCallbacks();
-
-        // Publish MCA and TDC as NDArrays for plugin chain
-        if (running)
-        {
-            int arrayCallbacks;
-            getIntegerParam(NDArrayCallbacks, &arrayCallbacks);
-
-            if (arrayCallbacks)
-            {
-                // --- MCA NDArray (SPECTRUM_SIZE × numElements, Int32) on addr 0 ---
-                size_t mcaDims[2] = { static_cast<size_t>(SPECTRUM_SIZE),
-                                      static_cast<size_t>(numElements) };
-                NDArray *pMCA = this->pNDArrayPool->alloc(2, mcaDims, NDInt32, 0, nullptr);
-                if (pMCA)
-                {
-                    epicsInt32 *pDest = static_cast<epicsInt32*>(pMCA->pData);
-                    size_t total = static_cast<size_t>(numElements) * SPECTRUM_SIZE;
-                    for (size_t i = 0; i < total; i++)
-                        pDest[i] = mcaData[i].load(std::memory_order_relaxed);
-
-                    pMCA->uniqueId = arrayCounter;
-                    updateTimeStamp(&pMCA->epicsTS);
-                    pMCA->timeStamp = pMCA->epicsTS.secPastEpoch
-                                    + pMCA->epicsTS.nsec * 1e-9;
-                    pMCA->pAttributeList->add("ColorMode", "Color mode",
-                        NDAttrInt32, &colorMode);
-
-                    this->unlock();
-                    doCallbacksGenericPointer(pMCA, NDArrayData, 0);
-                    this->lock();
-                    pMCA->release();
-                }
-
-                // --- TDC NDArray (TDC_SIZE × numElements, Int32) on addr 1 ---
-                size_t tdcDims[2] = { static_cast<size_t>(TDC_SIZE),
-                                      static_cast<size_t>(numElements) };
-                NDArray *pTDC = this->pNDArrayPool->alloc(2, tdcDims, NDInt32, 0, nullptr);
-                if (pTDC)
-                {
-                    epicsInt32 *pDest = static_cast<epicsInt32*>(pTDC->pData);
-                    size_t total = static_cast<size_t>(numElements) * TDC_SIZE;
-                    for (size_t i = 0; i < total; i++)
-                        pDest[i] = tdcData[i].load(std::memory_order_relaxed);
-
-                    pTDC->uniqueId = arrayCounter;
-                    updateTimeStamp(&pTDC->epicsTS);
-                    pTDC->timeStamp = pTDC->epicsTS.secPastEpoch
-                                    + pTDC->epicsTS.nsec * 1e-9;
-                    pTDC->pAttributeList->add("ColorMode", "Color mode",
-                        NDAttrInt32, &colorMode);
-
-                    this->unlock();
-                    doCallbacksGenericPointer(pTDC, NDArrayData, 1);
-                    this->lock();
-                    pTDC->release();
-                }
-
-                arrayCounter++;
-                setIntegerParam(NDArrayCounter, arrayCounter);
-            }
-        }
-
-        callParamCallbacks();
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-
-    asynPrint( pasynUserSelf
-             , ASYN_TRACE_FLOW
-             , "%s: Data processing thread stopped\n"
-             , __func__
-             );
-}
-*/
 
 //===========================================================================//
 
@@ -871,6 +758,8 @@ void GermaniumDetector::dataWriteThreadC(void *pPvt)
 {
     static_cast<GermaniumDetector*>(pPvt)->dataWriteThread();
 }
+
+//===========================================================================//
 
 void GermaniumDetector::dataWriteThread()
 {
