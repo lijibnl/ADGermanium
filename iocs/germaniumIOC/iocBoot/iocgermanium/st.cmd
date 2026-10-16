@@ -1,51 +1,74 @@
-#!../../bin/linux-x86_64/germanium
-
+#!../../bin/linux-x86_64/germaniumDetector
 
 < envPaths
 errlogInit(20000)
 
+##=====================================================##
+
 dbLoadDatabase("$(TOP)/dbd/germaniumDetector.dbd")
-germaniumDetectorApp_registerRecordDeviceDriver(pdbbase) 
+germaniumDetector_registerRecordDeviceDriver(pdbbase)
 
-epicsEnvSet("PREFIX", "Det")
-# The port name for the detector
-epicsEnvSet("PORT",   "GERM")
-epicsEnvSet("QSIZE",  "20")
-# The maximim image width; used for row profiles in the NDPluginStats plugin
-epicsEnvSet("XSIZE",  "487")
-# The maximim image height; used for column profiles in the NDPluginStats plugin
-epicsEnvSet("YSIZE",  "195")
-# The maximum number of time seried points in the NDPluginStats plugin
-epicsEnvSet("NCHANS", "2048")
-# The maximum number of frames buffered in the NDPluginCircularBuff plugin
-epicsEnvSet("CBUFFS", "500")
-# The search path for database files
-epicsEnvSet("EPICS_DB_INCLUDE_PATH", "$(ADCORE)/db")
+##=====================================================##
 
-epicsEnvSet("Detector_IP", "172.16.0.100")
-epicsEnvSet("Detector_PORT", "9527")
+# Load environment specific configurations
+< unique.cmd
 
-drvAsynIPPortConfigure("GeRM","$(Detector_IP):$(Detector_PORT)")
-asynOctetSetInputEos("camserver", 0, "\x18")
-asynOctetSetOutputEos("camserver", 0, "\n")
+##=====================================================##
 
-germaniumDetectorConfig( "$(PORT)", "camserver", $(XSIZE), $(YSIZE), 0, 0 )
+# Create the Germanium detector driver
+# germaniumConfig(portName, numElements, ipAddress, maxAddr, numParams, maxBuffers, maxMemory)
+# maxAddr=2: addr 0 = MCA (4096 × NELM), addr 1 = TDC (1024 × NELM)
+germaniumConfig("$(PORT)", $(NELM), "$(ZYNQ_MAN_IP)", 2, 0, 50, 0)
 
-dbLoadRecords( "$(TOP)/db/germanium.substitutions" )
+# Load detector PV records
+dbLoadRecords("$(ADGERMANIUM)/db/Germanium.template", "P=$(PREFIX),R=,PORT=$(PORT),ADDR=0,NELM=$(NELM),MCA_NELM=$(MCA_NELM),TDC_NELM=$(TDC_NELM)")
 
-# Create a standard arrays plugin
-NDStdArraysConfigure( "Image1", 5, 0, "$(PORT)", 0, 0 )
-dbLoadRecords( "$(ADCORE)/db/NDStdArrays.template", "P=$(PREFIX),R=image1:,PORT=Image1,ADDR=0,TIMEOUT=1,NDARRAY_PORT=$(PORT),TYPE=Int32,FTVL=LONG,NELEMENTS=94965" )
+##=====================================================##
 
+# Load asyn records
+dbLoadRecords("$(ASYN)/db/asynRecord.db", "P=$(PREFIX),R=asyn1,PORT=$(PORT),ADDR=0,OMAX=0,IMAX=0")
 
-# Load all other plugins using commonPlugins.cmd
-< $(ADCORE)/iocBoot/commonPlugins.cmd
-set_requestfile_path("$(ADGERMANIUM)/germaniumApp/Db")
+##=====================================================##
 
+# Load areaDetector plugins and records
+< ad_plugins.cmd
 
+##=====================================================##
+
+# Set path for auto-saving/restoring settings
+#set_requestfile_path("$(ADGERMANIUM)/germaniumApp/Db")
+
+##=====================================================##
+
+# Start the IOC
 cd "${TOP}/iocBoot/${IOC}"
 iocInit
 
-# save things every thirty seconds
-create_monitor_set("auto_settings.req", 30,"P=$(PREFIX)")
+##=====================================================##
+
+# Save/restore
+#create_monitor_set("auto_settings.req", 30, "P=$(PREFIX)")
+
+##=====================================================##
+
+dbl > pv.list
+#dbl
+
+##=====================================================##
+
+#dbpf $(PREFIX)asyn1.TMSK 0x3f
+#dbpf $(PREFIX)asyn1.TIOM 0x7
+#dbpf $(PREFIX)asyn1.TINM 0xf
+
+dbpf $(PREFIX)IPAddress $(ZYNQ_DATA_IP)
+
+# Enable NDArrays
+dbpf $(PREFIX)MCA1:EnableCallbacks 1
+dbpf $(PREFIX)MCA1:ArrayCallbacks 1
+dbpf $(PREFIX)MCA1:Acquire 1
+dbpf $(PREFIX)TDC1:EnableCallbacks 1
+dbpf $(PREFIX)TDC1:ArrayCallbacks 1
+dbpf $(PREFIX)TDC1:Acquire 1
+
+< test.cmd
 

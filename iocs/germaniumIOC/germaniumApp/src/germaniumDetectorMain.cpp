@@ -1,13 +1,7 @@
-// SPDX-FileCopyrightText: 2000 Argonne National Laboratory
-//
-// SPDX-License-Identifier: EPICS
-
-/* germaniumMain.cpp */
-/* Author:  Marty Kraimer Date:    17MAR2000 */
+/* germaniumDetectorMain.cpp */
 
 #include <stddef.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -15,13 +9,13 @@
 #include "epicsThread.h"
 #include "iocsh.h"
 
-int main(int argc,char *argv[])
+int main(int argc, char *argv[])
 {
-    if(argc>=2) {
+    if (argc >= 2) {
         iocsh(argv[1]);
         epicsThreadSleep(.2);
     }
     iocsh(NULL);
     epicsExit(0);
-    return(0);
+    return 0;
 }

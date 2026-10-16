@@ -45,3 +45,6 @@ CHECK_RELEASE = YES
 -include $(TOP)/../CONFIG_SITE.local
 -include $(TOP)/configure/CONFIG_SITE.local
 
+# Pick up ADCore build settings (WITH_HDF5, etc.) so commonDriverMakefile works
+-include $(ADCORE)/configure/CONFIG_SITE
+

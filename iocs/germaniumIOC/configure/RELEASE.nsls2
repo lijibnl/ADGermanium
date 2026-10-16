@@ -1,0 +1,15 @@
+
+ADCORE      = /epics/modules/ADCore
+SUPPORT     = /usr/lib/epics
+ASYN        = $(SUPPORT)
+BUSY        = $(SUPPORT)
+CALC        = $(SUPPORT)
+SSCAN       = $(SUPPORT)
+EPICS_BASE  = $(SUPPORT)
+ADGERMANIUM = /epics/modules/ADGermanium
+
+#include $(EPICS_BASE)/configure/CONFIG_BASE
+
+-include $(TOP)/../../../configure/RELEASE_PRODS_INCLUDE
+-include $(TOP)/RELEASE.local
+-include $(TOP)/configure/RELEASE.local

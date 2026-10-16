@@ -1,37 +1,28 @@
 TOP=../..
 
 include $(TOP)/configure/CONFIG
-#----------------------------------------
-#  ADD MACRO DEFINITIONS AFTER THIS LINE
-#=============================
-PROD_NAME = germaniumDetector
 
-#=============================
-# Build the IOC application
+PROD_NAME = germaniumDetector
 
 PROD_IOC = $(PROD_NAME)
 
 DBD += $(PROD_NAME).dbd
-$(PROD_NAME)_DBD += germaniumDetectorSupport.dbd
+$(PROD_NAME)_DBD += base.dbd
+$(PROD_NAME)_DBD += GermaniumDetectorSupport.dbd
+$(PROD_NAME)_DBD += asyn.dbd
+$(PROD_NAME)_DBD += busySupport.dbd
+$(PROD_NAME)_DBD += calcSupport.dbd
 
-# germanium.dbd will be made up from these files:
+
 PROD_SRCS += $(PROD_NAME)_registerRecordDeviceDriver.cpp
 PROD_SRCS += $(PROD_NAME)Main.cpp
 
+PROD_LIBS += GermaniumDetector
+PROD_LIBS += busy
 
-# Add all the support libraries needed by this IOC
-PROD_LIBS += germaniumDetector
-
-# germanium_registerRecordDeviceDriver.cpp derives from germanium.dbd
-#germanium_SRCS += germanium_registerRecordDeviceDriver.cpp
+# ZMQ system library
+PROD_SYS_LIBS += zmq
 
 include $(ADCORE)/ADApp/commonDriverMakefile
-$(PROD_NAME)_DBD += drvAsynIPPort.dbd
-
-
-#===========================
 
 include $(TOP)/configure/RULES
-#----------------------------------------
-#  ADD RULES AFTER THIS LINE
-

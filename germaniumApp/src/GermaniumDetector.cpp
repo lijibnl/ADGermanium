@@ -1,0 +1,500 @@
+/**
+ * @file GermaniumDetector.cpp
+ * @brief Constructor, parameter creation and initialization for GermaniumDetector
+ *        areaDetector driver (ZMQ version).
+ *
+ * @author Ji Li <liji@bnl.gov>
+ * @date 04/03/2026
+ * 
+ * @copyright
+ * Copyright (c) 2026 Brookhaven National Laboratory
+ * @license BSD 3-Clause License. See LICENSE file for details.
+ */
+
+//===========================================================================//
+#include <cstdlib>
+#include <cstring>
+#include <algorithm>
+//#include <print>
+#include <iostream>
+
+#include "GermaniumDetector.hpp"
+#include "EpicsPoller.hpp"
+#include "GermaniumDetectorProtocol.hpp"
+
+//===========================================================================//
+
+GermaniumDetector::GermaniumDetector( const char *portName
+                                    , int         numElements
+                                    , const char *ipAddress
+                                    , int         maxAddr
+                                    , int         numParams
+                                    , int         maxBuffers
+                                    , size_t      maxMemory
+                                    , int         interfaceMask
+                                    , int         interruptMask
+                                    , int         asynFlags
+                                    , int         autoConnect
+                                    , int         priority
+                                    , int         stackSize
+                                    )
+                                    : ADDriver( portName
+                                              , maxAddr
+                                              , numParams
+                                              , maxBuffers
+                                              , maxMemory
+                                              , interfaceMask
+                                              , interruptMask
+                                              , asynFlags
+                                              , autoConnect
+                                              , priority
+                                              , stackSize
+                                              )
+                                    //, txQueueMutex_         ( nullptr     )
+                                    //, txQueueEvent_         ( nullptr     )
+                                    //, plUdpSocket           ( -1          )
+                                    //, plUdpInitialized      ( false       )
+                                    , numElements           ( numElements )
+                                    , zmqTxEndpoint         ( std::string("tcp://")
+                                                            + ipAddress
+                                                            + ":"
+                                                            + ZMQ_CMD_PORT )
+                                    , zmqRxEndpoint         ( std::string("tcp://")
+                                                            + ipAddress
+                                                            + ":"
+                                                            + ZMQ_REPLY_PORT )
+                                    //, zmqTxThreadId         ( nullptr     )
+                                    //, zmqRxThreadId         ( nullptr     )
+                                    //, plUdpDataThreadId     ( nullptr     )
+                                    //, dataProcessingThreadId( nullptr     )
+                                    //, dataWriteThreadId     ( nullptr     )
+                                    //, threadsRunning        ( true        )
+                                    //, dataAvailable         ( nullptr     )
+                                    //, evttot                ( 0           )
+                                    //, acquisitionRunning    ( false       )
+                                    //, fileWritingEnabled    ( false       )
+                                    //, currentFileHandle     ( -1          )
+                                    //, totalFilesWritten     ( 0           )
+                                    //, currentFileSize       ( 0           )
+                                    //, currentSegmentNumber  ( 0           )
+                                    //, totalBytesWritten     ( 0           )
+                                    //, dataQueue             ( nullptr     )
+                                    //, dataQueueHead         ( 0           )
+                                    //, dataQueueTail         ( 0           )
+                                    //, dataWriteAvailable    ( nullptr     )
+                                    //, mcaData               ( nullptr     )
+                                    //, tdcData               ( nullptr     )
+                                    //, countRates            ( nullptr     )
+                                    //, totalCounts           ( nullptr     )
+{
+    strncpy(this->ipAddress, ipAddress, sizeof(this->ipAddress) - 1);
+    this->ipAddress[sizeof(this->ipAddress) - 1] = '\0';
+
+    // Set chip count based on element count
+    switch (numElements)
+    {
+        case 96:  nchips = 3;  break;
+        case 192: nchips = 6;  break;
+        case 384: nchips = 12; break;
+        default:
+            asynPrint( pasynUserSelf
+                     , ASYN_TRACE_ERROR
+                     , "%s: invalid numElements %d, defaulting to 192\n"
+                     , portName
+                     , numElements);
+            this->numElements = 192;
+            nchips = 6;
+            break;
+    }
+
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: %d elements, %d chips, IP: %s\n"
+             , portName
+             , this->numElements
+             , nchips
+             , this->ipAddress
+             );
+
+    allocateDataArrays();
+    createGermaniumParameters();
+    setGermaniumInitialValues();
+
+    //---------------------------------------------------------------------//
+
+    // ZMQ initialiatoin
+    if ( !initializeZmq() )
+    {
+        std::cerr << "[" << __func__ << "]: failed to initialize ZMQ\n";
+    }
+
+    //---------------------------------------------------------------------//
+    
+    // Read initial parameters
+    readInitParams();
+
+    //---------------------------------------------------------------------//
+
+    // UDP related initialization
+    if (!udpInit())
+    {
+        std::cerr << "[" << __func__ << "]: failed to initialize UDP\n";
+    }
+    
+
+    //---------------------------------------------------------------------//
+
+    // Poller initialization
+    if ( !createPoller() )
+    {
+        std::cerr << "[" << __func__ << "]: failed to create poller thread\n";
+        return;
+    }
+    std::cout << "[" << __func__ << "]: Poller thread created\n";
+
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: initialized\n"
+             , portName
+             );
+}
+
+//===========================================================================//
+
+GermaniumDetector::~GermaniumDetector()
+{
+    threadsRunning.store(false);
+    acquisitionRunning.store(false);
+    udpInitRequested.store(false);
+    udpDataFileWriteEnable.store(false);
+
+    closeCurrentDataFile();
+    closePlUdpSocket();
+    closeUdpRegisterSocket();
+
+    asynPrint( pasynUserSelf
+             , ASYN_TRACE_FLOW
+             , "%s: destroyed\n"
+             , portName
+             );
+}
+
+//===========================================================================//
+
+void GermaniumDetector::createGermaniumParameters()
+{
+    /* Basic info */
+    createParam(GermaniumDetModelString, asynParamInt32, &GermaniumDETMODEL);
+
+    /* Data arrays */
+    createParam(GermaniumMcaString,    asynParamInt32Array,   &GermaniumMCA);
+    createParam(GermaniumTdcString,    asynParamInt32Array,   &GermaniumTDC);
+    createParam(GermaniumSpctString,   asynParamInt32Array,   &GermaniumSPCT);
+    createParam(GermaniumSpctxString,  asynParamFloat64Array, &GermaniumSPCTX);
+    createParam(GermaniumIntensString, asynParamInt32Array,   &GermaniumINTENS);
+
+    /* Display size */
+    createParam(GermaniumExsizeString, asynParamInt32, &GermaniumEXSIZE);
+    createParam(GermaniumEysizeString, asynParamInt32, &GermaniumEYSIZE);
+    createParam(GermaniumTxsizeString, asynParamInt32, &GermaniumTXSIZE);
+    createParam(GermaniumTysizeString, asynParamInt32, &GermaniumTYSIZE);
+
+    /* Network */
+    createParam(GermaniumIpaddrString,    asynParamOctet, &GermaniumIPADDR);
+    createParam(GermaniumIpaddrRbvString, asynParamOctet, &GermaniumIPADDR_RBV);
+    createParam(GermaniumUdpReachableRbvString, asynParamInt32, &GermaniumUDPReachable_RBV);
+
+    /* File handling */
+    createParam(GermaniumUdpDataFileWriteEnableString,  asynParamInt32, &GermaniumUDPDataFileWriteEnable);
+    createParam(GermaniumFnamString,  asynParamOctet, &GermaniumFNAM);
+    createParam(GermaniumCalfString,  asynParamOctet, &GermaniumCALF);
+    createParam(GermaniumDirString,   asynParamOctet, &GermaniumDIR);
+    createParam(GermaniumFsizeString, asynParamInt32, &GermaniumFSIZE);
+
+    /* Timing and control */
+    createParam(GermaniumFreqString,   asynParamFloat64, &GermaniumFREQ);
+    createParam(GermaniumCntString,    asynParamInt32,   &GermaniumCNT);
+    createParam(GermaniumCntRbvString, asynParamInt32,   &GermaniumCNT_RBV);
+    createParam(GermaniumPcntString,   asynParamInt32,   &GermaniumPCNT);
+    createParam(GermaniumContString,   asynParamInt32,   &GermaniumCONT);
+    createParam(GermaniumModeString,   asynParamInt32,   &GermaniumMODE);
+
+    /* Display rates */
+    createParam(GermaniumRateString, asynParamFloat64, &GermaniumRATE);
+    createParam(GermaniumRat1String, asynParamFloat64, &GermaniumRAT1);
+
+    /* Delays */
+    createParam(GermaniumDlyString,  asynParamFloat64, &GermaniumDLY);
+    createParam(GermaniumDly1String, asynParamFloat64, &GermaniumDLY1);
+
+    /* Time presets */
+    createParam(GermaniumTpString,     asynParamFloat64, &GermaniumTP);
+    createParam(GermaniumTpRbvString,  asynParamFloat64, &GermaniumTP_RBV);
+    createParam(GermaniumTp1String,    asynParamFloat64, &GermaniumTP1);
+    createParam(GermaniumPr1String,    asynParamInt32,   &GermaniumPR1);
+
+    /* State */
+    createParam(GermaniumSsString, asynParamInt32,   &GermaniumSS);
+    createParam(GermaniumUsString, asynParamInt32,   &GermaniumUS);
+    createParam(GermaniumTString,  asynParamFloat64, &GermaniumT);
+
+    /* Run control */
+    createParam(GermaniumRunnoString,    asynParamInt32, &GermaniumRUNNO);
+    createParam(GermaniumPldelString,    asynParamInt32, &GermaniumPLDEL);
+    createParam(GermaniumPldelRbvString, asynParamInt32, &GermaniumPLDEL_RBV);
+    createParam(GermaniumRodelString,    asynParamInt32, &GermaniumRODEL);
+    createParam(GermaniumRodelRbvString, asynParamInt32, &GermaniumRODEL_RBV);
+
+    /* Hardware info */
+    createParam(GermaniumFverString, asynParamOctet, &GermaniumFVER);
+    createParam(GermaniumCardString, asynParamInt32, &GermaniumCARD);
+
+    /* Detector config */
+    createParam(GermaniumNelmString,   asynParamInt32, &GermaniumNELM);
+    createParam(GermaniumNchString,    asynParamInt32, &GermaniumNCH);
+    createParam(GermaniumNchipsString, asynParamInt32, &GermaniumNCHIPS);
+    createParam(GermaniumChanString,   asynParamInt32, &GermaniumCHAN);
+    createParam(GermaniumChipString,   asynParamInt32, &GermaniumCHIP);
+
+    /* Analog settings */
+    createParam(GermaniumShptString, asynParamInt32, &GermaniumSHPT);
+    createParam(GermaniumGainString, asynParamInt32, &GermaniumGAIN);
+    createParam(GermaniumPolString,  asynParamInt32, &GermaniumPOL);
+    createParam(GermaniumEblkString, asynParamInt32, &GermaniumEBLK);
+
+    /* Monitor */
+    createParam(GermaniumGmonString,  asynParamInt32, &GermaniumGMON);
+    createParam(GermaniumMonchString, asynParamInt32, &GermaniumMONCH);
+    createParam(GermaniumLoaoString,  asynParamInt32, &GermaniumLOAO);
+
+    /* Processing */
+    createParam(GermaniumPuenString, asynParamInt32, &GermaniumPUEN);
+    createParam(GermaniumMfsString,  asynParamInt32, &GermaniumMFS);
+
+    /* TDC */
+    createParam(GermaniumTdsString, asynParamInt32, &GermaniumTDS);
+    createParam(GermaniumTdmString, asynParamInt32, &GermaniumTDM);
+
+    /* Test pulse */
+    createParam(GermaniumTpampString,    asynParamInt32, &GermaniumTPAMP);
+    createParam(GermaniumTpfrqString,    asynParamInt32, &GermaniumTPFRQ);
+    createParam(GermaniumTpcntString,    asynParamInt32, &GermaniumTPCNT);
+    createParam(GermaniumTpenbString,    asynParamInt32, &GermaniumTPENB);
+    createParam(GermaniumTpampRbvString, asynParamInt32, &GermaniumTPAMP_RBV);
+    createParam(GermaniumTpfrqRbvString, asynParamInt32, &GermaniumTPFRQ_RBV);
+    createParam(GermaniumTpcntRbvString, asynParamInt32, &GermaniumTPCNT_RBV);
+    createParam(GermaniumTpenbRbvString, asynParamInt32, &GermaniumTPENB_RBV);
+
+    /* Per-channel settings */
+//    createParam(GermaniumChenString,    asynParamInt8Array,    &GermaniumCHEN);
+//    createParam(GermaniumTsenString,    asynParamInt8Array,    &GermaniumTSEN);
+    createParam(GermaniumThtrString,    asynParamInt8Array,    &GermaniumTHTR);
+    createParam(GermaniumPutrString,    asynParamInt8Array,    &GermaniumPUTR);
+    createParam(GermaniumChenSelString, asynParamInt32,        &GermaniumCHEN_SEL);
+    createParam(GermaniumChenAllString, asynParamInt32,        &GermaniumCHEN_ALL);
+    createParam(GermaniumTsenSelString, asynParamInt32,        &GermaniumTSEN_SEL);
+    createParam(GermaniumTsenAllString, asynParamInt32,        &GermaniumTSEN_ALL);
+    createParam(GermaniumSlpString,     asynParamFloat64Array, &GermaniumSLP);
+    createParam(GermaniumOffsString,    asynParamFloat64Array, &GermaniumOFFS);
+
+    /* Thresholds */
+    createParam(GermaniumThrshString,   asynParamInt32Array,   &GermaniumTHRSH);
+
+    /* */
+    createParam(GermaniumClreString, asynParamInt32, &GermaniumCLRE);
+    createParam(GermaniumClrmString, asynParamInt32, &GermaniumCLRM);
+    createParam(GermaniumClrtString, asynParamInt32, &GermaniumCLRT);
+    createParam(GermaniumStrtString, asynParamInt32, &GermaniumSTRT);
+    createParam(GermaniumStopString, asynParamInt32, &GermaniumSTOP);
+
+    /* Display/formatting */
+    createParam(GermaniumEguString,  asynParamOctet, &GermaniumEGU);
+    createParam(GermaniumPrecString, asynParamInt32, &GermaniumPREC);
+
+    /* Output links */
+    createParam(GermaniumCoutString,  asynParamOctet, &GermaniumCOUT);
+    createParam(GermaniumCoutpString, asynParamOctet, &GermaniumCOUTP);
+
+    /* Temperatures */
+    createParam(GermaniumTemp1String,       asynParamFloat64, &GermaniumTEMP1);
+    createParam(GermaniumTemp2String,       asynParamFloat64, &GermaniumTEMP2);
+    createParam(GermaniumTemp3String,       asynParamFloat64, &GermaniumTEMP3);
+    createParam(GermaniumZTempString,       asynParamFloat64, &GermaniumZTEMP);
+
+    /* High voltage */
+    createParam(GermaniumHvString,          asynParamFloat64, &GermaniumHV);
+    createParam(GermaniumHvRbvString,       asynParamFloat64, &GermaniumHV_RBV);
+    createParam(GermaniumHvCurrString,      asynParamFloat64, &GermaniumHV_CURR);
+    
+    /* ADCs */
+    createParam(GermaniumAdc0ClkSkewString, asynParamInt32,   &GermaniumADC0_CLK_SKEW);
+    createParam(GermaniumAdc1ClkSkewString, asynParamInt32,   &GermaniumADC1_CLK_SKEW);
+    createParam(GermaniumAdc2ClkSkewString, asynParamInt32,   &GermaniumADC2_CLK_SKEW);
+    
+    /* MISC status */
+    createParam(GermaniumP1String,          asynParamFloat64, &GermaniumP1);
+    createParam(GermaniumP2String,          asynParamFloat64, &GermaniumP2);
+    createParam(GermaniumP1CurrString,      asynParamFloat64, &GermaniumP1_CURR);
+    createParam(GermaniumP2CurrString,      asynParamFloat64, &GermaniumP2_CURR);
+
+    /* MISC controls */
+    createParam(GermaniumLogLevelString,    asynParamInt32,   &GermaniumLOG_LEVEL);
+}
+
+//===========================================================================//
+
+void GermaniumDetector::setGermaniumInitialValues()
+{
+    setIntegerParam(NDArrayCallbacks, 1);
+    setIntegerParam(NDArrayCounter,   0);
+
+    setIntegerParam(GermaniumEXSIZE, SPECTRUM_SIZE);
+    setIntegerParam(GermaniumEYSIZE, numElements);
+    setIntegerParam(GermaniumTXSIZE, TDC_SIZE);
+    setIntegerParam(GermaniumTYSIZE, numElements);
+
+    setStringParam(GermaniumIPADDR, ipAddress);
+    setStringParam(GermaniumDIR,    "/tmp/germanium/");
+    setStringParam(GermaniumFNAM,   "germanium_data");
+    setIntegerParam(GermaniumFSIZE, 100);  // 100 MB default
+
+    setDoubleParam(GermaniumFREQ, 25.0e6); // 25 MHz (FPGA clock)
+    setDoubleParam(GermaniumRATE, 2.0);
+    setDoubleParam(GermaniumTP1,  1.0);
+
+    setIntegerParam(GermaniumNELM,   numElements);
+    setIntegerParam(GermaniumNCHIPS, nchips);
+    setIntegerParam(GermaniumPLDEL,  72);
+    setIntegerParam(GermaniumRODEL,  15);
+
+    setIntegerParam(GermaniumUDPDataFileWriteEnable,  0);
+    setIntegerParam(GermaniumCNT,   0);
+    setIntegerParam(GermaniumCONT,  0);
+    setIntegerParam(GermaniumMODE,  0);
+    setIntegerParam(GermaniumSHPT,  1);
+    setIntegerParam(GermaniumGAIN,  0);
+    setIntegerParam(GermaniumPOL,   1);
+    setIntegerParam(GermaniumEBLK,  1);
+    setIntegerParam(GermaniumGMON,  0);
+    setIntegerParam(GermaniumLOAO,  1);
+    setIntegerParam(GermaniumPUEN,  0);
+    setIntegerParam(GermaniumMFS,   0);
+    setIntegerParam(GermaniumTDS,   0);
+    setIntegerParam(GermaniumTDM,   0);
+    setIntegerParam(GermaniumTPENB, 0);
+
+    setStringParam(GermaniumEGU,   "counts");
+    setIntegerParam(GermaniumPREC, 0);
+
+    //=================================================
+    // Placeholders for RBVs that require ZMQ readback
+    //=================================================
+
+    // String / octet
+    setStringParam(GermaniumIPADDR_RBV, "");
+    setIntegerParam(GermaniumUDPReachable_RBV, 0);
+
+    // Int32 scalars
+    setIntegerParam(GermaniumDETMODEL, 0);
+
+    setIntegerParam(GermaniumPCNT,    0);
+    setIntegerParam(GermaniumCNT_RBV, 0);
+
+    setIntegerParam(GermaniumPR1,   0);
+    setIntegerParam(GermaniumUS,    0);
+    setIntegerParam(GermaniumRUNNO, 0);
+
+    setIntegerParam(GermaniumPLDEL_RBV, 0);
+    setIntegerParam(GermaniumRODEL_RBV, 0);
+
+    setIntegerParam(GermaniumFVER, 0);
+    setIntegerParam(GermaniumCARD, 0);
+
+    setIntegerParam(GermaniumNCH, 0);
+
+    setIntegerParam(GermaniumCHAN,  0);
+    setIntegerParam(GermaniumCHIP,  0);
+    setIntegerParam(GermaniumMONCH, 0);
+
+    setIntegerParam(GermaniumTPAMP, 0);
+    setIntegerParam(GermaniumTPFRQ, 0);
+    setIntegerParam(GermaniumTPCNT, 0);
+
+    setIntegerParam(GermaniumTPAMP_RBV, 0);
+    setIntegerParam(GermaniumTPFRQ_RBV, 0);
+    setIntegerParam(GermaniumTPCNT_RBV, 0);
+    setIntegerParam(GermaniumTPENB_RBV, 0);
+
+    setIntegerParam(GermaniumCHEN_SEL, 0);
+    setIntegerParam(GermaniumCHEN_ALL, 0);
+    setIntegerParam(GermaniumTSEN_SEL, 0);
+    setIntegerParam(GermaniumTSEN_ALL, 0);
+
+    setIntegerParam(GermaniumCLRE, 0);
+    setIntegerParam(GermaniumCLRM, 0);
+    setIntegerParam(GermaniumCLRT, 0);
+    setIntegerParam(GermaniumSTRT, 0);
+    setIntegerParam(GermaniumSTOP, 0);
+
+    setIntegerParam(GermaniumADC0_CLK_SKEW, 0);
+    setIntegerParam(GermaniumADC1_CLK_SKEW, 0);
+    setIntegerParam(GermaniumADC2_CLK_SKEW, 0);
+
+    // Float64 scalars
+    setDoubleParam(GermaniumRAT1, 0.0);
+    setDoubleParam(GermaniumDLY,  0.0);
+    setDoubleParam(GermaniumDLY1, 0.0);
+    setDoubleParam(GermaniumTP,   0.0);
+    setDoubleParam(GermaniumT,    0.0);
+
+    // Sensors
+    setDoubleParam(GermaniumTEMP1,   0.0);
+    setDoubleParam(GermaniumTEMP2,   0.0);
+    setDoubleParam(GermaniumTEMP3,   0.0);
+    setDoubleParam(GermaniumZTEMP,   0.0);
+    setDoubleParam(GermaniumHV,      0.0);
+    setDoubleParam(GermaniumHV_RBV,  0.0);
+    setDoubleParam(GermaniumHV_CURR, 0.0);
+    setDoubleParam(GermaniumP1,      0.0);
+    setDoubleParam(GermaniumP2,      0.0);
+    setDoubleParam(GermaniumP1_CURR, 0.0);
+    setDoubleParam(GermaniumP2_CURR, 0.0);
+
+    callParamCallbacks();
+}
+
+//===========================================================================//
+
+void GermaniumDetector::readInitParams()
+{
+    requestProtocolVersion();
+
+    for ( auto i : initPollInfo )
+    {
+        zmqTx( i.opCode, i.addr, 0 );
+    }
+}
+
+//===========================================================================//
+
+bool GermaniumDetector::createPoller()
+{
+    poller = std::make_unique<EpicsPoller>();
+    poller->setFast(false);
+
+    for( const auto& info : pollInfo )
+    {
+        poller->addItem( std::make_unique<EpicsPollItem>( info.slowDivider
+                                                        , info.fastDivider
+                                                        , [this, info](){ this->zmqTx(info.opCode, info.addr, 0); }
+                                                        )
+                       );
+//        std::cout << "Poller: " << GermaniumProtocol::commandName(info.opCode) << ", "
+//                  << GermaniumProtocol::registerName(info.addr) << "\n";
+    }
+    poller->setRunning(true);
+
+    return true;
+}
+
+//=============================================================================//

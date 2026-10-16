@@ -1,0 +1,51 @@
+- cmd: ZMQ_CMD_REG_READ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - MARS_CALPULSE
+      - CALPULSE_RATE
+      - CALPULSE_CNT
+      - CALPULSE_MODE
+      - MARS_PIPE_DELAY
+      - MARS_RDOUT_ENB
+      - SIM_EVT_SEL
+      - COUNT_MODE
+      - TRIG
+      - EVENT_TIME_CNTR
+      - COUNT_TIME_LO
+      - COUNT_TIME_HI
+      - UDP_IP_ADDR
+
+- cmd: ZMQ_CMD_I2C_TEMP_READ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - TEMPERATURE1_SELECTOR
+      - TEMPERATURE2_SELECTOR
+      - TEMPERATURE3_SELECTOR
+
+- cmd: ZMQ_CMD_XADC_READ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - 0
+
+- cmd: ZMQ_CMD_I2C_ADC_READ
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - ADC_CH_HV_RBV
+      - ADC_CH_HV_CUR
+      - ADC_CH_P1_CUR
+      - ADC_CH_P2_CUR
+
+- cmd: ZMQ_CMD_HEARTBEAT
+  regular:
+    slow-rate: POLLING_DIVIDER_1HZ
+    fast-rate: POLLING_DIVIDER_10HZ
+    registers:
+      - 0
